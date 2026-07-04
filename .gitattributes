@@ -1,0 +1,53 @@
+# ============================================
+# Project Terraforge — .gitattributes
+# 1) Normaliza quebras de linha (evita conflitos Windows/Mac/Linux)
+# 2) Manda arquivos binários grandes para o Git LFS
+# ============================================
+
+* text=auto
+
+# --- Código e assets de texto da Unity: diff normal ---
+*.cs text diff=csharp
+*.shader text
+*.unity text
+*.prefab text
+*.mat text
+*.asset text
+*.meta text
+*.json text
+*.md text
+
+# --- Imagens e texturas → LFS ---
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+
+# --- Modelos 3D → LFS ---
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.obj filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+
+# --- Áudio → LFS ---
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.ogg filter=lfs diff=lfs merge=lfs -text
+*.aif filter=lfs diff=lfs merge=lfs -text
+
+# --- Vídeo → LFS ---
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.mov filter=lfs diff=lfs merge=lfs -text
+
+# --- Fontes → LFS ---
+*.ttf filter=lfs diff=lfs merge=lfs -text
+*.otf filter=lfs diff=lfs merge=lfs -text
+
+# --- Outros binários → LFS ---
+*.dll filter=lfs diff=lfs merge=lfs -text
+*.a filter=lfs diff=lfs merge=lfs -text
+*.so filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text

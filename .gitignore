@@ -1,0 +1,53 @@
+# ============================================
+# Project Terraforge — .gitignore
+# Regra: só versionamos o que NÃO é regenerável.
+# ============================================
+
+# --- Pastas geradas pela Unity (regeneráveis a partir de Assets/) ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# --- Arquivos gerados por IDEs (VS Code, Rider, Visual Studio) ---
+.vs/
+.vscode/
+.idea/
+.consulo/
+ExportedObj/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# --- Relatórios de crash e artefatos de build ---
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.unitypackage
+*.unitypackage.meta
+*.app
+
+# --- Sistema operacional ---
+Thumbs.db
+Desktop.ini
+.DS_Store
