@@ -3,6 +3,7 @@
     "rootNamespace": "Terraforge.UI",
     "references": [
         "Terraforge.Core",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
     ]
 }

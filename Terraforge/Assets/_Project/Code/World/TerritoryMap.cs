@@ -58,6 +58,30 @@ namespace Terraforge.World
             return cell >= 0 && _cellOwners[cell] == civilizationId;
         }
 
+        public Vector3 GetRandomUnownedPosition()
+        {
+            IPlanet planet = PlanetLocator.Current;
+            if (planet == null)
+            {
+                return Vector3.zero;
+            }
+
+            EnsureBuilt(planet);
+
+            // Sorteia até achar célula livre; num planeta quase todo dominado,
+            // devolve qualquer uma após 128 tentativas (fim de partida raro).
+            for (int attempt = 0; attempt < 128; attempt++)
+            {
+                int cell = Random.Range(0, _cellCount);
+                if (_cellOwners[cell] == NoOwner)
+                {
+                    return GetCellSurfacePosition(cell, planet);
+                }
+            }
+
+            return GetCellSurfacePosition(Random.Range(0, _cellCount), planet);
+        }
+
         /// <summary>Entrega uma calota à civilização (a base inicial de cada uma).</summary>
         public void ClaimCap(byte ownerId, Vector3 capDirection, float capAngleDegrees)
         {

@@ -29,6 +29,11 @@ namespace Terraforge.World
 
             Vector3 capDirection = (transform.position - planet.Center).normalized;
             map.ClaimCap(civilization.Id, capDirection, GetCapAngleDegrees(planet));
+
+            // Registra o campo de força: destino de corredores cortados e
+            // zona de regeneração de vida (DD-097/DD-099).
+            HomeBaseRegistry.Register(
+                civilization.Id, transform.position, transform.lossyScale.x * 0.5f);
         }
 
         // Geometria do domo: uma esfera de raio r com centro na superfície de

@@ -12,7 +12,7 @@ namespace Terraforge.Gameplay
     /// A LISTA é o dado de jogo; a linha é apenas a projeção visual dela.
     /// </summary>
     [RequireComponent(typeof(LineRenderer))]
-    public sealed class RunnerTrail : MonoBehaviour
+    public sealed class RunnerTrail : MonoBehaviour, ICuttableTrail
     {
         [SerializeField] private Material _trailMaterial;
 
@@ -36,6 +36,28 @@ namespace Terraforge.Gameplay
         /// <summary>Os pontos do rastro, para os sistemas de circuito e corte.</summary>
         public IReadOnlyList<Vector3> Points => _points;
 
+        public byte OwnerId => _civilization != null ? _civilization.Id : (byte)0;
+
+        /// <summary>
+        /// Corte por adversário (DD-099): a expansão quebra na hora e o
+        /// acontecimento é anunciado — vida, efeitos e som reagem sozinhos.
+        /// </summary>
+        public void Cut(byte attackerId)
+        {
+            if (_points.Count == 0)
+            {
+                return;
+            }
+
+            ClearTrail();
+            EventBus.Publish(new TrailCutEvent(OwnerId, attackerId));
+        }
+
+        private void OnDestroy()
+        {
+            TrailRegistry.Unregister(this);
+        }
+
         private void Awake()
         {
             _civilization = GetComponent<Civilization>();
@@ -43,6 +65,10 @@ namespace Terraforge.Gameplay
             {
                 Debug.LogError($"[RunnerTrail] {name} precisa do crachá Civilization.");
                 enabled = false;
+            }
+            else
+            {
+                TrailRegistry.Register(this);
             }
 
             _line = GetComponent<LineRenderer>();
