@@ -5,10 +5,10 @@ using UnityEngine;
 namespace Terraforge.Gameplay
 {
     /// <summary>
-    /// O rastro do corredor (base do SYS-001): registra os pontos da superfície
-    /// por onde o personagem passou e os desenha como uma linha colada ao chão.
-    /// A LISTA é o dado de jogo (fechamento de circuito, corte por inimigos);
-    /// a linha é apenas a projeção visual dela.
+    /// O rastro do corredor (SYS-001): existe apenas FORA do território-base.
+    /// Sair da base inicia a gravação; retornar fecha o circuito, anuncia
+    /// TerritoryLoopClosedEvent no EventBus e limpa a trilha.
+    /// A LISTA é o dado de jogo; a linha é apenas a projeção visual dela.
     /// </summary>
     [RequireComponent(typeof(LineRenderer))]
     public sealed class RunnerTrail : MonoBehaviour
@@ -24,8 +24,12 @@ namespace Terraforge.Gameplay
         // superfície da esfera (efeito zebrado chamado z-fighting).
         [SerializeField] private float _surfaceOffset = 0.15f;
 
+        // Um circuito precisa de pelo menos um triângulo para cercar área.
+        private const int MinPointsForLoop = 3;
+
         private readonly List<Vector3> _points = new();
         private LineRenderer _line;
+        private bool _wasInsideHome = true;
 
         /// <summary>Os pontos do rastro, para os sistemas de circuito e corte.</summary>
         public IReadOnlyList<Vector3> Points => _points;
@@ -48,29 +52,56 @@ namespace Terraforge.Gameplay
                 return;
             }
 
-            Vector3 surfacePoint = GetFootPointOnSurface(planet);
+            IHomeTerritory home = HomeTerritoryLocator.Current;
+            bool insideHome = home != null && home.Contains(transform.position);
 
+            if (insideHome)
+            {
+                bool closedLoop = !_wasInsideHome && _points.Count >= MinPointsForLoop;
+                if (closedLoop)
+                {
+                    // Cópia da lista: o rastro é limpo em seguida, mas quem
+                    // recebeu o evento precisa dos pontos intactos.
+                    EventBus.Publish(new TerritoryLoopClosedEvent(new List<Vector3>(_points)));
+                }
+
+                if (_points.Count > 0)
+                {
+                    ClearTrail();
+                }
+            }
+            else
+            {
+                RecordPointIfFarEnough(GetFootPointOnSurface(planet));
+            }
+
+            _wasInsideHome = insideHome;
+        }
+
+        private void RecordPointIfFarEnough(Vector3 surfacePoint)
+        {
             bool farEnoughFromLast =
                 _points.Count == 0 ||
                 Vector3.Distance(_points[^1], surfacePoint) >= _pointSpacing;
 
             if (farEnoughFromLast)
             {
-                AddPoint(surfacePoint);
+                _points.Add(surfacePoint);
+                _line.positionCount = _points.Count;
+                _line.SetPosition(_points.Count - 1, surfacePoint);
             }
+        }
+
+        private void ClearTrail()
+        {
+            _points.Clear();
+            _line.positionCount = 0;
         }
 
         private Vector3 GetFootPointOnSurface(IPlanet planet)
         {
             Vector3 up = (transform.position - planet.Center).normalized;
             return planet.Center + up * (planet.Radius + _surfaceOffset);
-        }
-
-        private void AddPoint(Vector3 point)
-        {
-            _points.Add(point);
-            _line.positionCount = _points.Count;
-            _line.SetPosition(_points.Count - 1, point);
         }
     }
 }
