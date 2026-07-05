@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 303465983}
   - component: {fileID: 303465982}
   - component: {fileID: 303465981}
-  - component: {fileID: 303465980}
+  - component: {fileID: 303465985}
   m_Layer: 0
   m_Name: HomeBase
   m_TagString: Untagged
@@ -139,18 +139,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &303465980
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 303465979}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 277867baaddd92f4885b32059f72fe26, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.HomeTerritory
 --- !u!135 &303465981
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -197,7 +185,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: c8ca3d1e10e428b4b80b05c50e37800f, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -244,6 +232,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &303465985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 303465979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 277867baaddd92f4885b32059f72fe26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.HomeTerritory
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -539,6 +539,8 @@ GameObject:
   - component: {fileID: 444825547}
   - component: {fileID: 444825546}
   - component: {fileID: 444825550}
+  - component: {fileID: 444825551}
+  - component: {fileID: 444825552}
   m_Layer: 0
   m_Name: Planet
   m_TagString: Untagged
@@ -592,7 +594,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c8ca3d1e10e428b4b80b05c50e37800f, type: 2}
+  - {fileID: 2100000, guid: 49bc1f36ea87a704c94c471e0636c7a2, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -651,6 +653,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 347e12977bd2d2e4098d8af135d18998, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.Planet
+--- !u!114 &444825551
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444825545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fef8200ac6d7f2d458d9b27635573fbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.TerritoryPainter
+  _territoryMaterial: {fileID: 2100000, guid: c8ca3d1e10e428b4b80b05c50e37800f, type: 2}
+  _surfaceOffset: 0.1
+  _subdivisionLevels: 2
+--- !u!114 &444825552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444825545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d6a3e17bed01ac439866d0c63530fe0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.TerritoryMap
+  _cellCount: 20000
+  _boundaryThickness: 2.4
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

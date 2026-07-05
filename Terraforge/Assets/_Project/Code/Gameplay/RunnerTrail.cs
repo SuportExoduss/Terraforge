@@ -5,9 +5,10 @@ using UnityEngine;
 namespace Terraforge.Gameplay
 {
     /// <summary>
-    /// O rastro do corredor (SYS-001): existe apenas FORA do território-base.
-    /// Sair da base inicia a gravação; retornar fecha o circuito, anuncia
-    /// TerritoryLoopClosedEvent no EventBus e limpa a trilha.
+    /// O rastro do corredor (SYS-001): existe apenas FORA do território do
+    /// jogador (base inicial + tudo que já foi conquistado). Sair do domínio
+    /// inicia a gravação; retornar a qualquer parte dele fecha o circuito,
+    /// anuncia TerritoryLoopClosedEvent no EventBus e limpa a trilha.
     /// A LISTA é o dado de jogo; a linha é apenas a projeção visual dela.
     /// </summary>
     [RequireComponent(typeof(LineRenderer))]
@@ -29,7 +30,7 @@ namespace Terraforge.Gameplay
 
         private readonly List<Vector3> _points = new();
         private LineRenderer _line;
-        private bool _wasInsideHome = true;
+        private bool _wasInsideOwnedTerritory = true;
 
         /// <summary>Os pontos do rastro, para os sistemas de circuito e corte.</summary>
         public IReadOnlyList<Vector3> Points => _points;
@@ -52,12 +53,12 @@ namespace Terraforge.Gameplay
                 return;
             }
 
-            IHomeTerritory home = HomeTerritoryLocator.Current;
-            bool insideHome = home != null && home.Contains(transform.position);
+            ITerritoryOwnership territory = TerritoryOwnershipLocator.Current;
+            bool insideOwned = territory != null && territory.IsOwnedByPlayer(transform.position);
 
-            if (insideHome)
+            if (insideOwned)
             {
-                bool closedLoop = !_wasInsideHome && _points.Count >= MinPointsForLoop;
+                bool closedLoop = !_wasInsideOwnedTerritory && _points.Count >= MinPointsForLoop;
                 if (closedLoop)
                 {
                     // Cópia da lista: o rastro é limpo em seguida, mas quem
@@ -75,7 +76,7 @@ namespace Terraforge.Gameplay
                 RecordPointIfFarEnough(GetFootPointOnSurface(planet));
             }
 
-            _wasInsideHome = insideHome;
+            _wasInsideOwnedTerritory = insideOwned;
         }
 
         private void RecordPointIfFarEnough(Vector3 surfacePoint)

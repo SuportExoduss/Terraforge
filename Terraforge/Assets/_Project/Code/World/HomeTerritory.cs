@@ -4,35 +4,28 @@ using UnityEngine;
 namespace Terraforge.World
 {
     /// <summary>
-    /// Território inicial do jogador: um domo (esfera semi-enterrada) cuja
-    /// área lógica na superfície é derivada do próprio tamanho visual —
-    /// redimensionar o domo redimensiona o território automaticamente.
+    /// O domo do território inicial: além do visual da base, registra a
+    /// calota correspondente no TerritoryMap quando a partida começa —
+    /// a partir daí, a posse é toda gerenciada pelo mapa de células.
     /// </summary>
-    public sealed class HomeTerritory : MonoBehaviour, IHomeTerritory
+    public sealed class HomeTerritory : MonoBehaviour
     {
-        private void Awake()
-        {
-            HomeTerritoryLocator.Register(this);
-            EventBus.Subscribe<TerritoryLoopClosedEvent>(OnLoopClosed);
-        }
-
-        private void OnDestroy()
-        {
-            HomeTerritoryLocator.Unregister(this);
-            EventBus.Unsubscribe<TerritoryLoopClosedEvent>(OnLoopClosed);
-        }
-
-        public bool Contains(Vector3 worldPosition)
+        private void Start()
         {
             IPlanet planet = PlanetLocator.Current;
-            if (planet == null)
+
+            // Busca única na inicialização (nunca em loops de frame);
+            // referência direta permitida: TerritoryMap é do mesmo módulo.
+            TerritoryMap map = FindAnyObjectByType<TerritoryMap>();
+
+            if (planet == null || map == null)
             {
-                return false;
+                Debug.LogError("[World] HomeTerritory requer Planet e TerritoryMap na cena.");
+                return;
             }
 
-            Vector3 baseDirection = (transform.position - planet.Center).normalized;
-            Vector3 pointDirection = (worldPosition - planet.Center).normalized;
-            return Vector3.Angle(baseDirection, pointDirection) <= GetCapAngleDegrees(planet);
+            Vector3 capDirection = (transform.position - planet.Center).normalized;
+            map.ClaimCap(capDirection, GetCapAngleDegrees(planet));
         }
 
         // Geometria do domo: uma esfera de raio r com centro na superfície de
@@ -41,14 +34,6 @@ namespace Terraforge.World
         {
             float domeRadius = transform.lossyScale.x * 0.5f;
             return Mathf.Asin(Mathf.Clamp01(domeRadius / planet.Radius)) * Mathf.Rad2Deg;
-        }
-
-        // Reação provisória: na Entrega 3, aqui nasce a conquista real da área.
-        private void OnLoopClosed(TerritoryLoopClosedEvent loopEvent)
-        {
-            Debug.Log(
-                $"[World] Circuito fechado com {loopEvent.TrailPoints.Count} pontos! " +
-                "Área será conquistada na próxima entrega.");
         }
     }
 }
