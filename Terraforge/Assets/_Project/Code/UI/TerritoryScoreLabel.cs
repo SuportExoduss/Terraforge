@@ -28,6 +28,13 @@ namespace Terraforge.UI
 
         private void OnScoreChanged(TerritoryScoreChangedEvent scoreEvent)
         {
+            // Este rótulo mostra apenas a civilização do jogador local;
+            // o placar dos adversários virá na tela de ranking.
+            if (scoreEvent.OwnerId != Civilization.PlayerId)
+            {
+                return;
+            }
+
             _label.text = $"Domínio: {scoreEvent.OwnedFraction * 100f:F1}%";
         }
     }

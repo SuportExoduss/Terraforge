@@ -4,10 +4,10 @@ namespace Terraforge.Core
 {
     /// <summary>
     /// O que os módulos podem perguntar sobre posse territorial:
-    /// "este ponto do mundo pertence ao jogador?".
+    /// "este ponto do mundo pertence à civilização X?".
     /// </summary>
     public interface ITerritoryOwnership
     {
-        bool IsOwnedByPlayer(Vector3 worldPosition);
+        bool IsOwnedBy(byte civilizationId, Vector3 worldPosition);
     }
 }

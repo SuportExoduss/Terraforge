@@ -13,19 +13,22 @@ namespace Terraforge.World
         private void Start()
         {
             IPlanet planet = PlanetLocator.Current;
+            Civilization civilization = GetComponent<Civilization>();
 
             // Busca única na inicialização (nunca em loops de frame);
             // referência direta permitida: TerritoryMap é do mesmo módulo.
             TerritoryMap map = FindAnyObjectByType<TerritoryMap>();
 
-            if (planet == null || map == null)
+            if (planet == null || map == null || civilization == null)
             {
-                Debug.LogError("[World] HomeTerritory requer Planet e TerritoryMap na cena.");
+                Debug.LogError(
+                    "[World] HomeTerritory requer Planet e TerritoryMap na cena " +
+                    "e o crachá Civilization no próprio domo.");
                 return;
             }
 
             Vector3 capDirection = (transform.position - planet.Center).normalized;
-            map.ClaimCap(capDirection, GetCapAngleDegrees(planet));
+            map.ClaimCap(civilization.Id, capDirection, GetCapAngleDegrees(planet));
         }
 
         // Geometria do domo: uma esfera de raio r com centro na superfície de

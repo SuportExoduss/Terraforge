@@ -1,13 +1,14 @@
 using Terraforge.Core;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Terraforge.Gameplay
 {
     /// <summary>
     /// Movimento contínuo sobre a superfície do planeta (GDMD: "o jogador
-    /// nunca para de correr"). O jogador controla apenas a direção (A/D ou
-    /// setas); a gravidade aponta sempre para o centro do planeta.
+    /// nunca para de correr"). A direção vem de um "motorista"
+    /// (ISteeringSource) no mesmo objeto: teclado para o jogador,
+    /// cérebro de bot para adversários. A gravidade aponta sempre para o
+    /// centro do planeta.
     /// </summary>
     public sealed class PlanetRunner : MonoBehaviour
     {
@@ -18,9 +19,16 @@ namespace Terraforge.Gameplay
         [SerializeField] private float _heightOffset = 1f;
 
         private Vector3 _forward;
+        private ISteeringSource _steering;
 
         private void Awake()
         {
+            _steering = GetComponent<ISteeringSource>();
+            if (_steering == null)
+            {
+                Debug.LogError($"[PlanetRunner] {name} não tem um motorista (ISteeringSource).");
+            }
+
             EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
         }
 
@@ -61,7 +69,7 @@ namespace Terraforge.Gameplay
                 return;
             }
 
-            float steer = ReadSteerInput();
+            float steer = _steering?.GetSteer() ?? 0f;
 
             // 1. Gira a direção de corrida ao redor do "up" local (o volante).
             Vector3 up = (transform.position - planet.Center).normalized;
@@ -81,28 +89,6 @@ namespace Terraforge.Gameplay
 
             // 5. Aplica posição e postura: pés para o centro, olhar para frente.
             transform.SetPositionAndRotation(next, Quaternion.LookRotation(_forward, nextUp));
-        }
-
-        private static float ReadSteerInput()
-        {
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null)
-            {
-                return 0f;
-            }
-
-            float steer = 0f;
-            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)
-            {
-                steer -= 1f;
-            }
-
-            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)
-            {
-                steer += 1f;
-            }
-
-            return steer;
         }
     }
 }

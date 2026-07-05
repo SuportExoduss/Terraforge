@@ -30,6 +30,7 @@ namespace Terraforge.Gameplay
 
         private readonly List<Vector3> _points = new();
         private LineRenderer _line;
+        private Civilization _civilization;
         private bool _wasInsideOwnedTerritory = true;
 
         /// <summary>Os pontos do rastro, para os sistemas de circuito e corte.</summary>
@@ -37,6 +38,13 @@ namespace Terraforge.Gameplay
 
         private void Awake()
         {
+            _civilization = GetComponent<Civilization>();
+            if (_civilization == null)
+            {
+                Debug.LogError($"[RunnerTrail] {name} precisa do crachá Civilization.");
+                enabled = false;
+            }
+
             _line = GetComponent<LineRenderer>();
             _line.useWorldSpace = true;
             _line.startWidth = _width;
@@ -54,7 +62,8 @@ namespace Terraforge.Gameplay
             }
 
             ITerritoryOwnership territory = TerritoryOwnershipLocator.Current;
-            bool insideOwned = territory != null && territory.IsOwnedByPlayer(transform.position);
+            bool insideOwned =
+                territory != null && territory.IsOwnedBy(_civilization.Id, transform.position);
 
             if (insideOwned)
             {
@@ -63,7 +72,8 @@ namespace Terraforge.Gameplay
                 {
                     // Cópia da lista: o rastro é limpo em seguida, mas quem
                     // recebeu o evento precisa dos pontos intactos.
-                    EventBus.Publish(new TerritoryLoopClosedEvent(new List<Vector3>(_points)));
+                    EventBus.Publish(
+                        new TerritoryLoopClosedEvent(_civilization.Id, new List<Vector3>(_points)));
                 }
 
                 if (_points.Count > 0)

@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 121cf808c09c01449a49efa6385a6b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Terraforge.Core::Terraforge.Core.MatchTimer
-  _matchDurationSeconds: 30
+  _matchDurationSeconds: 60
 --- !u!4 &135765003
 Transform:
   m_ObjectHideFlags: 0
@@ -177,6 +177,7 @@ GameObject:
   - component: {fileID: 303465982}
   - component: {fileID: 303465981}
   - component: {fileID: 303465985}
+  - component: {fileID: 303465986}
   m_Layer: 0
   m_Name: HomeBase
   m_TagString: Untagged
@@ -289,6 +290,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 277867baaddd92f4885b32059f72fe26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.HomeTerritory
+--- !u!114 &303465986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 303465979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3f066da553c91c4bafdaf82a3424c1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.Core::Terraforge.Core.Civilization
+  _id: 1
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -728,7 +742,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fef8200ac6d7f2d458d9b27635573fbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.TerritoryPainter
-  _territoryMaterial: {fileID: 2100000, guid: c8ca3d1e10e428b4b80b05c50e37800f, type: 2}
+  _civilizationMaterials:
+  - {fileID: 2100000, guid: c8ca3d1e10e428b4b80b05c50e37800f, type: 2}
   _surfaceOffset: 0.1
   _tileRadiusFactor: 0.95
 --- !u!114 &444825552
@@ -888,6 +903,8 @@ GameObject:
   - component: {fileID: 1519421580}
   - component: {fileID: 1519421586}
   - component: {fileID: 1519421585}
+  - component: {fileID: 1519421588}
+  - component: {fileID: 1519421587}
   m_Layer: 0
   m_Name: Runner
   m_TagString: Untagged
@@ -1131,6 +1148,31 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!114 &1519421587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1519421579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3427b59ae11d9b941b9e94c0c32030ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.PlayerSteering
+--- !u!114 &1519421588
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1519421579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3f066da553c91c4bafdaf82a3424c1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.Core::Terraforge.Core.Civilization
+  _id: 1
 --- !u!1 &1659649662
 GameObject:
   m_ObjectHideFlags: 0

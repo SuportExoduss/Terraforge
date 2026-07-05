@@ -6,9 +6,10 @@ namespace Terraforge.World
 {
     /// <summary>
     /// A verdade sobre a posse do planeta: uma grade de células distribuídas
-    /// uniformemente na esfera (espiral de Fibonacci), cada uma com um dono.
-    /// Conquistar = marcar células; "estou em casa?" = "esta célula é minha?".
-    /// É a fundação do SYS-001/SYS-002 e, no futuro, do multiplayer.
+    /// uniformemente na esfera (espiral de Fibonacci), cada uma com o id da
+    /// civilização dona. Conquistar = marcar células; cercar território
+    /// inimigo o converte (bolsões presos no cerco mudam de dono).
+    /// Fundação do SYS-001/SYS-002 e, no futuro, do multiplayer.
     /// </summary>
     public sealed class TerritoryMap : MonoBehaviour, ITerritoryOwnership
     {
@@ -19,14 +20,14 @@ namespace Terraforge.World
         [SerializeField] private float _boundaryThickness = 2.4f;
 
         private const byte NoOwner = 0;
-        private const byte PlayerOwner = 1;
+        private const int MaxOwners = 16;
 
         // Tamanho angular dos baldes de busca (graus de latitude/longitude).
         private const float BucketSizeDegrees = 3f;
 
         private Vector3[] _cellDirections;
         private byte[] _cellOwners;
-        private int _playerCellCount;
+        private readonly int[] _cellCountsByOwner = new int[MaxOwners];
         private Dictionary<Vector2Int, List<int>> _buckets;
         private float _cellSpacing;
         private bool _built;
@@ -43,7 +44,7 @@ namespace Terraforge.World
             EventBus.Unsubscribe<TerritoryLoopClosedEvent>(OnLoopClosed);
         }
 
-        public bool IsOwnedByPlayer(Vector3 worldPosition)
+        public bool IsOwnedBy(byte civilizationId, Vector3 worldPosition)
         {
             IPlanet planet = PlanetLocator.Current;
             if (planet == null)
@@ -54,11 +55,11 @@ namespace Terraforge.World
             EnsureBuilt(planet);
             Vector3 direction = (worldPosition - planet.Center).normalized;
             int cell = FindNearestCell(direction, _cellSpacing * 2f, planet);
-            return cell >= 0 && _cellOwners[cell] == PlayerOwner;
+            return cell >= 0 && _cellOwners[cell] == civilizationId;
         }
 
-        /// <summary>Marca como do jogador todas as células de uma calota (a base inicial).</summary>
-        public void ClaimCap(Vector3 capDirection, float capAngleDegrees)
+        /// <summary>Entrega uma calota à civilização (a base inicial de cada uma).</summary>
+        public void ClaimCap(byte ownerId, Vector3 capDirection, float capAngleDegrees)
         {
             IPlanet planet = PlanetLocator.Current;
             if (planet == null)
@@ -68,16 +69,17 @@ namespace Terraforge.World
 
             EnsureBuilt(planet);
             var newlyClaimed = new List<Vector3>();
+            var dispossessed = new HashSet<byte>();
             float minDot = Mathf.Cos(capAngleDegrees * Mathf.Deg2Rad);
             for (int i = 0; i < _cellDirections.Length; i++)
             {
                 if (Vector3.Dot(_cellDirections[i], capDirection) >= minDot)
                 {
-                    ClaimCell(i, planet, newlyClaimed);
+                    ClaimCell(ownerId, i, planet, newlyClaimed, dispossessed);
                 }
             }
 
-            PublishClaims(newlyClaimed);
+            PublishClaims(ownerId, newlyClaimed, dispossessed);
         }
 
         private void OnLoopClosed(TerritoryLoopClosedEvent loopEvent)
@@ -89,22 +91,23 @@ namespace Terraforge.World
             }
 
             EnsureBuilt(planet);
-            ClaimLoopInterior(planet, loopEvent.TrailPoints);
+            ClaimLoopInterior(loopEvent.OwnerId, planet, loopEvent.TrailPoints);
         }
 
         // ------------------------------------------------------------------
         // Conquista pelo método do "lado de fora": marca a cerca do rastro,
-        // inunda o exterior do domínio a partir do ponto livre mais distante
-        // e conquista TUDO que não respirar o lado de fora. Nenhum bolsão
-        // cercado escapa — se está fechado, é do jogador (regra do GDMD).
+        // inunda o exterior do domínio a partir do ponto mais distante que
+        // não pertence ao conquistador e converte TUDO que ficou cercado —
+        // células livres e inimigas. Fechou, dominou 100% (regra do GDMD).
         // ------------------------------------------------------------------
-        private void ClaimLoopInterior(IPlanet planet, IReadOnlyList<Vector3> trailPoints)
+        private void ClaimLoopInterior(byte ownerId, IPlanet planet, IReadOnlyList<Vector3> trailPoints)
         {
             var newlyClaimed = new List<Vector3>();
+            var dispossessed = new HashSet<byte>();
             float sampleStep = _cellSpacing * 0.5f;
 
             // 1. A cerca: células próximas de cada trecho do rastro viram do
-            //    jogador (amostrado ponto a ponto para não deixar frestas).
+            //    conquistador (amostrado ponto a ponto para não deixar frestas).
             Vector3 centroidSum = Vector3.zero;
             var fence = new HashSet<int>();
             for (int i = 0; i < trailPoints.Count; i++)
@@ -126,17 +129,17 @@ namespace Terraforge.World
 
             foreach (int cell in fence)
             {
-                ClaimCell(cell, planet, newlyClaimed);
+                ClaimCell(ownerId, cell, planet, newlyClaimed, dispossessed);
             }
 
-            // 2. Semente do lado de fora: a célula LIVRE mais distante do
-            //    circuito (o ponto do planeta que com certeza não foi cercado).
+            // 2. Semente do lado de fora: a célula mais distante do circuito
+            //    que NÃO pertence ao conquistador.
             Vector3 centroid = centroidSum.normalized;
             int outsideSeed = -1;
             float lowestDot = 2f;
             for (int i = 0; i < _cellDirections.Length; i++)
             {
-                if (_cellOwners[i] != NoOwner)
+                if (_cellOwners[i] == ownerId)
                 {
                     continue;
                 }
@@ -149,8 +152,9 @@ namespace Terraforge.World
                 }
             }
 
-            // 3. Inunda o exterior: tudo que é livre e alcançável a partir da
-            //    semente, sem atravessar território do jogador, é "oceano".
+            // 3. Inunda o exterior: tudo que não é do conquistador e é
+            //    alcançável a partir da semente, sem atravessar o domínio
+            //    dele, respira o "oceano".
             var exterior = new HashSet<int>();
             if (outsideSeed >= 0)
             {
@@ -167,7 +171,7 @@ namespace Terraforge.World
 
                     foreach (int neighbor in neighborBuffer)
                     {
-                        if (_cellOwners[neighbor] == NoOwner && exterior.Add(neighbor))
+                        if (_cellOwners[neighbor] != ownerId && exterior.Add(neighbor))
                         {
                             frontier.Enqueue(neighbor);
                         }
@@ -175,28 +179,41 @@ namespace Terraforge.World
                 }
             }
 
-            // 4. O veredito: célula livre que não respira o oceano está
-            //    cercada pelo domínio do jogador — conquistada.
+            // 4. O veredito: quem não é do conquistador e não respira o
+            //    oceano está cercado — convertido, seja livre ou inimigo.
             for (int i = 0; i < _cellDirections.Length; i++)
             {
-                if (_cellOwners[i] == NoOwner && !exterior.Contains(i))
+                if (_cellOwners[i] != ownerId && !exterior.Contains(i))
                 {
-                    ClaimCell(i, planet, newlyClaimed);
+                    ClaimCell(ownerId, i, planet, newlyClaimed, dispossessed);
                 }
             }
 
-            PublishClaims(newlyClaimed);
-            Debug.Log($"[World] Território anexado ao domínio do jogador: {newlyClaimed.Count} células novas.");
+            PublishClaims(ownerId, newlyClaimed, dispossessed);
+            Debug.Log(
+                $"[World] Civilização {ownerId} anexou {newlyClaimed.Count} células" +
+                (dispossessed.Count > 0 ? " (convertendo território inimigo!)." : "."));
         }
 
-        private void ClaimCell(int cell, IPlanet planet, List<Vector3> newlyClaimed)
+        private void ClaimCell(
+            byte ownerId, int cell, IPlanet planet,
+            List<Vector3> newlyClaimed, HashSet<byte> dispossessed)
         {
-            if (_cellOwners[cell] != PlayerOwner)
+            byte previousOwner = _cellOwners[cell];
+            if (previousOwner == ownerId)
             {
-                _cellOwners[cell] = PlayerOwner;
-                _playerCellCount++;
-                newlyClaimed.Add(GetCellSurfacePosition(cell, planet));
+                return;
             }
+
+            if (previousOwner != NoOwner)
+            {
+                _cellCountsByOwner[previousOwner]--;
+                dispossessed.Add(previousOwner);
+            }
+
+            _cellOwners[cell] = ownerId;
+            _cellCountsByOwner[ownerId]++;
+            newlyClaimed.Add(GetCellSurfacePosition(cell, planet));
         }
 
         private Vector3 GetCellSurfacePosition(int cell, IPlanet planet)
@@ -204,12 +221,22 @@ namespace Terraforge.World
             return planet.Center + _cellDirections[cell] * planet.Radius;
         }
 
-        private void PublishClaims(List<Vector3> newlyClaimed)
+        private void PublishClaims(byte ownerId, List<Vector3> newlyClaimed, HashSet<byte> dispossessed)
         {
-            if (newlyClaimed.Count > 0)
+            if (newlyClaimed.Count == 0)
             {
-                EventBus.Publish(new TerritoryCellsClaimedEvent(newlyClaimed, _cellSpacing));
-                EventBus.Publish(new TerritoryScoreChangedEvent((float)_playerCellCount / _cellCount));
+                return;
+            }
+
+            EventBus.Publish(new TerritoryCellsClaimedEvent(ownerId, newlyClaimed, _cellSpacing));
+            EventBus.Publish(new TerritoryScoreChangedEvent(
+                ownerId, (float)_cellCountsByOwner[ownerId] / _cellCount));
+
+            // Quem perdeu terreno também tem placar novo.
+            foreach (byte loser in dispossessed)
+            {
+                EventBus.Publish(new TerritoryScoreChangedEvent(
+                    loser, (float)_cellCountsByOwner[loser] / _cellCount));
             }
         }
 
