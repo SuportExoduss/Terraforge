@@ -1,3 +1,4 @@
+using Terraforge.Core;
 using UnityEngine;
 
 namespace Terraforge.Gameplay
@@ -14,6 +15,23 @@ namespace Terraforge.Gameplay
         [SerializeField] private float _backDistance = 5f;
         [SerializeField] private float _positionSmoothing = 5f;
         [SerializeField] private float _rotationSmoothing = 5f;
+
+        private void Awake()
+        {
+            EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+        }
+
+        // Fim de partida: esta câmera se aposenta e passa o bastão
+        // para a ContemplationCamera.
+        private void OnMatchEnded(MatchEndedEvent matchEnded)
+        {
+            enabled = false;
+        }
 
         // LateUpdate roda DEPOIS de todos os Updates do frame: o corredor
         // se move primeiro, a câmera reage por último — nunca o contrário.

@@ -19,6 +19,23 @@ namespace Terraforge.Gameplay
 
         private Vector3 _forward;
 
+        private void Awake()
+        {
+            EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+        }
+
+        // Fim de partida: o corredor para; o planeta permanece para
+        // contemplação (GDMD, encerramento da partida).
+        private void OnMatchEnded(MatchEndedEvent matchEnded)
+        {
+            enabled = false;
+        }
+
         private void Start()
         {
             IPlanet planet = PlanetLocator.Current;
