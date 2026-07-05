@@ -26,6 +26,7 @@ namespace Terraforge.World
 
         private Vector3[] _cellDirections;
         private byte[] _cellOwners;
+        private int _playerCellCount;
         private Dictionary<Vector2Int, List<int>> _buckets;
         private float _cellSpacing;
         private bool _built;
@@ -70,11 +71,9 @@ namespace Terraforge.World
             float minDot = Mathf.Cos(capAngleDegrees * Mathf.Deg2Rad);
             for (int i = 0; i < _cellDirections.Length; i++)
             {
-                bool inside = Vector3.Dot(_cellDirections[i], capDirection) >= minDot;
-                if (inside && _cellOwners[i] != PlayerOwner)
+                if (Vector3.Dot(_cellDirections[i], capDirection) >= minDot)
                 {
-                    _cellOwners[i] = PlayerOwner;
-                    newlyClaimed.Add(GetCellSurfacePosition(i, planet));
+                    ClaimCell(i, planet, newlyClaimed);
                 }
             }
 
@@ -195,6 +194,7 @@ namespace Terraforge.World
             if (_cellOwners[cell] != PlayerOwner)
             {
                 _cellOwners[cell] = PlayerOwner;
+                _playerCellCount++;
                 newlyClaimed.Add(GetCellSurfacePosition(cell, planet));
             }
         }
@@ -209,6 +209,7 @@ namespace Terraforge.World
             if (newlyClaimed.Count > 0)
             {
                 EventBus.Publish(new TerritoryCellsClaimedEvent(newlyClaimed, _cellSpacing));
+                EventBus.Publish(new TerritoryScoreChangedEvent((float)_playerCellCount / _cellCount));
             }
         }
 
