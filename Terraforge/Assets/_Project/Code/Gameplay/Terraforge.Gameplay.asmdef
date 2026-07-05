@@ -1,0 +1,7 @@
+{
+    "name": "Terraforge.Gameplay",
+    "rootNamespace": "Terraforge.Gameplay",
+    "references": [
+        "Terraforge.Core"
+    ]
+}

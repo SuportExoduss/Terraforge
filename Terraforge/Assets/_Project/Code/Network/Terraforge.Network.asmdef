@@ -1,0 +1,7 @@
+{
+    "name": "Terraforge.Network",
+    "rootNamespace": "Terraforge.Network",
+    "references": [
+        "Terraforge.Core"
+    ]
+}

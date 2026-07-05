@@ -1,0 +1,7 @@
+{
+    "name": "Terraforge.AI",
+    "rootNamespace": "Terraforge.AI",
+    "references": [
+        "Terraforge.Core"
+    ]
+}
