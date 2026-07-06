@@ -44,6 +44,21 @@ namespace Terraforge.AI
 
             _homePosition = transform.position;
             _noiseSeed = Random.value * 100f;
+            EventBus.Subscribe<BaseRelocatedEvent>(OnBaseRelocated);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
+        }
+
+        // DD-100: a nave mudou de lugar — o "para casa" do cérebro acompanha.
+        private void OnBaseRelocated(BaseRelocatedEvent relocatedEvent)
+        {
+            if (_civilization != null && relocatedEvent.OwnerId == _civilization.Id)
+            {
+                _homePosition = relocatedEvent.NewPosition;
+            }
         }
 
         public float GetSteer()

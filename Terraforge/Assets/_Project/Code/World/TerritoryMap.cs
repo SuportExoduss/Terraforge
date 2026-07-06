@@ -58,6 +58,47 @@ namespace Terraforge.World
             return cell >= 0 && _cellOwners[cell] == civilizationId;
         }
 
+        /// <summary>Quem é o dono do chão neste ponto (0 = ninguém).</summary>
+        public byte GetOwnerAt(Vector3 worldPosition)
+        {
+            IPlanet planet = PlanetLocator.Current;
+            if (planet == null)
+            {
+                return NoOwner;
+            }
+
+            EnsureBuilt(planet);
+            Vector3 direction = (worldPosition - planet.Center).normalized;
+            int cell = FindNearestCell(direction, _cellSpacing * 2f, planet);
+            return cell >= 0 ? _cellOwners[cell] : NoOwner;
+        }
+
+        /// <summary>
+        /// DD-100: dominar a base = herdar o império. Converte TODAS as
+        /// células da vítima para o conquistador, com placares atualizados.
+        /// </summary>
+        public void ConvertAllCellsOf(byte victimId, byte conquerorId)
+        {
+            IPlanet planet = PlanetLocator.Current;
+            if (planet == null || victimId == conquerorId || conquerorId == NoOwner)
+            {
+                return;
+            }
+
+            EnsureBuilt(planet);
+            var newlyClaimed = new List<Vector3>();
+            var dispossessed = new HashSet<byte>();
+            for (int i = 0; i < _cellDirections.Length; i++)
+            {
+                if (_cellOwners[i] == victimId)
+                {
+                    ClaimCell(conquerorId, i, planet, newlyClaimed, dispossessed);
+                }
+            }
+
+            PublishClaims(conquerorId, newlyClaimed, dispossessed);
+        }
+
         public Vector3 GetRandomUnownedPosition()
         {
             IPlanet planet = PlanetLocator.Current;
@@ -213,10 +254,80 @@ namespace Terraforge.World
                 }
             }
 
+            // DD-102: fragmentos inimigos que perderam a conexão com a
+            // própria base são amputados — viram do conquistador.
+            ConvertDisconnectedEnemyRegions(ownerId, planet, newlyClaimed, dispossessed);
+
             PublishClaims(ownerId, newlyClaimed, dispossessed);
             Debug.Log(
                 $"[World] Civilização {ownerId} anexou {newlyClaimed.Count} células" +
                 (dispossessed.Count > 0 ? " (convertendo território inimigo!)." : "."));
+        }
+
+        // ------------------------------------------------------------------
+        // DD-102: para cada civilização inimiga, inunda o território dela a
+        // partir da célula da base; o que o "sangue" da base não alcançar
+        // está amputado e é convertido para o conquistador.
+        // ------------------------------------------------------------------
+        private void ConvertDisconnectedEnemyRegions(
+            byte conquerorId, IPlanet planet, List<Vector3> newlyClaimed, HashSet<byte> dispossessed)
+        {
+            for (byte enemy = 1; enemy < MaxOwners; enemy++)
+            {
+                if (enemy == conquerorId || _cellCountsByOwner[enemy] <= 0)
+                {
+                    continue;
+                }
+
+                if (!HomeBaseRegistry.TryGet(enemy, out HomeBaseRegistry.BaseInfo baseInfo))
+                {
+                    continue;
+                }
+
+                Vector3 baseDirection = (baseInfo.Position - planet.Center).normalized;
+                int baseCell = FindNearestCell(baseDirection, _cellSpacing * 3f, planet);
+                if (baseCell < 0 || _cellOwners[baseCell] != enemy)
+                {
+                    // A própria base foi convertida: cenário do DD-100
+                    // (realocação da nave), tratado em entrega futura.
+                    continue;
+                }
+
+                var connected = new HashSet<int> { baseCell };
+                var frontier = new Queue<int>();
+                frontier.Enqueue(baseCell);
+                var neighborBuffer = new List<int>();
+
+                while (frontier.Count > 0)
+                {
+                    int cell = frontier.Dequeue();
+                    neighborBuffer.Clear();
+                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, neighborBuffer);
+
+                    foreach (int neighbor in neighborBuffer)
+                    {
+                        if (_cellOwners[neighbor] == enemy && connected.Add(neighbor))
+                        {
+                            frontier.Enqueue(neighbor);
+                        }
+                    }
+                }
+
+                if (connected.Count >= _cellCountsByOwner[enemy])
+                {
+                    continue; // território inteiro conectado — nada a amputar
+                }
+
+                for (int i = 0; i < _cellDirections.Length; i++)
+                {
+                    if (_cellOwners[i] == enemy && !connected.Contains(i))
+                    {
+                        ClaimCell(conquerorId, i, planet, newlyClaimed, dispossessed);
+                    }
+                }
+
+                Debug.Log($"[World] Território amputado da civilização {enemy} (DD-102).");
+            }
         }
 
         private void ClaimCell(

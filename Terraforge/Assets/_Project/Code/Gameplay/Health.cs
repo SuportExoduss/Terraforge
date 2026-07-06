@@ -10,10 +10,12 @@ namespace Terraforge.Gameplay
     /// </summary>
     public sealed class Health : MonoBehaviour
     {
-        [SerializeField] private float _cutDamageFraction = 1f / 6f;
+        // DD-098: barra de 5 segmentos; cada dano tira um segmento (1/5).
+        [SerializeField] private float _cutDamageFraction = 0.2f;
 
-        // Fração da barra recuperada por segundo dentro do campo de força.
-        [SerializeField] private float _regenFractionPerSecond = 0.06f;
+        // DD-098: cada segmento leva 5s para encher no campo de força
+        // (1/5 de 1/5 por segundo = 4% da barra total).
+        [SerializeField] private float _regenFractionPerSecond = 0.04f;
 
         private Civilization _civilization;
         private float _fraction = 1f;
@@ -29,6 +31,7 @@ namespace Terraforge.Gameplay
             }
 
             EventBus.Subscribe<TrailCutEvent>(OnTrailCut);
+            EventBus.Subscribe<BaseRelocatedEvent>(OnBaseRelocated);
         }
 
         private void Start()
@@ -39,6 +42,19 @@ namespace Terraforge.Gameplay
         private void OnDestroy()
         {
             EventBus.Unsubscribe<TrailCutEvent>(OnTrailCut);
+            EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
+        }
+
+        // DD-100: perdeu a base = recomeço junto à nave, com a vida cheia.
+        private void OnBaseRelocated(BaseRelocatedEvent relocatedEvent)
+        {
+            if (relocatedEvent.OwnerId != _civilization.Id)
+            {
+                return;
+            }
+
+            transform.position = relocatedEvent.NewPosition;
+            SetFraction(1f);
         }
 
         private void Update()

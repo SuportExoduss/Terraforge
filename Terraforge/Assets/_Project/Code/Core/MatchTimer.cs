@@ -14,6 +14,23 @@ namespace Terraforge.Core
         private float _secondsRemaining;
         private int _lastAnnouncedSecond = -1;
         private bool _ended;
+        private bool _running;
+
+        private void Awake()
+        {
+            // DD-096: o relógio só dispara no GO! da abertura.
+            EventBus.Subscribe<MatchStartedEvent>(OnMatchStarted);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<MatchStartedEvent>(OnMatchStarted);
+        }
+
+        private void OnMatchStarted(MatchStartedEvent matchStarted)
+        {
+            _running = true;
+        }
 
         private void Start()
         {
@@ -22,7 +39,7 @@ namespace Terraforge.Core
 
         private void Update()
         {
-            if (_ended)
+            if (!_running || _ended)
             {
                 return;
             }

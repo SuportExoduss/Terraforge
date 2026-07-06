@@ -20,6 +20,8 @@ namespace Terraforge.Gameplay
 
         private Vector3 _forward;
         private ISteeringSource _steering;
+        private Renderer[] _renderers;
+        private bool _matchStarted;
 
         private void Awake()
         {
@@ -29,12 +31,32 @@ namespace Terraforge.Gameplay
                 Debug.LogError($"[PlanetRunner] {name} não tem um motorista (ISteeringSource).");
             }
 
+            // DD-096: o personagem só aparece e corre no GO! da abertura.
+            _renderers = GetComponentsInChildren<Renderer>();
+            SetVisible(false);
+
+            EventBus.Subscribe<MatchStartedEvent>(OnMatchStarted);
             EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
         }
 
         private void OnDestroy()
         {
+            EventBus.Unsubscribe<MatchStartedEvent>(OnMatchStarted);
             EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+        }
+
+        private void OnMatchStarted(MatchStartedEvent matchStarted)
+        {
+            _matchStarted = true;
+            SetVisible(true);
+        }
+
+        private void SetVisible(bool visible)
+        {
+            foreach (Renderer childRenderer in _renderers)
+            {
+                childRenderer.enabled = visible;
+            }
         }
 
         // Fim de partida: o corredor para; o planeta permanece para
@@ -55,14 +77,28 @@ namespace Terraforge.Gameplay
             }
 
             // Cola o personagem na superfície e escolhe uma direção inicial
-            // tangente a ela (perpendicular ao "up" local).
+            // tangente a ela (perpendicular ao "up" local). O eixo de
+            // referência troca se o spawn cair alinhado a ele (evita direção
+            // nula em pontos raros do planeta).
             Vector3 up = (transform.position - planet.Center).normalized;
-            transform.position = planet.Center + up * (planet.Radius + _heightOffset);
-            _forward = Vector3.ProjectOnPlane(Vector3.forward, up).normalized;
+            Vector3 reference =
+                Mathf.Abs(Vector3.Dot(up, Vector3.forward)) < 0.99f ? Vector3.forward : Vector3.right;
+            _forward = Vector3.ProjectOnPlane(reference, up).normalized;
+
+            // Postura aplicada JÁ no nascimento: a câmera enquadra a direção
+            // de corrida durante a descida da nave (DD-096), sem solavanco no GO.
+            transform.SetPositionAndRotation(
+                planet.Center + up * (planet.Radius + _heightOffset),
+                Quaternion.LookRotation(_forward, up));
         }
 
         private void Update()
         {
+            if (!_matchStarted)
+            {
+                return;
+            }
+
             IPlanet planet = PlanetLocator.Current;
             if (planet == null)
             {
