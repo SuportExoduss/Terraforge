@@ -25,6 +25,10 @@ namespace Terraforge.AI
         // Agressividade da virada ao mirar um objetivo.
         [SerializeField] private float _steeringGain = 0.06f;
 
+        // Intervalo entre DECISÕES (caça/alvos). Sem ele o bot reavalia a
+        // cada frame e fica trocando de alvo 60x por segundo — frenesi.
+        [SerializeField] private float _decisionIntervalSeconds = 0.5f;
+
         private Civilization _civilization;
         private Vector3 _homePosition;
         private Vector3 _sortieTarget;
@@ -32,6 +36,9 @@ namespace Terraforge.AI
         private bool _returningHome;
         private bool _hasSortieTarget;
         private float _noiseSeed;
+        private float _decisionClock;
+        private bool _hunting;
+        private Vector3 _huntPoint;
 
         private void Start()
         {
@@ -81,10 +88,18 @@ namespace Terraforge.AI
             }
 
             // Instinto 1 — CAÇA: rastro inimigo ao alcance vale mais que
-            // qualquer plano; cortar é golpe direto no rival.
-            if (TryFindNearbyEnemyTrailPoint(out Vector3 huntPoint))
+            // qualquer plano. A decisão é tomada a cada meio segundo e
+            // MANTIDA até a próxima (compromisso, como um jogador humano).
+            _decisionClock += Time.deltaTime;
+            if (_decisionClock >= _decisionIntervalSeconds)
             {
-                return SteerTowards(huntPoint);
+                _decisionClock = 0f;
+                _hunting = TryFindNearbyEnemyTrailPoint(out _huntPoint);
+            }
+
+            if (_hunting)
+            {
+                return SteerTowards(_huntPoint);
             }
 
             // Instinto 2 — RISCO: exposto demais? Aborta e fecha o circuito.

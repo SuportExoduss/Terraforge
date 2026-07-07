@@ -8,8 +8,9 @@ namespace Terraforge.World
     /// A verdade sobre a posse do planeta: uma grade de células distribuídas
     /// uniformemente na esfera (espiral de Fibonacci), cada uma com o id da
     /// civilização dona. Conquistar = marcar células; cercar território
-    /// inimigo o converte (bolsões presos no cerco mudam de dono).
-    /// Fundação do SYS-001/SYS-002 e, no futuro, do multiplayer.
+    /// inimigo o converte; fragmentos sem conexão com a base do dono são
+    /// amputados (DD-102); dominar a base herda o império (DD-100).
+    /// Todas as buscas reutilizam buffers — zero lixo de memória por frame.
     /// </summary>
     public sealed class TerritoryMap : MonoBehaviour, ITerritoryOwnership
     {
@@ -31,6 +32,16 @@ namespace Terraforge.World
         private Dictionary<Vector2Int, List<int>> _buckets;
         private float _cellSpacing;
         private bool _built;
+
+        // Buffers reutilizados pelas buscas e inundações (evitam o coletor
+        // de lixo — causa clássica de engasgos em jogos).
+        private readonly List<int> _candidateBuffer = new(64);
+        private readonly List<int> _neighborBuffer = new(32);
+        private readonly HashSet<int> _fence = new();
+        private readonly HashSet<int> _searchSet = new();
+        private readonly Queue<int> _searchFrontier = new();
+        private readonly List<Vector3> _claimBuffer = new(256);
+        private readonly HashSet<byte> _dispossessedBuffer = new();
 
         private void Awake()
         {
@@ -86,17 +97,17 @@ namespace Terraforge.World
             }
 
             EnsureBuilt(planet);
-            var newlyClaimed = new List<Vector3>();
-            var dispossessed = new HashSet<byte>();
+            _claimBuffer.Clear();
+            _dispossessedBuffer.Clear();
             for (int i = 0; i < _cellDirections.Length; i++)
             {
                 if (_cellOwners[i] == victimId)
                 {
-                    ClaimCell(conquerorId, i, planet, newlyClaimed, dispossessed);
+                    ClaimCell(conquerorId, i, planet);
                 }
             }
 
-            PublishClaims(conquerorId, newlyClaimed, dispossessed);
+            PublishClaims(conquerorId);
         }
 
         public Vector3 GetRandomUnownedPosition()
@@ -133,18 +144,18 @@ namespace Terraforge.World
             }
 
             EnsureBuilt(planet);
-            var newlyClaimed = new List<Vector3>();
-            var dispossessed = new HashSet<byte>();
+            _claimBuffer.Clear();
+            _dispossessedBuffer.Clear();
             float minDot = Mathf.Cos(capAngleDegrees * Mathf.Deg2Rad);
             for (int i = 0; i < _cellDirections.Length; i++)
             {
                 if (Vector3.Dot(_cellDirections[i], capDirection) >= minDot)
                 {
-                    ClaimCell(ownerId, i, planet, newlyClaimed, dispossessed);
+                    ClaimCell(ownerId, i, planet);
                 }
             }
 
-            PublishClaims(ownerId, newlyClaimed, dispossessed);
+            PublishClaims(ownerId);
         }
 
         private void OnLoopClosed(TerritoryLoopClosedEvent loopEvent)
@@ -161,20 +172,18 @@ namespace Terraforge.World
 
         // ------------------------------------------------------------------
         // Conquista pelo método do "lado de fora": marca a cerca do rastro,
-        // inunda o exterior do domínio a partir do ponto mais distante que
-        // não pertence ao conquistador e converte TUDO que ficou cercado —
-        // células livres e inimigas. Fechou, dominou 100% (regra do GDMD).
+        // inunda o exterior do domínio e converte TUDO que ficou cercado.
         // ------------------------------------------------------------------
         private void ClaimLoopInterior(byte ownerId, IPlanet planet, IReadOnlyList<Vector3> trailPoints)
         {
-            var newlyClaimed = new List<Vector3>();
-            var dispossessed = new HashSet<byte>();
+            _claimBuffer.Clear();
+            _dispossessedBuffer.Clear();
             float sampleStep = _cellSpacing * 0.5f;
 
             // 1. A cerca: células próximas de cada trecho do rastro viram do
             //    conquistador (amostrado ponto a ponto para não deixar frestas).
             Vector3 centroidSum = Vector3.zero;
-            var fence = new HashSet<int>();
+            _fence.Clear();
             for (int i = 0; i < trailPoints.Count; i++)
             {
                 Vector3 from = trailPoints[i];
@@ -186,15 +195,15 @@ namespace Terraforge.World
                 {
                     Vector3 sample = Vector3.Lerp(from, to, (float)s / samples);
                     Vector3 direction = (sample - planet.Center).normalized;
-                    CollectCellsWithin(direction, _boundaryThickness, planet, fence);
+                    CollectCellsWithin(direction, _boundaryThickness, planet, _fence);
                 }
 
                 centroidSum += (trailPoints[i] - planet.Center).normalized;
             }
 
-            foreach (int cell in fence)
+            foreach (int cell in _fence)
             {
-                ClaimCell(ownerId, cell, planet, newlyClaimed, dispossessed);
+                ClaimCell(ownerId, cell, planet);
             }
 
             // 2. Semente do lado de fora: a célula mais distante do circuito
@@ -218,27 +227,26 @@ namespace Terraforge.World
             }
 
             // 3. Inunda o exterior: tudo que não é do conquistador e é
-            //    alcançável a partir da semente, sem atravessar o domínio
-            //    dele, respira o "oceano".
-            var exterior = new HashSet<int>();
+            //    alcançável a partir da semente respira o "oceano".
+            _searchSet.Clear();
             if (outsideSeed >= 0)
             {
-                var frontier = new Queue<int>();
-                var neighborBuffer = new List<int>();
-                exterior.Add(outsideSeed);
-                frontier.Enqueue(outsideSeed);
+                _searchFrontier.Clear();
+                _searchSet.Add(outsideSeed);
+                _searchFrontier.Enqueue(outsideSeed);
 
-                while (frontier.Count > 0)
+                while (_searchFrontier.Count > 0)
                 {
-                    int cell = frontier.Dequeue();
-                    neighborBuffer.Clear();
-                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, neighborBuffer);
+                    int cell = _searchFrontier.Dequeue();
+                    _neighborBuffer.Clear();
+                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, _neighborBuffer);
 
-                    foreach (int neighbor in neighborBuffer)
+                    for (int n = 0; n < _neighborBuffer.Count; n++)
                     {
-                        if (_cellOwners[neighbor] != ownerId && exterior.Add(neighbor))
+                        int neighbor = _neighborBuffer[n];
+                        if (_cellOwners[neighbor] != ownerId && _searchSet.Add(neighbor))
                         {
-                            frontier.Enqueue(neighbor);
+                            _searchFrontier.Enqueue(neighbor);
                         }
                     }
                 }
@@ -248,20 +256,20 @@ namespace Terraforge.World
             //    oceano está cercado — convertido, seja livre ou inimigo.
             for (int i = 0; i < _cellDirections.Length; i++)
             {
-                if (_cellOwners[i] != ownerId && !exterior.Contains(i))
+                if (_cellOwners[i] != ownerId && !_searchSet.Contains(i))
                 {
-                    ClaimCell(ownerId, i, planet, newlyClaimed, dispossessed);
+                    ClaimCell(ownerId, i, planet);
                 }
             }
 
             // DD-102: fragmentos inimigos que perderam a conexão com a
             // própria base são amputados — viram do conquistador.
-            ConvertDisconnectedEnemyRegions(ownerId, planet, newlyClaimed, dispossessed);
+            ConvertDisconnectedEnemyRegions(ownerId, planet);
 
-            PublishClaims(ownerId, newlyClaimed, dispossessed);
+            PublishClaims(ownerId);
             Debug.Log(
-                $"[World] Civilização {ownerId} anexou {newlyClaimed.Count} células" +
-                (dispossessed.Count > 0 ? " (convertendo território inimigo!)." : "."));
+                $"[World] Civilização {ownerId} anexou {_claimBuffer.Count} células" +
+                (_dispossessedBuffer.Count > 0 ? " (convertendo território inimigo!)." : "."));
         }
 
         // ------------------------------------------------------------------
@@ -269,8 +277,7 @@ namespace Terraforge.World
         // partir da célula da base; o que o "sangue" da base não alcançar
         // está amputado e é convertido para o conquistador.
         // ------------------------------------------------------------------
-        private void ConvertDisconnectedEnemyRegions(
-            byte conquerorId, IPlanet planet, List<Vector3> newlyClaimed, HashSet<byte> dispossessed)
+        private void ConvertDisconnectedEnemyRegions(byte conquerorId, IPlanet planet)
         {
             for (byte enemy = 1; enemy < MaxOwners; enemy++)
             {
@@ -288,41 +295,42 @@ namespace Terraforge.World
                 int baseCell = FindNearestCell(baseDirection, _cellSpacing * 3f, planet);
                 if (baseCell < 0 || _cellOwners[baseCell] != enemy)
                 {
-                    // A própria base foi convertida: cenário do DD-100
-                    // (realocação da nave), tratado em entrega futura.
+                    // A própria base já não é do dono: cenário do DD-100,
+                    // resolvido pela realocação da nave.
                     continue;
                 }
 
-                var connected = new HashSet<int> { baseCell };
-                var frontier = new Queue<int>();
-                frontier.Enqueue(baseCell);
-                var neighborBuffer = new List<int>();
+                _searchSet.Clear();
+                _searchFrontier.Clear();
+                _searchSet.Add(baseCell);
+                _searchFrontier.Enqueue(baseCell);
 
-                while (frontier.Count > 0)
+                while (_searchFrontier.Count > 0)
                 {
-                    int cell = frontier.Dequeue();
-                    neighborBuffer.Clear();
-                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, neighborBuffer);
+                    int cell = _searchFrontier.Dequeue();
+                    _neighborBuffer.Clear();
+                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, _neighborBuffer);
 
-                    foreach (int neighbor in neighborBuffer)
+                    for (int n = 0; n < _neighborBuffer.Count; n++)
                     {
-                        if (_cellOwners[neighbor] == enemy && connected.Add(neighbor))
+                        int neighbor = _neighborBuffer[n];
+                        if (_cellOwners[neighbor] == enemy && _searchSet.Add(neighbor))
                         {
-                            frontier.Enqueue(neighbor);
+                            _searchFrontier.Enqueue(neighbor);
                         }
                     }
                 }
 
-                if (connected.Count >= _cellCountsByOwner[enemy])
+                if (_searchSet.Count >= _cellCountsByOwner[enemy])
                 {
                     continue; // território inteiro conectado — nada a amputar
                 }
 
                 for (int i = 0; i < _cellDirections.Length; i++)
                 {
-                    if (_cellOwners[i] == enemy && !connected.Contains(i))
+                    if (_cellOwners[i] == enemy && !_searchSet.Contains(i))
                     {
-                        ClaimCell(conquerorId, i, planet, newlyClaimed, dispossessed);
+                        ClaimCell(conquerorId, i, planet);
                     }
                 }
 
@@ -330,9 +338,7 @@ namespace Terraforge.World
             }
         }
 
-        private void ClaimCell(
-            byte ownerId, int cell, IPlanet planet,
-            List<Vector3> newlyClaimed, HashSet<byte> dispossessed)
+        private void ClaimCell(byte ownerId, int cell, IPlanet planet)
         {
             byte previousOwner = _cellOwners[cell];
             if (previousOwner == ownerId)
@@ -343,12 +349,12 @@ namespace Terraforge.World
             if (previousOwner != NoOwner)
             {
                 _cellCountsByOwner[previousOwner]--;
-                dispossessed.Add(previousOwner);
+                _dispossessedBuffer.Add(previousOwner);
             }
 
             _cellOwners[cell] = ownerId;
             _cellCountsByOwner[ownerId]++;
-            newlyClaimed.Add(GetCellSurfacePosition(cell, planet));
+            _claimBuffer.Add(GetCellSurfacePosition(cell, planet));
         }
 
         private Vector3 GetCellSurfacePosition(int cell, IPlanet planet)
@@ -356,19 +362,21 @@ namespace Terraforge.World
             return planet.Center + _cellDirections[cell] * planet.Radius;
         }
 
-        private void PublishClaims(byte ownerId, List<Vector3> newlyClaimed, HashSet<byte> dispossessed)
+        // Os eventos carregam o buffer reutilizado: os assinantes (síncronos)
+        // devem consumi-lo durante o anúncio, nunca guardá-lo.
+        private void PublishClaims(byte ownerId)
         {
-            if (newlyClaimed.Count == 0)
+            if (_claimBuffer.Count == 0)
             {
                 return;
             }
 
-            EventBus.Publish(new TerritoryCellsClaimedEvent(ownerId, newlyClaimed, _cellSpacing));
+            EventBus.Publish(new TerritoryCellsClaimedEvent(ownerId, _claimBuffer, _cellSpacing));
             EventBus.Publish(new TerritoryScoreChangedEvent(
                 ownerId, (float)_cellCountsByOwner[ownerId] / _cellCount));
 
             // Quem perdeu terreno também tem placar novo.
-            foreach (byte loser in dispossessed)
+            foreach (byte loser in _dispossessedBuffer)
             {
                 EventBus.Publish(new TerritoryScoreChangedEvent(
                     loser, (float)_cellCountsByOwner[loser] / _cellCount));
@@ -416,7 +424,7 @@ namespace Terraforge.World
         }
 
         // ------------------------------------------------------------------
-        // Busca espacial por baldes de latitude/longitude.
+        // Busca espacial por baldes de latitude/longitude (sem alocações).
         // ------------------------------------------------------------------
         private static Vector2Int GetBucketKey(Vector3 direction)
         {
@@ -440,12 +448,14 @@ namespace Terraforge.World
 
         private int FindNearestCell(Vector3 direction, float maxSurfaceDistance, IPlanet planet)
         {
+            CollectCandidates(direction, maxSurfaceDistance, planet);
+
             int best = -1;
             float bestDot = -2f;
             float minDot = Mathf.Cos(maxSurfaceDistance / planet.Radius);
-
-            foreach (int candidate in EnumerateCandidates(direction, maxSurfaceDistance, planet))
+            for (int c = 0; c < _candidateBuffer.Count; c++)
             {
+                int candidate = _candidateBuffer[c];
                 float dot = Vector3.Dot(_cellDirections[candidate], direction);
                 if (dot >= minDot && dot > bestDot)
                 {
@@ -460,9 +470,12 @@ namespace Terraforge.World
         private void CollectCellsWithin(
             Vector3 direction, float surfaceDistance, IPlanet planet, ICollection<int> results)
         {
+            CollectCandidates(direction, surfaceDistance, planet);
+
             float minDot = Mathf.Cos(surfaceDistance / planet.Radius);
-            foreach (int candidate in EnumerateCandidates(direction, surfaceDistance, planet))
+            for (int c = 0; c < _candidateBuffer.Count; c++)
             {
+                int candidate = _candidateBuffer[c];
                 if (Vector3.Dot(_cellDirections[candidate], direction) >= minDot)
                 {
                     results.Add(candidate);
@@ -470,9 +483,12 @@ namespace Terraforge.World
             }
         }
 
-        private IEnumerable<int> EnumerateCandidates(
-            Vector3 direction, float surfaceDistance, IPlanet planet)
+        // Preenche _candidateBuffer com as células dos baldes ao redor da
+        // direção — laços diretos, sem iteradores (sem lixo de memória).
+        private void CollectCandidates(Vector3 direction, float surfaceDistance, IPlanet planet)
         {
+            _candidateBuffer.Clear();
+
             float radiusDegrees = surfaceDistance / planet.Radius * Mathf.Rad2Deg;
             int bucketRange = Mathf.CeilToInt(radiusDegrees / BucketSizeDegrees);
             Vector2Int center = GetBucketKey(direction);
@@ -499,9 +515,9 @@ namespace Terraforge.World
                         continue;
                     }
 
-                    foreach (int cell in bucket)
+                    for (int b = 0; b < bucket.Count; b++)
                     {
-                        yield return cell;
+                        _candidateBuffer.Add(bucket[b]);
                     }
                 }
             }

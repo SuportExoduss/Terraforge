@@ -14,6 +14,11 @@ namespace Terraforge.Gameplay
         // da cápsula (1 acima do chão) e a linha do rastro (0.15 acima).
         [SerializeField] private float _cutRadius = 1.5f;
 
+        // Carência: rastros recém-nascidos (poucos pontos) ainda não podem
+        // ser cortados — evita a cascata de cortes/teleportes no segundo em
+        // que alguém sai da própria base.
+        [SerializeField] private int _minPointsToCut = 5;
+
         private Civilization _civilization;
 
         private void Awake()
@@ -34,7 +39,7 @@ namespace Terraforge.Gameplay
             for (int t = 0; t < trails.Count; t++)
             {
                 ICuttableTrail trail = trails[t];
-                if (trail.OwnerId == _civilization.Id)
+                if (trail.OwnerId == _civilization.Id || trail.Points.Count < _minPointsToCut)
                 {
                     continue;
                 }

@@ -38,6 +38,7 @@ namespace Terraforge.World
         }
 
         private readonly Dictionary<byte, CivilizationLayer> _layers = new();
+        private readonly HashSet<CivilizationLayer> _dirtyLayers = new();
         private float _paintElevation;
 
         private void Awake()
@@ -66,14 +67,31 @@ namespace Terraforge.World
 
             _paintElevation += ElevationStep;
             float tileRadius = claimEvent.CellSpacing * _tileRadiusFactor;
-            foreach (Vector3 cellPosition in claimEvent.CellPositions)
+            for (int i = 0; i < claimEvent.CellPositions.Count; i++)
             {
-                AppendTile(layer, cellPosition, tileRadius, planet);
+                AppendTile(layer, claimEvent.CellPositions[i], tileRadius, planet);
             }
 
-            layer.Mesh.SetVertices(layer.Vertices);
-            layer.Mesh.SetNormals(layer.Normals);
-            layer.Mesh.SetTriangles(layer.Triangles, 0);
+            // A malha NÃO é reenviada aqui: várias conquistas no mesmo frame
+            // (herança + amputação) viram um único redesenho no LateUpdate.
+            _dirtyLayers.Add(layer);
+        }
+
+        private void LateUpdate()
+        {
+            if (_dirtyLayers.Count == 0)
+            {
+                return;
+            }
+
+            foreach (CivilizationLayer layer in _dirtyLayers)
+            {
+                layer.Mesh.SetVertices(layer.Vertices);
+                layer.Mesh.SetNormals(layer.Normals);
+                layer.Mesh.SetTriangles(layer.Triangles, 0);
+            }
+
+            _dirtyLayers.Clear();
         }
 
         private CivilizationLayer GetOrCreateLayer(byte ownerId, IPlanet planet)
@@ -102,6 +120,9 @@ namespace Terraforge.World
                     indexFormat = IndexFormat.UInt32
                 }
             };
+
+            // Avisa a placa de vídeo que esta malha muda o tempo todo.
+            layer.Mesh.MarkDynamic();
 
             var layerObject = new GameObject($"TerritoryLayer_Civ{ownerId}");
             layerObject.transform.position = planet.Center;

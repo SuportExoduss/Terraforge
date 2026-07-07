@@ -30,9 +30,10 @@ namespace Terraforge.UI
             _label.text = $"{minutes}:{seconds:00}";
         }
 
+        // O pódio (ResultsPanel) assume a tela; o relógio se recolhe.
         private void OnMatchEnded(MatchEndedEvent matchEnded)
         {
-            _label.text = "FIM!";
+            _label.text = string.Empty;
         }
     }
 }
