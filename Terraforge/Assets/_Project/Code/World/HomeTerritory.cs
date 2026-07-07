@@ -159,6 +159,9 @@ namespace Terraforge.World
                     $"império da civilização {_civilization.Id}!");
             }
 
+            // O derrotado embarca no foguete NA HORA (some do campo).
+            EventBus.Publish(new BaseFallenEvent(_civilization.Id, conqueror));
+
             _state = BaseState.Countdown;
             _countdown = _relocationDelaySeconds;
             Debug.Log(

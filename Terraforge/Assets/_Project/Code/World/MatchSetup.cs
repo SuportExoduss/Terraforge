@@ -50,6 +50,16 @@ namespace Terraforge.World
             EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseLanded);
         }
 
+        // DD-095 revisado: abertura em formação de cubo — cada civilização
+        // nasce em uma das 6 "faces" do planeta (±X, ±Y, ±Z). A ordem das
+        // faces é embaralhada a cada partida; realocações posteriores
+        // continuam 100% aleatórias (DD-100).
+        private static readonly Vector3[] CubeFaceDirections =
+        {
+            Vector3.up, Vector3.down, Vector3.right,
+            Vector3.left, Vector3.forward, Vector3.back
+        };
+
         private void Awake()
         {
             EventBus.Subscribe<BaseRelocatedEvent>(OnBaseLanded);
@@ -67,9 +77,23 @@ namespace Terraforge.World
             float radius = planet.Radius;
             var takenDirections = new List<Vector3>();
 
-            foreach (SpawnEntry spawn in _spawns)
+            // Embaralha as faces do cubo para variar quem nasce onde.
+            var faces = new List<Vector3>(CubeFaceDirections);
+            for (int i = faces.Count - 1; i > 0; i--)
             {
-                Vector3 direction = PickSeparatedDirection(takenDirections);
+                int j = Random.Range(0, i + 1);
+                (faces[i], faces[j]) = (faces[j], faces[i]);
+            }
+
+            for (int s = 0; s < _spawns.Length; s++)
+            {
+                SpawnEntry spawn = _spawns[s];
+
+                // Até 6 civilizações: uma face do cubo para cada; acima
+                // disso (futuro multiplayer), sorteio com separação mínima.
+                Vector3 direction = s < faces.Count
+                    ? faces[s]
+                    : PickSeparatedDirection(takenDirections);
                 takenDirections.Add(direction);
 
                 Vector3 surfacePoint = center + direction * radius;

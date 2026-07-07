@@ -56,6 +56,15 @@ namespace Terraforge.Gameplay
         private void OnDestroy()
         {
             TrailRegistry.Unregister(this);
+            EventBus.Unsubscribe<BaseFallenEvent>(OnBaseFallen);
+        }
+
+        private void OnBaseFallen(BaseFallenEvent fallenEvent)
+        {
+            if (_civilization != null && fallenEvent.OwnerId == _civilization.Id && _points.Count > 0)
+            {
+                ClearTrail();
+            }
         }
 
         private void Awake()
@@ -70,6 +79,9 @@ namespace Terraforge.Gameplay
             {
                 TrailRegistry.Register(this);
             }
+
+            // Embarcou no foguete (DD-100): a expansão pendente evapora.
+            EventBus.Subscribe<BaseFallenEvent>(OnBaseFallen);
 
             _line = GetComponent<LineRenderer>();
             _line.useWorldSpace = true;

@@ -20,8 +20,10 @@ namespace Terraforge.Gameplay
 
         private Vector3 _forward;
         private ISteeringSource _steering;
+        private Civilization _civilization;
         private Renderer[] _renderers;
         private bool _matchStarted;
+        private bool _aboardShip;
 
         private void Awake()
         {
@@ -31,24 +33,58 @@ namespace Terraforge.Gameplay
                 Debug.LogError($"[PlanetRunner] {name} não tem um motorista (ISteeringSource).");
             }
 
+            _civilization = GetComponent<Civilization>();
+
             // DD-096: o personagem só aparece e corre no GO! da abertura.
             _renderers = GetComponentsInChildren<Renderer>();
             SetVisible(false);
 
             EventBus.Subscribe<MatchStartedEvent>(OnMatchStarted);
             EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+            EventBus.Subscribe<BaseFallenEvent>(OnBaseFallen);
+            EventBus.Subscribe<BaseRelocatedEvent>(OnBaseRelocated);
         }
 
         private void OnDestroy()
         {
             EventBus.Unsubscribe<MatchStartedEvent>(OnMatchStarted);
             EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+            EventBus.Unsubscribe<BaseFallenEvent>(OnBaseFallen);
+            EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
         }
 
         private void OnMatchStarted(MatchStartedEvent matchStarted)
         {
             _matchStarted = true;
             SetVisible(true);
+        }
+
+        // DD-100: base dominada = embarque IMEDIATO no foguete
+        // (some do campo e para de correr até a nave pousar).
+        private void OnBaseFallen(BaseFallenEvent fallenEvent)
+        {
+            if (_civilization == null || fallenEvent.OwnerId != _civilization.Id)
+            {
+                return;
+            }
+
+            _aboardShip = true;
+            SetVisible(false);
+        }
+
+        // Nave pousou e a contagem zerou: desembarca e volta ao jogo.
+        private void OnBaseRelocated(BaseRelocatedEvent relocatedEvent)
+        {
+            if (_civilization == null || relocatedEvent.OwnerId != _civilization.Id)
+            {
+                return;
+            }
+
+            _aboardShip = false;
+            if (_matchStarted)
+            {
+                SetVisible(true);
+            }
         }
 
         private void SetVisible(bool visible)
@@ -94,7 +130,7 @@ namespace Terraforge.Gameplay
 
         private void Update()
         {
-            if (!_matchStarted)
+            if (!_matchStarted || _aboardShip)
             {
                 return;
             }
