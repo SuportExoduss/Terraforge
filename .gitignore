@@ -52,3 +52,7 @@ crashlytics-build.properties
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Recuperacao de crash da Unity
+[Aa]ssets/_Recovery/
+[Aa]ssets/_Recovery.meta
