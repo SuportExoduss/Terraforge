@@ -434,7 +434,7 @@ Transform:
   m_GameObject: {fileID: 56618394}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -76, y: 0, z: 0}
+  m_LocalPosition: {x: 100, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -470,7 +470,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 121cf808c09c01449a49efa6385a6b8d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Terraforge.Core::Terraforge.Core.MatchTimer
-  _matchDurationSeconds: 300
+  _matchDurationSeconds: 600
 --- !u!4 &135765003
 Transform:
   m_ObjectHideFlags: 0
@@ -526,6 +526,7 @@ GameObject:
   - component: {fileID: 303465981}
   - component: {fileID: 303465985}
   - component: {fileID: 303465986}
+  - component: {fileID: 303465987}
   m_Layer: 0
   m_Name: HomeBase
   m_TagString: Untagged
@@ -620,7 +621,7 @@ Transform:
   m_GameObject: {fileID: 303465979}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.91017, y: 75, z: -1708.8102}
+  m_LocalPosition: {x: 0, y: 101, z: 0}
   m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -658,6 +659,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Terraforge.Core::Terraforge.Core.Civilization
   _id: 1
+--- !u!114 &303465987
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 303465979}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -972,6 +986,7 @@ GameObject:
   - component: {fileID: 434232897}
   - component: {fileID: 434232896}
   - component: {fileID: 434232895}
+  - component: {fileID: 434232901}
   m_Layer: 0
   m_Name: BotHomeBase5
   m_TagString: Untagged
@@ -1098,12 +1113,25 @@ Transform:
   m_GameObject: {fileID: 434232894}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.91017, y: 0, z: -1633.8102}
+  m_LocalPosition: {x: 0, y: 0, z: 101}
   m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 525038853}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &434232901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 434232894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &435824023
 GameObject:
   m_ObjectHideFlags: 0
@@ -1419,7 +1447,7 @@ Transform:
   m_GameObject: {fileID: 435824023}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -76, z: 0}
+  m_LocalPosition: {x: -100, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1440,6 +1468,7 @@ GameObject:
   - component: {fileID: 444825550}
   - component: {fileID: 444825551}
   - component: {fileID: 444825552}
+  - component: {fileID: 444825553}
   m_Layer: 0
   m_Name: Planet
   m_TagString: Untagged
@@ -1475,7 +1504,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 444825545}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1492,8 +1521,7 @@ MeshRenderer:
   m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 49bc1f36ea87a704c94c471e0636c7a2, type: 2}
+  m_Materials: []
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1535,9 +1563,10 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0, z: 0}
-  m_LocalScale: {x: 150, y: 150, z: 150}
+  m_LocalScale: {x: 200, y: 200, z: 200}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1917937771}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &444825550
@@ -1588,6 +1617,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.TerritoryMap
   _cellCount: 20000
   _boundaryThickness: 2.4
+--- !u!114 &444825553
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444825545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &525038852
 GameObject:
   m_ObjectHideFlags: 0
@@ -1727,6 +1769,7 @@ GameObject:
   - component: {fileID: 758157955}
   - component: {fileID: 758157954}
   - component: {fileID: 758157953}
+  - component: {fileID: 758157959}
   m_Layer: 0
   m_Name: BotHomeBase3
   m_TagString: Untagged
@@ -1853,12 +1896,25 @@ Transform:
   m_GameObject: {fileID: 758157952}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -77.91017, y: 0, z: -1708.8102}
+  m_LocalPosition: {x: 101, y: 0, z: 0}
   m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 525038853}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &758157959
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 758157952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &760723595
 GameObject:
   m_ObjectHideFlags: 0
@@ -2253,7 +2309,7 @@ Transform:
   m_GameObject: {fileID: 762999913}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 76}
+  m_LocalPosition: {x: 0, y: 0, z: 100}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2745,7 +2801,7 @@ Transform:
   m_GameObject: {fileID: 1084007587}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 76, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -100, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2793,6 +2849,7 @@ GameObject:
   - component: {fileID: 1367311883}
   - component: {fileID: 1367311882}
   - component: {fileID: 1367311881}
+  - component: {fileID: 1367311887}
   m_Layer: 0
   m_Name: BotHomeBase4
   m_TagString: Untagged
@@ -2919,12 +2976,25 @@ Transform:
   m_GameObject: {fileID: 1367311880}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.91017, y: -75, z: -1708.8102}
+  m_LocalPosition: {x: -101, y: 0, z: 0}
   m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 525038853}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1367311887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1367311880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &1390741306
 GameObject:
   m_ObjectHideFlags: 0
@@ -3187,7 +3257,7 @@ CapsuleCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 2
   m_Radius: 0.5
   m_Height: 2
@@ -3217,8 +3287,7 @@ MeshRenderer:
   m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_Materials: []
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3259,7 +3328,7 @@ Transform:
   m_GameObject: {fileID: 1519421579}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 76, z: 0}
+  m_LocalPosition: {x: 0, y: 100, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -3753,6 +3822,7 @@ GameObject:
   - component: {fileID: 1741043606}
   - component: {fileID: 1741043605}
   - component: {fileID: 1741043604}
+  - component: {fileID: 1741043610}
   m_Layer: 0
   m_Name: BotHomeBase6
   m_TagString: Untagged
@@ -3879,12 +3949,25 @@ Transform:
   m_GameObject: {fileID: 1741043603}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.91017, y: 0, z: -1783.8102}
+  m_LocalPosition: {x: 0, y: 0, z: -101}
   m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 525038853}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1741043610
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1741043603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &1757867073
 GameObject:
   m_ObjectHideFlags: 0
@@ -3899,6 +3982,7 @@ GameObject:
   - component: {fileID: 1757867074}
   - component: {fileID: 1757867079}
   - component: {fileID: 1757867078}
+  - component: {fileID: 1757867080}
   m_Layer: 0
   m_Name: BotHomeBase
   m_TagString: Untagged
@@ -3993,7 +4077,7 @@ Transform:
   m_GameObject: {fileID: 1757867073}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 72.08983, y: 0, z: -1708.8102}
+  m_LocalPosition: {x: 0, y: -101, z: 0}
   m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4031,6 +4115,19 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+--- !u!114 &1757867080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1757867073}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24c104a6add50174fa94c9c72082eaa5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
+  _resolution: 65
 --- !u!1 &1807700804
 GameObject:
   m_ObjectHideFlags: 0
@@ -4102,19 +4199,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -4122,7 +4219,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 736285c6edd3d7c41b12514a45991cc0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -4172,6 +4269,84 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!1001 &1917937770
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 444825549}
+    m_Modifications:
+    - target: {fileID: -216909892148252246, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_Name
+      value: planet3d1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.99999
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.99999
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 3150474306388093854, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+--- !u!4 &1917937771 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2935473849350698676, guid: 08791e5b78625164bb29eb156981b0c2, type: 3}
+  m_PrefabInstance: {fileID: 1917937770}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2007036340
 GameObject:
   m_ObjectHideFlags: 0
@@ -4637,7 +4812,7 @@ Transform:
   m_GameObject: {fileID: 2088968149}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -76}
+  m_LocalPosition: {x: 0, y: 0, z: -100}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

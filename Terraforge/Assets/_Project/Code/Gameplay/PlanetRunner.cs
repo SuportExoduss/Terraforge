@@ -152,8 +152,9 @@ namespace Terraforge.Gameplay
 
             // Postura aplicada JÁ no nascimento: a câmera enquadra a direção
             // de corrida durante a descida da nave (DD-096), sem solavanco no GO.
+            // Os pés pousam no TERRENO real, não na esfera imaginária.
             transform.SetPositionAndRotation(
-                planet.Center + up * (planet.Radius + _heightOffset),
+                planet.Center + up * (planet.GetSurfaceRadius(up) + _heightOffset),
                 Quaternion.LookRotation(_forward, up));
         }
 
@@ -179,10 +180,11 @@ namespace Terraforge.Gameplay
             // 2. Avança sempre (nunca para de correr).
             Vector3 next = transform.position + _forward * (_moveSpeed * Time.deltaTime);
 
-            // 3. Recola na superfície: num planeta, andar em linha reta te
-            //    afastaria da esfera; reprojetamos o ponto de volta ao raio correto.
+            // 3. Recola na superfície REAL: a gravidade puxa para o centro e
+            //    os pés pousam onde o terreno visual está (vale ou morro),
+            //    não na esfera matemática — nada de flutuar (pedido do Diretor).
             Vector3 nextUp = (next - planet.Center).normalized;
-            next = planet.Center + nextUp * (planet.Radius + _heightOffset);
+            next = planet.Center + nextUp * (planet.GetSurfaceRadius(nextUp) + _heightOffset);
 
             // 4. A direção de corrida precisa continuar tangente à superfície
             //    (sem componente "para cima/baixo"), senão acumula erro a cada frame.

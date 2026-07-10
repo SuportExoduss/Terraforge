@@ -172,8 +172,9 @@ namespace Terraforge.Gameplay
 
         private Vector3 GetFootPointOnSurface(IPlanet planet)
         {
+            // O rastro deita no TERRENO real (vales e morros), como os pés.
             Vector3 up = (transform.position - planet.Center).normalized;
-            return planet.Center + up * (planet.Radius + _surfaceOffset);
+            return planet.Center + up * (planet.GetSurfaceRadius(up) + _surfaceOffset);
         }
     }
 }
