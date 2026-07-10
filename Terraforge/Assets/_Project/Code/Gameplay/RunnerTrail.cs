@@ -31,6 +31,7 @@ namespace Terraforge.Gameplay
         private readonly List<Vector3> _points = new();
         private LineRenderer _line;
         private Civilization _civilization;
+        private PlanetRunner _runner;
         private bool _wasInsideOwnedTerritory = true;
 
         /// <summary>Os pontos do rastro, para os sistemas de circuito e corte.</summary>
@@ -57,6 +58,17 @@ namespace Terraforge.Gameplay
         {
             TrailRegistry.Unregister(this);
             EventBus.Unsubscribe<BaseFallenEvent>(OnBaseFallen);
+            EventBus.Unsubscribe<CivilizationEliminatedEvent>(OnEliminated);
+        }
+
+        private void OnEliminated(CivilizationEliminatedEvent eliminatedEvent)
+        {
+            if (_civilization != null && eliminatedEvent.OwnerId == _civilization.Id)
+            {
+                ClearTrail();
+                TrailRegistry.Unregister(this);
+                enabled = false;
+            }
         }
 
         private void OnBaseFallen(BaseFallenEvent fallenEvent)
@@ -80,8 +92,12 @@ namespace Terraforge.Gameplay
                 TrailRegistry.Register(this);
             }
 
-            // Embarcou no foguete (DD-100): a expansão pendente evapora.
+            _runner = GetComponent<PlanetRunner>();
+
+            // Embarcou no foguete (DD-100) ou foi eliminado (R1):
+            // a expansão pendente evapora.
             EventBus.Subscribe<BaseFallenEvent>(OnBaseFallen);
+            EventBus.Subscribe<CivilizationEliminatedEvent>(OnEliminated);
 
             _line = GetComponent<LineRenderer>();
             _line.useWorldSpace = true;
@@ -93,6 +109,13 @@ namespace Terraforge.Gameplay
 
         private void Update()
         {
+            // Fora de campo (pré-GO, embarcado, eliminado): nada de gravar
+            // pontos no vazio. O rastro pendente já foi limpo pelos eventos.
+            if (_runner != null && !_runner.IsActiveInField)
+            {
+                return;
+            }
+
             IPlanet planet = PlanetLocator.Current;
             if (planet == null)
             {

@@ -27,16 +27,28 @@ namespace Terraforge.Gameplay
         private void Awake()
         {
             EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+            EventBus.Subscribe<CivilizationEliminatedEvent>(OnEliminated);
         }
 
         private void OnDestroy()
         {
             EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+            EventBus.Unsubscribe<CivilizationEliminatedEvent>(OnEliminated);
         }
 
         private void OnMatchEnded(MatchEndedEvent matchEnded)
         {
             _active = true;
+        }
+
+        // R1: jogador eliminado assiste ao resto da partida como
+        // espectador, com o planeta em modo vitrine.
+        private void OnEliminated(CivilizationEliminatedEvent eliminatedEvent)
+        {
+            if (eliminatedEvent.OwnerId == Civilization.PlayerId)
+            {
+                _active = true;
+            }
         }
 
         private void LateUpdate()

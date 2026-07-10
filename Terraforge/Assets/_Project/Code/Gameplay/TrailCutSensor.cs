@@ -20,6 +20,7 @@ namespace Terraforge.Gameplay
         [SerializeField] private int _minPointsToCut = 5;
 
         private Civilization _civilization;
+        private PlanetRunner _runner;
 
         private void Awake()
         {
@@ -29,10 +30,19 @@ namespace Terraforge.Gameplay
                 Debug.LogError($"[TrailCutSensor] {name} precisa do crachá Civilization.");
                 enabled = false;
             }
+
+            _runner = GetComponent<PlanetRunner>();
         }
 
         private void Update()
         {
+            // Fantasmas não cortam: fora de campo (pré-GO, embarcado na
+            // nave ou eliminado), o sensor dorme.
+            if (_runner != null && !_runner.IsActiveInField)
+            {
+                return;
+            }
+
             Vector3 position = transform.position;
             IReadOnlyList<ICuttableTrail> trails = TrailRegistry.All;
 

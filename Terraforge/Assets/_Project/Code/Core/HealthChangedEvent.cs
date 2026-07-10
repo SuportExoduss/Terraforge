@@ -1,18 +1,20 @@
 namespace Terraforge.Core
 {
     /// <summary>
-    /// Anunciado quando a barra de vida de uma civilização muda (DD-098).
-    /// A fração vai de 0 (queda) a 1 (cheia).
+    /// Anunciado quando a vida de uma civilização muda (DD-105):
+    /// 16 pontos = 4 corações de 4 segmentos.
     /// </summary>
     public readonly struct HealthChangedEvent : IGameEvent
     {
         public readonly byte OwnerId;
-        public readonly float Fraction;
+        public readonly int Points;
+        public readonly int MaxPoints;
 
-        public HealthChangedEvent(byte ownerId, float fraction)
+        public HealthChangedEvent(byte ownerId, int points, int maxPoints)
         {
             OwnerId = ownerId;
-            Fraction = fraction;
+            Points = points;
+            MaxPoints = maxPoints;
         }
     }
 }

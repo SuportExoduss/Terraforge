@@ -180,6 +180,10 @@ namespace Terraforge.World
             _dispossessedBuffer.Clear();
             float sampleStep = _cellSpacing * 0.5f;
 
+            // A cerca precisa ser sempre mais grossa que o vão entre células,
+            // senão a inundação vaza — em qualquer tamanho de planeta.
+            float fenceThickness = Mathf.Max(_boundaryThickness, _cellSpacing * 1.3f);
+
             // 1. A cerca: células próximas de cada trecho do rastro viram do
             //    conquistador (amostrado ponto a ponto para não deixar frestas).
             Vector3 centroidSum = Vector3.zero;
@@ -195,7 +199,7 @@ namespace Terraforge.World
                 {
                     Vector3 sample = Vector3.Lerp(from, to, (float)s / samples);
                     Vector3 direction = (sample - planet.Center).normalized;
-                    CollectCellsWithin(direction, _boundaryThickness, planet, _fence);
+                    CollectCellsWithin(direction, fenceThickness, planet, _fence);
                 }
 
                 centroidSum += (trailPoints[i] - planet.Center).normalized;

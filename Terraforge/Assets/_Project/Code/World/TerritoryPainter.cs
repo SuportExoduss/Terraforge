@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using Terraforge.Core;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Terraforge.World
 {
     /// <summary>
-    /// O visual do território: uma camada de azulejos hexagonais por
-    /// civilização, cada uma com seu material, todas geradas dos MESMOS
-    /// dados do TerritoryMap — visual e posse nunca divergem.
+    /// O visual do território: azulejos hexagonais por civilização, gerados
+    /// dos MESMOS dados do TerritoryMap — visual e posse nunca divergem.
+    /// A malha de cada civilização é fatiada em BLOCOS (~1000 azulejos):
+    /// blocos cheios são selados e nunca mais reenviados à placa de vídeo,
+    /// mantendo os envios pequenos e constantes (sem picos nem alarmes de
+    /// memória do motor).
     /// </summary>
     public sealed class TerritoryPainter : MonoBehaviour
     {
@@ -22,23 +24,36 @@ namespace Terraforge.World
         // vizinhos se sobrepõem e a mancha fica contínua, sem frestas.
         [SerializeField] private float _tileRadiusFactor = 0.95f;
 
+        // Azulejos por bloco: 1000 × 7 vértices fica bem abaixo do limite
+        // de 65 mil do formato compacto de malha.
+        [SerializeField] private int _tilesPerChunk = 1000;
+
         private const int TileSides = 6;
+        private const int VerticesPerTile = TileSides + 1;
 
         // Conversões de território: cada leva de pintura sobe um fio de
         // cabelo acima da anterior, para a cor nova cobrir a antiga.
         // (Dívida conhecida do protótipo; o definitivo removerá azulejos.)
         private const float ElevationStep = 0.0005f;
 
-        private sealed class CivilizationLayer
+        private sealed class MeshChunk
         {
             public readonly List<Vector3> Vertices = new();
             public readonly List<Vector3> Normals = new();
             public readonly List<int> Triangles = new();
             public Mesh Mesh;
+            public int TileCount;
+        }
+
+        private sealed class CivilizationLayer
+        {
+            public readonly List<MeshChunk> Chunks = new();
+            public Transform Root;
+            public Material Material;
         }
 
         private readonly Dictionary<byte, CivilizationLayer> _layers = new();
-        private readonly HashSet<CivilizationLayer> _dirtyLayers = new();
+        private readonly HashSet<MeshChunk> _dirtyChunks = new();
         private float _paintElevation;
 
         private void Awake()
@@ -69,29 +84,28 @@ namespace Terraforge.World
             float tileRadius = claimEvent.CellSpacing * _tileRadiusFactor;
             for (int i = 0; i < claimEvent.CellPositions.Count; i++)
             {
-                AppendTile(layer, claimEvent.CellPositions[i], tileRadius, planet);
+                MeshChunk chunk = GetWritableChunk(layer, planet);
+                AppendTile(chunk, claimEvent.CellPositions[i], tileRadius, planet);
+                _dirtyChunks.Add(chunk);
             }
-
-            // A malha NÃO é reenviada aqui: várias conquistas no mesmo frame
-            // (herança + amputação) viram um único redesenho no LateUpdate.
-            _dirtyLayers.Add(layer);
         }
 
+        // Envio único por frame, e apenas dos blocos que mudaram.
         private void LateUpdate()
         {
-            if (_dirtyLayers.Count == 0)
+            if (_dirtyChunks.Count == 0)
             {
                 return;
             }
 
-            foreach (CivilizationLayer layer in _dirtyLayers)
+            foreach (MeshChunk chunk in _dirtyChunks)
             {
-                layer.Mesh.SetVertices(layer.Vertices);
-                layer.Mesh.SetNormals(layer.Normals);
-                layer.Mesh.SetTriangles(layer.Triangles, 0);
+                chunk.Mesh.SetVertices(chunk.Vertices);
+                chunk.Mesh.SetNormals(chunk.Normals);
+                chunk.Mesh.SetTriangles(chunk.Triangles, 0);
             }
 
-            _dirtyLayers.Clear();
+            _dirtyChunks.Clear();
         }
 
         private CivilizationLayer GetOrCreateLayer(byte ownerId, IPlanet planet)
@@ -110,31 +124,48 @@ namespace Terraforge.World
                 return null;
             }
 
+            var rootObject = new GameObject($"TerritoryLayer_Civ{ownerId}");
+            rootObject.transform.position = planet.Center;
+
             var layer = new CivilizationLayer
             {
-                // UInt32: a malha crescerá além do limite de 65 mil vértices
-                // do formato padrão conforme o domínio se expande.
-                Mesh = new Mesh
-                {
-                    name = $"TerritoryLayer_Civ{ownerId}",
-                    indexFormat = IndexFormat.UInt32
-                }
+                Root = rootObject.transform,
+                Material = _civilizationMaterials[materialIndex]
             };
-
-            // Avisa a placa de vídeo que esta malha muda o tempo todo.
-            layer.Mesh.MarkDynamic();
-
-            var layerObject = new GameObject($"TerritoryLayer_Civ{ownerId}");
-            layerObject.transform.position = planet.Center;
-            layerObject.AddComponent<MeshFilter>().mesh = layer.Mesh;
-            layerObject.AddComponent<MeshRenderer>().material = _civilizationMaterials[materialIndex];
 
             _layers[ownerId] = layer;
             return layer;
         }
 
-        private void AppendTile(
-            CivilizationLayer layer, Vector3 cellPosition, float tileRadius, IPlanet planet)
+        // Bloco atual da civilização; cheio = sela e abre um novo.
+        private MeshChunk GetWritableChunk(CivilizationLayer layer, IPlanet planet)
+        {
+            if (layer.Chunks.Count > 0)
+            {
+                MeshChunk last = layer.Chunks[^1];
+                if (last.TileCount < _tilesPerChunk)
+                {
+                    return last;
+                }
+            }
+
+            var chunk = new MeshChunk
+            {
+                Mesh = new Mesh { name = $"TerritoryChunk_{layer.Chunks.Count}" }
+            };
+            chunk.Mesh.MarkDynamic();
+
+            var chunkObject = new GameObject($"Chunk_{layer.Chunks.Count}");
+            chunkObject.transform.SetParent(layer.Root, worldPositionStays: false);
+            chunkObject.transform.position = planet.Center;
+            chunkObject.AddComponent<MeshFilter>().mesh = chunk.Mesh;
+            chunkObject.AddComponent<MeshRenderer>().material = layer.Material;
+
+            layer.Chunks.Add(chunk);
+            return chunk;
+        }
+
+        private void AppendTile(MeshChunk chunk, Vector3 cellPosition, float tileRadius, IPlanet planet)
         {
             Vector3 up = (cellPosition - planet.Center).normalized;
 
@@ -144,10 +175,10 @@ namespace Terraforge.World
             Vector3 bitangent = Vector3.Cross(up, tangent);
 
             float surfaceRadius = planet.Radius + _surfaceOffset + _paintElevation;
-            int centerIndex = layer.Vertices.Count;
+            int centerIndex = chunk.Vertices.Count;
 
-            layer.Vertices.Add(planet.Center + up * surfaceRadius);
-            layer.Normals.Add(up);
+            chunk.Vertices.Add(planet.Center + up * surfaceRadius);
+            chunk.Normals.Add(up);
 
             for (int i = 0; i < TileSides; i++)
             {
@@ -157,16 +188,18 @@ namespace Terraforge.World
 
                 // Projeta a ponta do azulejo de volta à casca da esfera.
                 Vector3 rimUp = (rim - planet.Center).normalized;
-                layer.Vertices.Add(planet.Center + rimUp * surfaceRadius);
-                layer.Normals.Add(rimUp);
+                chunk.Vertices.Add(planet.Center + rimUp * surfaceRadius);
+                chunk.Normals.Add(rimUp);
             }
 
             for (int i = 0; i < TileSides; i++)
             {
-                layer.Triangles.Add(centerIndex);
-                layer.Triangles.Add(centerIndex + 1 + i);
-                layer.Triangles.Add(centerIndex + 1 + (i + 1) % TileSides);
+                chunk.Triangles.Add(centerIndex);
+                chunk.Triangles.Add(centerIndex + 1 + i);
+                chunk.Triangles.Add(centerIndex + 1 + (i + 1) % TileSides);
             }
+
+            chunk.TileCount++;
         }
     }
 }

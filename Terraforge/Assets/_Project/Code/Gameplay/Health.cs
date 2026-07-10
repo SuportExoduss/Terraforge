@@ -4,21 +4,25 @@ using UnityEngine;
 namespace Terraforge.Gameplay
 {
     /// <summary>
-    /// A barra de vida (DD-098): corte de rastro tira 1/6 e devolve o
-    /// corredor à base; o campo de força regenera lentamente (DD-097);
-    /// barra zerada = queda e respawn em ponto aleatório livre do planeta.
+    /// A vida oficial (DD-105): 16 pontos = 4 corações × 4 segmentos.
+    /// Corte de rastro tira 2 pontos e devolve o corredor à base (R2);
+    /// o campo de força regenera 1 ponto a cada 1,5s (R3); zerar os 4
+    /// corações ELIMINA a civilização da partida (R1).
+    /// Eventos, defensores e armadilhas usarão TakeDamage(1/2/4).
     /// </summary>
     public sealed class Health : MonoBehaviour
     {
-        // DD-098: barra de 5 segmentos; cada dano tira um segmento (1/5).
-        [SerializeField] private float _cutDamageFraction = 0.2f;
+        public const int MaxPoints = 16;
 
-        // DD-098: cada segmento leva 5s para encher no campo de força
-        // (1/5 de 1/5 por segundo = 4% da barra total).
-        [SerializeField] private float _regenFractionPerSecond = 0.04f;
+        [SerializeField] private int _cutDamagePoints = 2;
+
+        // R3: segundos para regenerar 1 ponto dentro do campo de força.
+        [SerializeField] private float _secondsPerRegenPoint = 1.5f;
 
         private Civilization _civilization;
-        private float _fraction = 1f;
+        private int _points = MaxPoints;
+        private float _regenClock;
+        private bool _eliminated;
 
         private void Awake()
         {
@@ -36,7 +40,7 @@ namespace Terraforge.Gameplay
 
         private void Start()
         {
-            PublishFraction();
+            PublishPoints();
         }
 
         private void OnDestroy()
@@ -45,47 +49,85 @@ namespace Terraforge.Gameplay
             EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
         }
 
+        private void Update()
+        {
+            if (_eliminated || _points >= MaxPoints)
+            {
+                return;
+            }
+
+            bool insideForceField =
+                HomeBaseRegistry.TryGet(_civilization.Id, out HomeBaseRegistry.BaseInfo baseInfo) &&
+                Vector3.Distance(transform.position, baseInfo.Position) <= baseInfo.Radius;
+
+            if (!insideForceField)
+            {
+                _regenClock = 0f;
+                return;
+            }
+
+            _regenClock += Time.deltaTime;
+            if (_regenClock >= _secondsPerRegenPoint)
+            {
+                _regenClock -= _secondsPerRegenPoint;
+                Heal(1);
+            }
+        }
+
+        /// <summary>Dano de qualquer origem (corte, eventos, defensores).</summary>
+        public void TakeDamage(int points)
+        {
+            if (_eliminated)
+            {
+                return;
+            }
+
+            _points = Mathf.Max(0, _points - points);
+            PublishPoints();
+
+            if (_points <= 0)
+            {
+                Eliminate();
+            }
+        }
+
+        public void Heal(int points)
+        {
+            if (_eliminated)
+            {
+                return;
+            }
+
+            _points = Mathf.Min(MaxPoints, _points + points);
+            PublishPoints();
+        }
+
+        private void OnTrailCut(TrailCutEvent cutEvent)
+        {
+            if (cutEvent.VictimId != _civilization.Id || _eliminated)
+            {
+                return;
+            }
+
+            TakeDamage(_cutDamagePoints);
+
+            if (!_eliminated)
+            {
+                ReturnToForceField();
+            }
+        }
+
         // DD-100: perdeu a base = recomeço junto à nave, com a vida cheia.
         private void OnBaseRelocated(BaseRelocatedEvent relocatedEvent)
         {
-            if (relocatedEvent.OwnerId != _civilization.Id)
+            if (relocatedEvent.OwnerId != _civilization.Id || _eliminated)
             {
                 return;
             }
 
             transform.position = relocatedEvent.NewPosition;
-            SetFraction(1f);
-        }
-
-        private void Update()
-        {
-            bool insideForceField =
-                HomeBaseRegistry.TryGet(_civilization.Id, out HomeBaseRegistry.BaseInfo baseInfo) &&
-                Vector3.Distance(transform.position, baseInfo.Position) <= baseInfo.Radius;
-
-            if (insideForceField && _fraction < 1f)
-            {
-                SetFraction(_fraction + _regenFractionPerSecond * Time.deltaTime);
-            }
-        }
-
-        private void OnTrailCut(TrailCutEvent cutEvent)
-        {
-            if (cutEvent.VictimId != _civilization.Id)
-            {
-                return;
-            }
-
-            SetFraction(_fraction - _cutDamageFraction);
-
-            if (_fraction <= 0f)
-            {
-                RespawnAtRandomFreeSpot();
-            }
-            else
-            {
-                ReturnToForceField();
-            }
+            _points = MaxPoints;
+            PublishPoints();
         }
 
         private void ReturnToForceField()
@@ -96,27 +138,17 @@ namespace Terraforge.Gameplay
             }
         }
 
-        private void RespawnAtRandomFreeSpot()
+        // R1: os 4 corações zeraram — fora da partida.
+        private void Eliminate()
         {
-            ITerritoryOwnership territory = TerritoryOwnershipLocator.Current;
-            if (territory != null)
-            {
-                transform.position = territory.GetRandomUnownedPosition();
-            }
-
-            SetFraction(1f);
-            Debug.Log($"[Gameplay] Civilização {_civilization.Id} caiu e renasceu em novo ponto do planeta.");
+            _eliminated = true;
+            EventBus.Publish(new CivilizationEliminatedEvent(_civilization.Id));
+            Debug.Log($"[Gameplay] Civilização {_civilization.Id} foi ELIMINADA da partida!");
         }
 
-        private void SetFraction(float value)
+        private void PublishPoints()
         {
-            _fraction = Mathf.Clamp01(value);
-            PublishFraction();
-        }
-
-        private void PublishFraction()
-        {
-            EventBus.Publish(new HealthChangedEvent(_civilization.Id, _fraction));
+            EventBus.Publish(new HealthChangedEvent(_civilization.Id, _points, MaxPoints));
         }
     }
 }

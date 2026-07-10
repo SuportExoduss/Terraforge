@@ -19,11 +19,13 @@ namespace Terraforge.Gameplay
         private void Awake()
         {
             EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
+            EventBus.Subscribe<CivilizationEliminatedEvent>(OnEliminated);
         }
 
         private void OnDestroy()
         {
             EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
+            EventBus.Unsubscribe<CivilizationEliminatedEvent>(OnEliminated);
         }
 
         // Fim de partida: esta câmera se aposenta e passa o bastão
@@ -31,6 +33,15 @@ namespace Terraforge.Gameplay
         private void OnMatchEnded(MatchEndedEvent matchEnded)
         {
             enabled = false;
+        }
+
+        // R1: jogador eliminado vira espectador — mesma passagem de bastão.
+        private void OnEliminated(CivilizationEliminatedEvent eliminatedEvent)
+        {
+            if (eliminatedEvent.OwnerId == Civilization.PlayerId)
+            {
+                enabled = false;
+            }
         }
 
         // LateUpdate roda DEPOIS de todos os Updates do frame: o corredor

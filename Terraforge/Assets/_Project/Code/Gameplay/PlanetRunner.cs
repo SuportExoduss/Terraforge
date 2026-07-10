@@ -12,8 +12,11 @@ namespace Terraforge.Gameplay
     /// </summary>
     public sealed class PlanetRunner : MonoBehaviour
     {
-        [SerializeField] private float _moveSpeed = 8f;
-        [SerializeField] private float _turnSpeedDegrees = 140f;
+        [SerializeField] private float _moveSpeed = 12f;
+
+        // Cresce junto com a velocidade: senão o raio de curva "abre"
+        // e o corredor vira um caminhão.
+        [SerializeField] private float _turnSpeedDegrees = 180f;
 
         // Distância entre o pé e o centro da cápsula (cápsula padrão tem 2 de altura).
         [SerializeField] private float _heightOffset = 1f;
@@ -24,6 +27,14 @@ namespace Terraforge.Gameplay
         private Renderer[] _renderers;
         private bool _matchStarted;
         private bool _aboardShip;
+        private bool _eliminated;
+
+        /// <summary>
+        /// O corredor está de fato em campo? (Partida rolando, não embarcado
+        /// na nave, não eliminado.) Rastro e sensor de corte consultam isto
+        /// para não agirem como fantasmas.
+        /// </summary>
+        public bool IsActiveInField => enabled && _matchStarted && !_aboardShip && !_eliminated;
 
         private void Awake()
         {
@@ -43,6 +54,7 @@ namespace Terraforge.Gameplay
             EventBus.Subscribe<MatchEndedEvent>(OnMatchEnded);
             EventBus.Subscribe<BaseFallenEvent>(OnBaseFallen);
             EventBus.Subscribe<BaseRelocatedEvent>(OnBaseRelocated);
+            EventBus.Subscribe<CivilizationEliminatedEvent>(OnEliminated);
         }
 
         private void OnDestroy()
@@ -51,6 +63,21 @@ namespace Terraforge.Gameplay
             EventBus.Unsubscribe<MatchEndedEvent>(OnMatchEnded);
             EventBus.Unsubscribe<BaseFallenEvent>(OnBaseFallen);
             EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
+            EventBus.Unsubscribe<CivilizationEliminatedEvent>(OnEliminated);
+        }
+
+        // R1: eliminado = fora do campo para sempre (o objeto permanece
+        // para manter os registros da rodada).
+        private void OnEliminated(CivilizationEliminatedEvent eliminatedEvent)
+        {
+            if (_civilization == null || eliminatedEvent.OwnerId != _civilization.Id)
+            {
+                return;
+            }
+
+            _eliminated = true;
+            SetVisible(false);
+            enabled = false;
         }
 
         private void OnMatchStarted(MatchStartedEvent matchStarted)
@@ -75,7 +102,9 @@ namespace Terraforge.Gameplay
         // Nave pousou e a contagem zerou: desembarca e volta ao jogo.
         private void OnBaseRelocated(BaseRelocatedEvent relocatedEvent)
         {
-            if (_civilization == null || relocatedEvent.OwnerId != _civilization.Id)
+            // Eliminado não desembarca: a nave que pousa depois da queda
+            // do dono não pode ressuscitar ninguém.
+            if (_civilization == null || relocatedEvent.OwnerId != _civilization.Id || _eliminated)
             {
                 return;
             }

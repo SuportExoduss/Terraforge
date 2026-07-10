@@ -9,7 +9,8 @@ namespace Terraforge.Core
     /// </summary>
     public sealed class MatchTimer : MonoBehaviour
     {
-        [SerializeField] private float _matchDurationSeconds = 300f;
+        // DD-111: partidas oficiais de 10 minutos (planeta escala 200).
+        [SerializeField] private float _matchDurationSeconds = 600f;
 
         private float _secondsRemaining;
         private int _lastAnnouncedSecond = -1;

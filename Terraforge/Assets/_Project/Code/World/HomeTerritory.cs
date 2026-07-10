@@ -49,6 +49,26 @@ namespace Terraforge.World
         private Vector3 _departureDirection;
         private Vector3 _arrivalDirection;
 
+        private void Awake()
+        {
+            // R1: civilização eliminada = a nave se aposenta; o domo fica
+            // no planeta como ruína (as informações da rodada permanecem).
+            EventBus.Subscribe<CivilizationEliminatedEvent>(OnEliminated);
+        }
+
+        private void OnDestroy()
+        {
+            EventBus.Unsubscribe<CivilizationEliminatedEvent>(OnEliminated);
+        }
+
+        private void OnEliminated(CivilizationEliminatedEvent eliminatedEvent)
+        {
+            if (_civilization != null && eliminatedEvent.OwnerId == _civilization.Id)
+            {
+                enabled = false;
+            }
+        }
+
         private void Start()
         {
             IPlanet planet = PlanetLocator.Current;
