@@ -35,6 +35,10 @@ namespace Terraforge.World
         [SerializeField] private float _countdownLeadSeconds = 3f;
         [SerializeField] private float _landedWaitSeconds = 2f;
 
+        // O domo de energia (arraste o filho DomoEnergia aqui): desce
+        // invisível e só surge no GO/pouso (pedido do Diretor).
+        [SerializeField] private Transform _dome;
+
         // Vistoria da posse da base a cada meio segundo (barato e suficiente).
         private const float OwnershipCheckInterval = 0.5f;
 
@@ -90,10 +94,42 @@ namespace Terraforge.World
             // DD-096: a partida abre com a nave descendo do espaço até o
             // ponto sorteado pelo MatchSetup — a base só existe ao pousar.
             _arrivalDirection = (transform.position - planet.Center).normalized;
-            transform.position = planet.Center + _arrivalDirection * (planet.Radius + _openingAltitude);
+            PlaceOnPlanet(planet, _arrivalDirection, _openingAltitude);
             _flightClock = 0f;
             _lastAnnouncedSecond = -1;
             _state = BaseState.OpeningDescent;
+
+            // O domo começa invisível; surge apenas no GO (pouso concluído).
+            SetDomeVisible(false);
+        }
+
+        // Posiciona a base a uma altitude sobre a direção da superfície E a
+        // deixa "em pé": o topo do domo/nave sempre aponta para o céu,
+        // qualquer que seja o lado do planeta onde pouse (pedido do Diretor).
+        private void PlaceOnPlanet(IPlanet planet, Vector3 surfaceDirection, float altitude)
+        {
+            transform.position = planet.Center + surfaceDirection * (planet.Radius + altitude);
+
+            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, surfaceDirection);
+            if (forward.sqrMagnitude < 0.001f)
+            {
+                forward = Vector3.ProjectOnPlane(Vector3.forward, surfaceDirection);
+            }
+
+            transform.rotation = Quaternion.LookRotation(forward.normalized, surfaceDirection);
+        }
+
+        private void SetDomeVisible(bool visible)
+        {
+            if (_dome == null)
+            {
+                return;
+            }
+
+            foreach (Renderer domeRenderer in _dome.GetComponentsInChildren<Renderer>(true))
+            {
+                domeRenderer.enabled = visible;
+            }
         }
 
         private void Update()
@@ -141,7 +177,7 @@ namespace Terraforge.World
             float progress = Mathf.Clamp01(_flightClock / _openingSeconds);
             float smooth = Mathf.SmoothStep(0f, 1f, progress);
             float altitude = _openingAltitude * (1f - smooth);
-            transform.position = planet.Center + _arrivalDirection * (planet.Radius + altitude);
+            PlaceOnPlanet(planet, _arrivalDirection, altitude);
 
             float descentRemaining = _openingSeconds - _flightClock;
             if (descentRemaining <= _countdownLeadSeconds)
@@ -224,7 +260,7 @@ namespace Terraforge.World
             // (zero nas pontas, máxima no meio do voo).
             Vector3 direction = Vector3.Slerp(_departureDirection, _arrivalDirection, smooth);
             float altitude = Mathf.Sin(progress * Mathf.PI) * _flightAltitude;
-            transform.position = planet.Center + direction * (planet.Radius + altitude);
+            PlaceOnPlanet(planet, direction, altitude);
 
             // Contagem na tela: começa quando faltam 3s de voo e segue até
             // o spawn (3s de voo + 2s pousada = 5).
@@ -242,6 +278,8 @@ namespace Terraforge.World
 
         private void Land(IPlanet planet)
         {
+            // Pousa exatamente na superfície, em pé (altitude 0).
+            PlaceOnPlanet(planet, (transform.position - planet.Center).normalized, 0f);
             EstablishBase(planet);
             _landedClock = 0f;
             _state = BaseState.Landed;
@@ -259,6 +297,9 @@ namespace Terraforge.World
             if (remaining <= 0f)
             {
                 _state = BaseState.Grounded;
+
+                // GO! (contagem zerou): o domo de energia se materializa.
+                SetDomeVisible(true);
                 EventBus.Publish(new BaseRelocatedEvent(_civilization.Id, transform.position));
                 Debug.Log($"[World] Civilização {_civilization.Id} spawnou junto à nave (DD-100).");
             }

@@ -173,6 +173,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.TrailCutSensor
   _cutRadius: 1.5
   _minPointsToCut: 5
+  _checkInterval: 0.08
 --- !u!114 &56618397
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -209,6 +210,7 @@ MonoBehaviour:
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
   _segmentScale: 1
+  _prewarmSegments: 64
 --- !u!120 &56618399
 LineRenderer:
   serializedVersion: 3
@@ -460,7 +462,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: 36d34e5b7b8de9a4d888965bd5bec5f5, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -3910990755373119420, guid: 36d34e5b7b8de9a4d888965bd5bec5f5, type: 3}
       propertyPath: m_LocalPosition.z
@@ -747,6 +749,7 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+  _dome: {fileID: 2002470500}
 --- !u!114 &303465986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1128,6 +1131,7 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+  _dome: {fileID: 0}
 --- !u!135 &434232897
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -1288,6 +1292,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.TrailCutSensor
   _cutRadius: 1.5
   _minPointsToCut: 5
+  _checkInterval: 0.08
 --- !u!114 &435824026
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1324,6 +1329,7 @@ MonoBehaviour:
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
   _segmentScale: 1
+  _prewarmSegments: 64
 --- !u!120 &435824028
 LineRenderer:
   serializedVersion: 3
@@ -1915,6 +1921,7 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+  _dome: {fileID: 0}
 --- !u!135 &758157955
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -2154,6 +2161,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.TrailCutSensor
   _cutRadius: 1.5
   _minPointsToCut: 5
+  _checkInterval: 0.08
 --- !u!114 &762999916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2190,6 +2198,7 @@ MonoBehaviour:
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
   _segmentScale: 1
+  _prewarmSegments: 64
 --- !u!120 &762999918
 LineRenderer:
   serializedVersion: 3
@@ -2433,15 +2442,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -2975561146029531975, guid: 46561368f8db1cd4e999a6474a6bcca1, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.2
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: -2975561146029531975, guid: 46561368f8db1cd4e999a6474a6bcca1, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.2
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: -2975561146029531975, guid: 46561368f8db1cd4e999a6474a6bcca1, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.2
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: -2975561146029531975, guid: 46561368f8db1cd4e999a6474a6bcca1, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2762,6 +2771,7 @@ MonoBehaviour:
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
   _segmentScale: 1
+  _prewarmSegments: 64
 --- !u!120 &1084007590
 LineRenderer:
   serializedVersion: 3
@@ -3023,6 +3033,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.TrailCutSensor
   _cutRadius: 1.5
   _minPointsToCut: 5
+  _checkInterval: 0.08
 --- !u!4 &1210210413 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8434193812620499245, guid: 5d88426721ac5fb4a976223558ccee4d, type: 3}
@@ -3082,6 +3093,7 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+  _dome: {fileID: 0}
 --- !u!135 &1367311883
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -3591,8 +3603,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 100, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 94177054}
   m_Father: {fileID: 1807700805}
@@ -3615,6 +3627,7 @@ MonoBehaviour:
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
   _segmentScale: 1
+  _prewarmSegments: 64
 --- !u!120 &1519421586
 LineRenderer:
   serializedVersion: 3
@@ -3737,6 +3750,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3427b59ae11d9b941b9e94c0c32030ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.PlayerSteering
+  _joystickRadiusPixels: 95
+  _joystickDeadZone: 0.08
 --- !u!114 &1519421588
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3778,6 +3793,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.TrailCutSensor
   _cutRadius: 1.5
   _minPointsToCut: 5
+  _checkInterval: 0.08
 --- !u!1 &1589994303
 GameObject:
   m_ObjectHideFlags: 0
@@ -3922,6 +3938,8 @@ MonoBehaviour:
   _followTarget: {fileID: 1519421584}
   _planetFillFactor: 0.95
   _dragDegreesPerPixel: 0.4
+  _normalRefreshRate: 15
+  _expandedRefreshRate: 30
 --- !u!1 &1659649662
 GameObject:
   m_ObjectHideFlags: 0
@@ -4126,6 +4144,7 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+  _dome: {fileID: 0}
 --- !u!135 &1741043606
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -4379,6 +4398,7 @@ MonoBehaviour:
   _flightAltitude: 30
   _countdownLeadSeconds: 3
   _landedWaitSeconds: 2
+  _dome: {fileID: 0}
 --- !u!114 &1757867080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4439,15 +4459,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8313603779374398265, guid: ad90525336e5fd54496e60b724d97df0, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.26
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: -8313603779374398265, guid: ad90525336e5fd54496e60b724d97df0, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.26
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: -8313603779374398265, guid: ad90525336e5fd54496e60b724d97df0, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.26
+      value: 0.8
       objectReference: {fileID: 0}
     - target: {fileID: -8313603779374398265, guid: ad90525336e5fd54496e60b724d97df0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -4715,6 +4735,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terraforge.Gameplay::Terraforge.Gameplay.TrailCutSensor
   _cutRadius: 1.5
   _minPointsToCut: 5
+  _checkInterval: 0.08
 --- !u!114 &2088968152
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4751,6 +4772,7 @@ MonoBehaviour:
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
   _segmentScale: 1
+  _prewarmSegments: 64
 --- !u!120 &2088968154
 LineRenderer:
   serializedVersion: 3

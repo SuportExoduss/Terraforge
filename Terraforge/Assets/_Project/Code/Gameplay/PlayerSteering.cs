@@ -1,73 +1,74 @@
 using Terraforge.Core;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 namespace Terraforge.Gameplay
 {
     /// <summary>
-    /// O motorista humano: converte o teclado (A/D ou setas) na direção
-    /// de corrida que o PlanetRunner consome via ISteeringSource.
+    /// O motorista humano. Direção por PONTEIRO (Pointer.current unifica
+    /// toque no celular e mouse no Editor): tocar/clicar cria um analógico
+    /// flutuante sob o dedo; arrastar para os lados curva a corrida. O
+    /// teclado (A/D, setas) continua valendo como alternativa.
+    /// A UI do joystick lê o mesmo canal TouchSteering (Core).
     /// </summary>
     public sealed class PlayerSteering : MonoBehaviour, ISteeringSource
     {
-        [SerializeField] private float _joystickRadiusPixels = 95f;
+        [SerializeField] private float _joystickRadiusPixels = 120f;
         [SerializeField] private float _joystickDeadZone = 0.08f;
 
-        private bool _trackingTouch;
-        private int _touchId;
-        private Vector2 _touchOrigin;
+        private bool _tracking;
+        private Vector2 _origin;
 
         private void OnDisable()
         {
-            StopTouch();
+            StopTracking();
         }
 
         private void Update()
         {
-            Touchscreen touchscreen = Touchscreen.current;
-            if (touchscreen == null)
+            Pointer pointer = Pointer.current;
+            if (pointer == null)
             {
                 return;
             }
 
-            TouchControl touch = touchscreen.primaryTouch;
-            if (!_trackingTouch && touch.press.wasPressedThisFrame && !TouchSteering.IsUiPointerHeld)
-            {
-                _trackingTouch = true;
-                _touchId = touch.touchId.ReadValue();
-                _touchOrigin = touch.position.ReadValue();
-                TouchSteering.Begin(_touchOrigin);
-            }
+            bool pressed = pointer.press.isPressed;
+            Vector2 position = pointer.position.ReadValue();
 
-            if (!_trackingTouch)
+            // Começa a rastrear quando o dedo/mouse encosta fora da UI
+            // (o minimapa avisa quando está sendo tocado).
+            if (!_tracking)
             {
+                if (pointer.press.wasPressedThisFrame && !TouchSteering.IsUiPointerHeld)
+                {
+                    _tracking = true;
+                    _origin = position;
+                    TouchSteering.Begin(_origin);
+                }
+
                 return;
             }
 
-            if (TouchSteering.IsUiPointerHeld || touch.press.wasReleasedThisFrame || !touch.press.isPressed)
+            // Soltou (ou a UI assumiu o ponteiro): some o analógico.
+            if (!pressed || TouchSteering.IsUiPointerHeld)
             {
-                StopTouch();
+                StopTracking();
                 return;
             }
 
-            if (touch.touchId.ReadValue() == _touchId)
-            {
-                Vector2 offset = touch.position.ReadValue() - _touchOrigin;
-                Vector2 clamped = Vector2.ClampMagnitude(offset, _joystickRadiusPixels);
-                float steer = clamped.x / _joystickRadiusPixels;
-                TouchSteering.Set(
-                    Mathf.Abs(steer) >= _joystickDeadZone ? steer : 0f,
-                    clamped);
-            }
+            // Arrasto: só o eixo horizontal vira direção (a corrida é
+            // sempre automática, DD — o jogador só controla a curva).
+            Vector2 offset = position - _origin;
+            Vector2 clamped = Vector2.ClampMagnitude(offset, _joystickRadiusPixels);
+            float steer = clamped.x / _joystickRadiusPixels;
+            TouchSteering.Set(Mathf.Abs(steer) >= _joystickDeadZone ? steer : 0f, clamped);
         }
 
         public float GetSteer()
         {
-            float touchSteer = TouchSteering.Value;
-            if (Mathf.Abs(touchSteer) > 0.001f)
+            if (_tracking && Mathf.Abs(TouchSteering.Value) > 0.001f)
             {
-                return touchSteer;
+                return TouchSteering.Value;
             }
 
             Keyboard keyboard = Keyboard.current;
@@ -90,10 +91,13 @@ namespace Terraforge.Gameplay
             return steer;
         }
 
-        private void StopTouch()
+        private void StopTracking()
         {
-            _trackingTouch = false;
-            TouchSteering.Clear();
+            if (_tracking)
+            {
+                _tracking = false;
+                TouchSteering.Clear();
+            }
         }
     }
 }
