@@ -36,6 +36,7 @@ namespace Terraforge.Gameplay
 
             EventBus.Subscribe<TrailCutEvent>(OnTrailCut);
             EventBus.Subscribe<BaseRelocatedEvent>(OnBaseRelocated);
+            EventBus.Subscribe<RadialDamageEvent>(OnRadialDamage);
         }
 
         private void Start()
@@ -47,6 +48,35 @@ namespace Terraforge.Gameplay
         {
             EventBus.Unsubscribe<TrailCutEvent>(OnTrailCut);
             EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
+            EventBus.Unsubscribe<RadialDamageEvent>(OnRadialDamage);
+        }
+
+        // DD-107: dano de eventos globais em anéis exclusivos — o anel
+        // interno também devolve a vítima ao campo de força.
+        private void OnRadialDamage(RadialDamageEvent damageEvent)
+        {
+            if (_eliminated)
+            {
+                return;
+            }
+
+            float distance = Vector3.Distance(transform.position, damageEvent.Center);
+            if (distance <= damageEvent.InnerRadius)
+            {
+                TakeDamage(damageEvent.InnerDamage);
+                if (!_eliminated && damageEvent.InnerReturnsToBase)
+                {
+                    ReturnToForceField();
+                }
+            }
+            else if (distance <= damageEvent.MidRadius)
+            {
+                TakeDamage(damageEvent.MidDamage);
+            }
+            else if (distance <= damageEvent.OuterRadius)
+            {
+                TakeDamage(damageEvent.OuterDamage);
+            }
         }
 
         private void Update()

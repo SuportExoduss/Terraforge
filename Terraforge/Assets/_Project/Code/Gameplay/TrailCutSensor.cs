@@ -19,8 +19,14 @@ namespace Terraforge.Gameplay
         // que alguém sai da própria base.
         [SerializeField] private int _minPointsToCut = 5;
 
+        // A 12 u/s, 12 verificações por segundo preservam precisão de corte
+        // abaixo de uma unidade e evitam repetir a varredura completa de
+        // todos os rastros em todos os frames.
+        [SerializeField, Min(0.02f)] private float _checkInterval = 0.08f;
+
         private Civilization _civilization;
         private PlanetRunner _runner;
+        private float _nextCheckTime;
 
         private void Awake()
         {
@@ -42,6 +48,13 @@ namespace Terraforge.Gameplay
             {
                 return;
             }
+
+            if (Time.time < _nextCheckTime)
+            {
+                return;
+            }
+
+            _nextCheckTime = Time.time + _checkInterval;
 
             Vector3 position = transform.position;
             IReadOnlyList<ICuttableTrail> trails = TrailRegistry.All;

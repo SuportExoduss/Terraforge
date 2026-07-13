@@ -28,6 +28,7 @@ namespace Terraforge.World
 
         private Vector3[] _cellDirections;
         private byte[] _cellOwners;
+        private int[][] _neighbors;
         private readonly int[] _cellCountsByOwner = new int[MaxOwners];
         private Dictionary<Vector2Int, List<int>> _buckets;
         private float _cellSpacing;
@@ -242,12 +243,10 @@ namespace Terraforge.World
                 while (_searchFrontier.Count > 0)
                 {
                     int cell = _searchFrontier.Dequeue();
-                    _neighborBuffer.Clear();
-                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, _neighborBuffer);
-
-                    for (int n = 0; n < _neighborBuffer.Count; n++)
+                    int[] neighbors = _neighbors[cell];
+                    for (int n = 0; n < neighbors.Length; n++)
                     {
-                        int neighbor = _neighborBuffer[n];
+                        int neighbor = neighbors[n];
                         if (_cellOwners[neighbor] != ownerId && _searchSet.Add(neighbor))
                         {
                             _searchFrontier.Enqueue(neighbor);
@@ -283,7 +282,10 @@ namespace Terraforge.World
         // ------------------------------------------------------------------
         private void ConvertDisconnectedEnemyRegions(byte conquerorId, IPlanet planet)
         {
-            for (byte enemy = 1; enemy < MaxOwners; enemy++)
+            // Só quem acabou de perder células pode ter ficado separado da
+            // própria base. Evita flood fills inúteis para todas as demais
+            // civilizações a cada circuito fechado.
+            foreach (byte enemy in _dispossessedBuffer)
             {
                 if (enemy == conquerorId || _cellCountsByOwner[enemy] <= 0)
                 {
@@ -312,12 +314,10 @@ namespace Terraforge.World
                 while (_searchFrontier.Count > 0)
                 {
                     int cell = _searchFrontier.Dequeue();
-                    _neighborBuffer.Clear();
-                    CollectCellsWithin(_cellDirections[cell], _cellSpacing * 1.6f, planet, _neighborBuffer);
-
-                    for (int n = 0; n < _neighborBuffer.Count; n++)
+                    int[] neighbors = _neighbors[cell];
+                    for (int n = 0; n < neighbors.Length; n++)
                     {
-                        int neighbor = _neighborBuffer[n];
+                        int neighbor = neighbors[n];
                         if (_cellOwners[neighbor] == enemy && _searchSet.Add(neighbor))
                         {
                             _searchFrontier.Enqueue(neighbor);
@@ -421,10 +421,27 @@ namespace Terraforge.World
             // Distância média entre células vizinhas (na superfície real).
             float sphereArea = 4f * Mathf.PI * planet.Radius * planet.Radius;
             _cellSpacing = Mathf.Sqrt(sphereArea / _cellCount);
+            BuildNeighborGraph(planet);
             _built = true;
 
             Debug.Log($"[World] Grade territorial criada: {_cellCount} células, " +
                       $"espaçamento ~{_cellSpacing:F2} unidades.");
+        }
+
+        // A vizinhança da grade nunca muda durante uma partida. Calculá-la
+        // uma vez na criação elimina milhares de buscas por baldes durante
+        // cada flood fill de conquista ou amputação territorial.
+        private void BuildNeighborGraph(IPlanet planet)
+        {
+            _neighbors = new int[_cellCount][];
+            float neighborDistance = _cellSpacing * 1.6f;
+
+            for (int cell = 0; cell < _cellCount; cell++)
+            {
+                _neighborBuffer.Clear();
+                CollectCellsWithin(_cellDirections[cell], neighborDistance, planet, _neighborBuffer);
+                _neighbors[cell] = _neighborBuffer.ToArray();
+            }
         }
 
         // ------------------------------------------------------------------

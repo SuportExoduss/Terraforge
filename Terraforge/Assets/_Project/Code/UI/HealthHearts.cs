@@ -14,9 +14,12 @@ namespace Terraforge.UI
     {
         [SerializeField] private Color _fullColor = new(1f, 0.27f, 0.32f);
         [SerializeField] private Color _emptyColor = new(0.12f, 0.12f, 0.15f, 0.85f);
-        [SerializeField] private float _segmentSize = 16f;
-        [SerializeField] private float _segmentGap = 3f;
-        [SerializeField] private float _heartGap = 12f;
+
+        // DD-105 visual: 4 quadrados (corações), cada um dividido em 4
+        // quadrantes 2×2 — o quadrante APAGA (escurece) ao perder o ponto.
+        [SerializeField] private float _quadrantSize = 16f;
+        [SerializeField] private float _quadrantGap = 2f;
+        [SerializeField] private float _heartGap = 14f;
 
         private const int Hearts = 4;
         private const int SegmentsPerHeart = 4;
@@ -56,29 +59,37 @@ namespace Terraforge.UI
             }
         }
 
-        // 16 quadradinhos: [■■■■]  [■■■■]  [■■■■]  [■■■■]
+        // 4 quadrados lado a lado, cada um fatiado em 4 quadrantes (2×2):
+        // [▐▐]  [▐▐]  [▐▐]  [▐▐]  — cada quadrante = 1 ponto de vida.
         private void BuildSegments()
         {
-            float x = 0f;
+            float heartWidth = _quadrantSize * 2f + _quadrantGap;
+
             for (int heart = 0; heart < Hearts; heart++)
             {
-                for (int segment = 0; segment < SegmentsPerHeart; segment++)
+                float heartX = heart * (heartWidth + _heartGap);
+
+                for (int quadrant = 0; quadrant < SegmentsPerHeart; quadrant++)
                 {
-                    var segmentObject = new GameObject($"Heart{heart}_Seg{segment}", typeof(Image));
+                    // Ordem: superior-esq, superior-dir, inferior-esq, inferior-dir.
+                    int column = quadrant % 2;
+                    int row = quadrant / 2;
+
+                    var segmentObject =
+                        new GameObject($"Heart{heart}_Q{quadrant}", typeof(Image));
                     segmentObject.transform.SetParent(transform, worldPositionStays: false);
 
                     var rect = segmentObject.GetComponent<RectTransform>();
                     rect.anchorMin = new Vector2(0f, 1f);
                     rect.anchorMax = new Vector2(0f, 1f);
                     rect.pivot = new Vector2(0f, 1f);
-                    rect.sizeDelta = new Vector2(_segmentSize, _segmentSize);
-                    rect.anchoredPosition = new Vector2(x, 0f);
+                    rect.sizeDelta = new Vector2(_quadrantSize, _quadrantSize);
+                    rect.anchoredPosition = new Vector2(
+                        heartX + column * (_quadrantSize + _quadrantGap),
+                        -row * (_quadrantSize + _quadrantGap));
 
                     _segments.Add(segmentObject.GetComponent<Image>());
-                    x += _segmentSize + _segmentGap;
                 }
-
-                x += _heartGap;
             }
         }
     }

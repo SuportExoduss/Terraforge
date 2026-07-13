@@ -11,8 +11,12 @@ namespace Terraforge.Gameplay
     public sealed class RunnerCamera : MonoBehaviour
     {
         [SerializeField] private Transform _target;
-        [SerializeField] private float _height = 16f;
-        [SerializeField] private float _backDistance = 5f;
+        [SerializeField] private float _height = 12f;
+        [SerializeField] private float _backDistance = 16f;
+
+        // DD-113 (retrato): a câmera mira um ponto À FRENTE do corredor —
+        // ele fica no meio-baixo da tela, com horizonte e céu no topo.
+        [SerializeField] private float _lookAheadDistance = 18f;
         [SerializeField] private float _positionSmoothing = 5f;
         [SerializeField] private float _rotationSmoothing = 5f;
 
@@ -55,8 +59,12 @@ namespace Terraforge.Gameplay
 
             Vector3 up = _target.up;
             Vector3 desiredPosition = _target.position + up * _height - _target.forward * _backDistance;
+
+            // Mira adiante do corredor (não nele): visão de horizonte que
+            // gira junto com o jogador, como nas referências do Diretor.
+            Vector3 lookPoint = _target.position + _target.forward * _lookAheadDistance;
             Quaternion desiredRotation =
-                Quaternion.LookRotation(_target.position - desiredPosition, _target.forward);
+                Quaternion.LookRotation(lookPoint - desiredPosition, up);
 
             // Suavização exponencial: independe da taxa de quadros (FPS),
             // ao contrário de um Lerp com fator fixo.

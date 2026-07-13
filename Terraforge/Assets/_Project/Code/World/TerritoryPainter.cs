@@ -5,60 +5,70 @@ using UnityEngine;
 namespace Terraforge.World
 {
     /// <summary>
-    /// O visual do território: azulejos hexagonais por civilização, gerados
-    /// dos MESMOS dados do TerritoryMap — visual e posse nunca divergem.
-    /// A malha de cada civilização é fatiada em BLOCOS (~1000 azulejos):
-    /// blocos cheios são selados e nunca mais reenviados à placa de vídeo,
-    /// mantendo os envios pequenos e constantes (sem picos nem alarmes de
-    /// memória do motor).
+    /// O pintor definitivo (DD-110): a dominação muda a cor dos PIXELS da
+    /// própria superfície do planeta — nada é criado por cima. Mantém um
+    /// "mapa de posse" (textura equiretangular global) pintado célula a
+    /// célula em ondas por quadro; o shader Terraforge/PlanetSurface
+    /// mistura esse mapa com a cor original do modelo do planeta.
+    /// Vive no mesmo objeto do Planet.
     /// </summary>
     public sealed class TerritoryPainter : MonoBehaviour
     {
-        // Elemento 0 = civilização 1 (jogador), elemento 1 = civilização 2...
+        // Elemento 0 = civilização 1 (jogador)... — as CORES das civilizações
+        // são lidas destes materiais (mesma paleta do rastro e das bases).
         [SerializeField] private Material[] _civilizationMaterials;
 
-        // Abaixo do rastro (0.15) para a linha continuar visível por cima.
-        [SerializeField] private float _surfaceOffset = 0.1f;
+        // Resolução do mapa de posse (largura; altura = metade).
+        [SerializeField] private int _mapWidth = 1024;
 
-        // Raio do azulejo relativo ao espaçamento da grade: acima de 0.5,
-        // vizinhos se sobrepõem e a mancha fica contínua, sem frestas.
-        [SerializeField] private float _tileRadiusFactor = 0.95f;
+        // Raio do pincel relativo ao espaçamento das células: >0.5 garante
+        // mancha contínua entre células vizinhas.
+        [SerializeField] private float _brushRadiusFactor = 1.05f;
 
-        // Azulejos por bloco: 1000 × 7 vértices fica bem abaixo do limite
-        // de 65 mil do formato compacto de malha.
-        [SerializeField] private int _tilesPerChunk = 1000;
+        // Células pintadas por quadro: conquistas gigantes viram uma onda
+        // de transformação que se espalha (DD-110), não um soluço.
+        [SerializeField] private int _cellsPerFrame = 300;
 
-        private const int TileSides = 6;
-        private const int VerticesPerTile = TileSides + 1;
+        // Enviar uma textura inteira para a GPU é caro. A pintura continua
+        // incremental, mas a textura é submetida no máximo 20 vezes por
+        // segundo: a onda permanece fluida e os frames deixam de carregar
+        // repetidamente o upload completo de 2 MiB.
+        [SerializeField, Min(0.016f)] private float _uploadInterval = 0.05f;
 
-        // Conversões de território: cada leva de pintura sobe um fio de
-        // cabelo acima da anterior, para a cor nova cobrir a antiga.
-        // (Dívida conhecida do protótipo; o definitivo removerá azulejos.)
-        private const float ElevationStep = 0.0005f;
-
-        private sealed class MeshChunk
+        private readonly struct PendingCell
         {
-            public readonly List<Vector3> Vertices = new();
-            public readonly List<Vector3> Normals = new();
-            public readonly List<int> Triangles = new();
-            public Mesh Mesh;
-            public int TileCount;
+            public readonly Vector3 Position;
+            public readonly Color32 Color;
+            public readonly float WorldRadius;
+
+            public PendingCell(Vector3 position, Color32 color, float worldRadius)
+            {
+                Position = position;
+                Color = color;
+                WorldRadius = worldRadius;
+            }
         }
 
-        private sealed class CivilizationLayer
-        {
-            public readonly List<MeshChunk> Chunks = new();
-            public Transform Root;
-            public Material Material;
-        }
-
-        private readonly Dictionary<byte, CivilizationLayer> _layers = new();
-        private readonly HashSet<MeshChunk> _dirtyChunks = new();
-        private float _paintElevation;
+        private readonly Queue<PendingCell> _pendingCells = new();
+        private Planet _planet;
+        private Texture2D _territoryMap;
+        private Color32[] _pixels;
+        private int _mapHeight;
+        private bool _dirty;
+        private float _nextUploadTime;
 
         private void Awake()
         {
+            _planet = GetComponent<Planet>();
+            BuildTerritoryMap();
             EventBus.Subscribe<TerritoryCellsClaimedEvent>(OnCellsClaimed);
+        }
+
+        private void Start()
+        {
+            // Troca os materiais do modelo visual pelo shader da "pele"
+            // (preservando a cor/textura original de cada parte).
+            ConvertPlanetMaterials();
         }
 
         private void OnDestroy()
@@ -68,138 +78,167 @@ namespace Terraforge.World
 
         private void OnCellsClaimed(TerritoryCellsClaimedEvent claimEvent)
         {
-            IPlanet planet = PlanetLocator.Current;
-            if (planet == null || claimEvent.CellPositions.Count == 0)
-            {
-                return;
-            }
-
-            CivilizationLayer layer = GetOrCreateLayer(claimEvent.OwnerId, planet);
-            if (layer == null)
-            {
-                return;
-            }
-
-            _paintElevation += ElevationStep;
-            float tileRadius = claimEvent.CellSpacing * _tileRadiusFactor;
-            for (int i = 0; i < claimEvent.CellPositions.Count; i++)
-            {
-                MeshChunk chunk = GetWritableChunk(layer, planet);
-                AppendTile(chunk, claimEvent.CellPositions[i], tileRadius, planet);
-                _dirtyChunks.Add(chunk);
-            }
-        }
-
-        // Envio único por frame, e apenas dos blocos que mudaram.
-        private void LateUpdate()
-        {
-            if (_dirtyChunks.Count == 0)
-            {
-                return;
-            }
-
-            foreach (MeshChunk chunk in _dirtyChunks)
-            {
-                chunk.Mesh.SetVertices(chunk.Vertices);
-                chunk.Mesh.SetNormals(chunk.Normals);
-                chunk.Mesh.SetTriangles(chunk.Triangles, 0);
-            }
-
-            _dirtyChunks.Clear();
-        }
-
-        private CivilizationLayer GetOrCreateLayer(byte ownerId, IPlanet planet)
-        {
-            if (_layers.TryGetValue(ownerId, out CivilizationLayer existing))
-            {
-                return existing;
-            }
-
-            int materialIndex = ownerId - 1;
+            int materialIndex = claimEvent.OwnerId - 1;
             if (materialIndex < 0 || materialIndex >= _civilizationMaterials.Length)
             {
                 Debug.LogError(
-                    $"[World] TerritoryPainter sem material para a civilização {ownerId} " +
-                    "(configure a lista Civilization Materials).");
-                return null;
+                    $"[World] TerritoryPainter sem material para a civilização {claimEvent.OwnerId}.");
+                return;
             }
 
-            var rootObject = new GameObject($"TerritoryLayer_Civ{ownerId}");
-            rootObject.transform.position = planet.Center;
+            Color32 color = _civilizationMaterials[materialIndex].color;
+            color.a = byte.MaxValue;
+            float brushRadius = claimEvent.CellSpacing * _brushRadiusFactor;
 
-            var layer = new CivilizationLayer
+            for (int i = 0; i < claimEvent.CellPositions.Count; i++)
             {
-                Root = rootObject.transform,
-                Material = _civilizationMaterials[materialIndex]
-            };
-
-            _layers[ownerId] = layer;
-            return layer;
+                _pendingCells.Enqueue(
+                    new PendingCell(claimEvent.CellPositions[i], color, brushRadius));
+            }
         }
 
-        // Bloco atual da civilização; cheio = sela e abre um novo.
-        private MeshChunk GetWritableChunk(CivilizationLayer layer, IPlanet planet)
+        private void LateUpdate()
         {
-            if (layer.Chunks.Count > 0)
+            if (_pendingCells.Count > 0)
             {
-                MeshChunk last = layer.Chunks[^1];
-                if (last.TileCount < _tilesPerChunk)
+                int budget = Mathf.Min(_cellsPerFrame, _pendingCells.Count);
+                for (int i = 0; i < budget; i++)
                 {
-                    return last;
+                    PaintCell(_pendingCells.Dequeue());
                 }
             }
 
-            var chunk = new MeshChunk
+            if (_dirty && Time.unscaledTime >= _nextUploadTime)
             {
-                Mesh = new Mesh { name = $"TerritoryChunk_{layer.Chunks.Count}" }
-            };
-            chunk.Mesh.MarkDynamic();
-
-            var chunkObject = new GameObject($"Chunk_{layer.Chunks.Count}");
-            chunkObject.transform.SetParent(layer.Root, worldPositionStays: false);
-            chunkObject.transform.position = planet.Center;
-            chunkObject.AddComponent<MeshFilter>().mesh = chunk.Mesh;
-            chunkObject.AddComponent<MeshRenderer>().material = layer.Material;
-
-            layer.Chunks.Add(chunk);
-            return chunk;
+                _territoryMap.SetPixels32(_pixels);
+                _territoryMap.Apply(updateMipmaps: false);
+                _dirty = false;
+                _nextUploadTime = Time.unscaledTime + _uploadInterval;
+            }
         }
 
-        private void AppendTile(MeshChunk chunk, Vector3 cellPosition, float tileRadius, IPlanet planet)
+        // ------------------------------------------------------------------
+        // O pincel: converte a posição da célula em latitude/longitude e
+        // pinta um disco de pixels (alargado perto dos polos, onde o mapa
+        // equiretangular "estica").
+        // ------------------------------------------------------------------
+        private void PaintCell(PendingCell cell)
         {
-            Vector3 up = (cellPosition - planet.Center).normalized;
+            Vector3 direction = (cell.Position - _planet.Center).normalized;
 
-            // Base tangente à superfície para desenhar o hexágono deitado.
-            Vector3 reference = Mathf.Abs(up.y) < 0.99f ? Vector3.up : Vector3.right;
-            Vector3 tangent = Vector3.Cross(up, reference).normalized;
-            Vector3 bitangent = Vector3.Cross(up, tangent);
+            float longitude = Mathf.Atan2(direction.z, direction.x);
+            float latitude = Mathf.Asin(Mathf.Clamp(direction.y, -1f, 1f));
 
-            float surfaceRadius = planet.Radius + _surfaceOffset + _paintElevation;
-            int centerIndex = chunk.Vertices.Count;
+            float centerX = (longitude / (2f * Mathf.PI) + 0.5f) * _mapWidth;
+            float centerY = (latitude / Mathf.PI + 0.5f) * _mapHeight;
 
-            chunk.Vertices.Add(planet.Center + up * surfaceRadius);
-            chunk.Normals.Add(up);
+            // Raio do pincel em pixels (ângulo → pixels do mapa).
+            float angularRadius = cell.WorldRadius / _planet.Radius;
+            float radiusY = angularRadius / Mathf.PI * _mapHeight;
+            float cosLatitude = Mathf.Max(0.05f, Mathf.Cos(latitude));
+            float radiusX = angularRadius / (2f * Mathf.PI) * _mapWidth / cosLatitude;
 
-            for (int i = 0; i < TileSides; i++)
+            int minY = Mathf.FloorToInt(centerY - radiusY);
+            int maxY = Mathf.CeilToInt(centerY + radiusY);
+            int minX = Mathf.FloorToInt(centerX - radiusX);
+            int maxX = Mathf.CeilToInt(centerX + radiusX);
+
+            for (int y = minY; y <= maxY; y++)
             {
-                float angle = i * (2f * Mathf.PI / TileSides);
-                Vector3 rim =
-                    cellPosition + (tangent * Mathf.Cos(angle) + bitangent * Mathf.Sin(angle)) * tileRadius;
+                if (y < 0 || y >= _mapHeight)
+                {
+                    continue;
+                }
 
-                // Projeta a ponta do azulejo de volta à casca da esfera.
-                Vector3 rimUp = (rim - planet.Center).normalized;
-                chunk.Vertices.Add(planet.Center + rimUp * surfaceRadius);
-                chunk.Normals.Add(rimUp);
+                float dy = (y - centerY) / radiusY;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    float dx = (x - centerX) / radiusX;
+                    if (dx * dx + dy * dy > 1f)
+                    {
+                        continue;
+                    }
+
+                    // Longitude dá a volta no mundo (o mapa emenda nas bordas).
+                    int wrappedX = ((x % _mapWidth) + _mapWidth) % _mapWidth;
+                    _pixels[y * _mapWidth + wrappedX] = cell.Color;
+                }
             }
 
-            for (int i = 0; i < TileSides; i++)
+            _dirty = true;
+        }
+
+        // ------------------------------------------------------------------
+        // Infraestrutura: o mapa de posse e a troca de pele do modelo.
+        // ------------------------------------------------------------------
+        private void BuildTerritoryMap()
+        {
+            _mapHeight = _mapWidth / 2;
+            _territoryMap = new Texture2D(_mapWidth, _mapHeight, TextureFormat.RGBA32, mipChain: false)
             {
-                chunk.Triangles.Add(centerIndex);
-                chunk.Triangles.Add(centerIndex + 1 + i);
-                chunk.Triangles.Add(centerIndex + 1 + (i + 1) % TileSides);
+                name = "TerritoryOwnershipMap",
+                wrapModeU = TextureWrapMode.Repeat,
+                wrapModeV = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+
+            _pixels = new Color32[_mapWidth * _mapHeight];
+            var transparent = new Color32(0, 0, 0, 0);
+            for (int i = 0; i < _pixels.Length; i++)
+            {
+                _pixels[i] = transparent;
             }
 
-            chunk.TileCount++;
+            _territoryMap.SetPixels32(_pixels);
+            _territoryMap.Apply(updateMipmaps: false);
+
+            Shader.SetGlobalTexture("_TerritoryMap", _territoryMap);
+            Shader.SetGlobalVector("_PlanetCenter", transform.position);
+            Shader.SetGlobalVector("_TerritoryMapTexel",
+                new Vector4(1f / _mapWidth, 1f / _mapHeight, _mapWidth, _mapHeight));
+        }
+
+        private void ConvertPlanetMaterials()
+        {
+            Shader surfaceShader = Shader.Find("Terraforge/PlanetSurface");
+            if (surfaceShader == null)
+            {
+                Debug.LogError("[World] Shader Terraforge/PlanetSurface não encontrado.");
+                return;
+            }
+
+            foreach (Renderer childRenderer in GetComponentsInChildren<Renderer>())
+            {
+                if (childRenderer.gameObject == gameObject)
+                {
+                    continue; // a esfera matemática (invisível) fica como está
+                }
+
+                Material[] materials = childRenderer.materials;
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    Material original = materials[i];
+                    var skinned = new Material(surfaceShader);
+
+                    if (original.HasProperty("_BaseColor"))
+                    {
+                        skinned.SetColor("_BaseColor", original.GetColor("_BaseColor"));
+                    }
+                    else
+                    {
+                        skinned.SetColor("_BaseColor", original.color);
+                    }
+
+                    if (original.mainTexture != null)
+                    {
+                        skinned.SetTexture("_BaseMap", original.mainTexture);
+                    }
+
+                    materials[i] = skinned;
+                }
+
+                childRenderer.materials = materials;
+            }
         }
     }
 }
