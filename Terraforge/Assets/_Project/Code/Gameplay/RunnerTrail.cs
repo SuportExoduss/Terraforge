@@ -29,6 +29,11 @@ namespace Terraforge.Gameplay
         // Modelo plantado ao longo do rastro (ex.: cerca do Velho Oeste).
         // Sem modelo, o rastro usa a linha simples.
         [SerializeField] private GameObject _segmentModel;
+
+        // Ajuste fino da rotação do modelo da cerca (graus). Y=90 gira a
+        // cerca 90° para a direita — corrige modelos cujo "encaixe" não
+        // aponta na direção da corrida.
+        [SerializeField] private Vector3 _segmentRotationOffset = new(0f, 90f, 0f);
         [SerializeField] private float _segmentScale = 1f;
         [SerializeField, Min(0)] private int _prewarmSegments = 64;
 
@@ -215,7 +220,9 @@ namespace Terraforge.Gameplay
                 forward = transform.forward;
             }
 
-            segment.SetPositionAndRotation(middle, Quaternion.LookRotation(forward, up));
+            Quaternion baseRotation = Quaternion.LookRotation(forward, up);
+            segment.SetPositionAndRotation(
+                middle, baseRotation * Quaternion.Euler(_segmentRotationOffset));
             segment.localScale = Vector3.one * _segmentScale;
             segment.gameObject.SetActive(true);
         }
