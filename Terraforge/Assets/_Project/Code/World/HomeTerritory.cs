@@ -103,12 +103,14 @@ namespace Terraforge.World
             SetDomeVisible(false);
         }
 
-        // Posiciona a base a uma altitude sobre a direção da superfície E a
-        // deixa "em pé": o topo do domo/nave sempre aponta para o céu,
-        // qualquer que seja o lado do planeta onde pouse (pedido do Diretor).
+        // Posiciona a base a uma altitude sobre a superfície REAL (terreno
+        // visual, com vales e morros) e a deixa "em pé": o domo/nave pousam
+        // colados no chão e apontando para o céu, qualquer que seja o lado
+        // aleatório do planeta onde pouse (pedido do Diretor).
         private void PlaceOnPlanet(IPlanet planet, Vector3 surfaceDirection, float altitude)
         {
-            transform.position = planet.Center + surfaceDirection * (planet.Radius + altitude);
+            float surfaceRadius = planet.GetSurfaceRadius(surfaceDirection);
+            transform.position = planet.Center + surfaceDirection * (surfaceRadius + altitude);
 
             Vector3 forward = Vector3.ProjectOnPlane(transform.forward, surfaceDirection);
             if (forward.sqrMagnitude < 0.001f)
