@@ -91,6 +91,15 @@ namespace Terraforge.World
                 return;
             }
 
+            // Endireita os modelos visuais filhos (nave, domo): eles são
+            // Y-up e devem ficar em pé RELATIVOS à base — que a orienta com
+            // a superfície. Zera rotações tortas herdadas da cena para que
+            // pousem sempre retos, sem posicionamento manual (pedido do Diretor).
+            foreach (Transform child in transform)
+            {
+                child.localRotation = Quaternion.identity;
+            }
+
             // DD-096: a partida abre com a nave descendo do espaço até o
             // ponto sorteado pelo MatchSetup — a base só existe ao pousar.
             _arrivalDirection = (transform.position - planet.Center).normalized;
