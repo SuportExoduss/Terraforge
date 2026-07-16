@@ -32,8 +32,42 @@ Shader "Terraforge/PlanetSurface"
             // materiais do planeta).
             TEXTURE2D(_TerritoryMap);
             SAMPLER(sampler_TerritoryMap);
+            TEXTURE2D(_TerritoryIdMap);
+            SAMPLER(sampler_TerritoryIdMap);
             float4 _PlanetCenter;
             float4 _TerritoryMapTexel; // xy = 1/tamanho (para suavizar bordas)
+
+            // DD-116: Kit de Terreno de cada civilização (índice = id - 1).
+            // O shader COMPÕE o solo com estas cores + ruído; nada é pintado
+            // à mão e nenhuma textura planetária pronta é usada.
+            float4 _ThemeSoilSecondary[16];
+            float4 _ThemeDetail[16];
+            float4 _ThemeVegetation[16];
+            float4 _ThemeDna[16];   // x=vegetação y=rocha z=poeira w=contraste
+            float _TerraSeed;       // muda a cada partida: planeta sempre novo
+
+            // Ruído de valor barato (hash + interpolação suave), suficiente
+            // para manchas orgânicas de solo em estilo cartoon.
+            float TerraHash(float3 p)
+            {
+                p = frac(p * 0.3183099 + _TerraSeed);
+                p *= 17.0;
+                return frac(p.x * p.y * p.z * (p.x + p.y + p.z));
+            }
+
+            float TerraNoise(float3 p)
+            {
+                float3 i = floor(p);
+                float3 f = frac(p);
+                f = f * f * (3.0 - 2.0 * f);
+
+                return lerp(
+                    lerp(lerp(TerraHash(i + float3(0, 0, 0)), TerraHash(i + float3(1, 0, 0)), f.x),
+                         lerp(TerraHash(i + float3(0, 1, 0)), TerraHash(i + float3(1, 1, 0)), f.x), f.y),
+                    lerp(lerp(TerraHash(i + float3(0, 0, 1)), TerraHash(i + float3(1, 0, 1)), f.x),
+                         lerp(TerraHash(i + float3(0, 1, 1)), TerraHash(i + float3(1, 1, 1)), f.x), f.y),
+                    f.z);
+            }
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _BaseMap_ST;
@@ -119,8 +153,43 @@ Shader "Terraforge/PlanetSurface"
                 half outline = smoothstep(0.10, 0.30, mask.a) * (1.0 - fill);
                 const half3 outlineColor = half3(0.015, 0.015, 0.025);
 
+                // DD-116: o solo do bioma é COMPOSTO aqui, em tempo real.
+                // O Kit da civilização dona (lido pelo id, sem interpolação)
+                // é misturado por camadas de ruído: manchas de solo
+                // secundário, rachaduras/pedrinhas e vegetação rasteira.
+                // A cor base vem do mapa borrado, o que preserva a fusão
+                // entre impérios vizinhos.
+                half3 soil = territoryTint;
+                int themeIndex = (int)round(
+                    SAMPLE_TEXTURE2D_LOD(_TerritoryIdMap, sampler_TerritoryIdMap,
+                        territoryUV, 0).r * 255.0) - 1;
+
+                if (themeIndex >= 0 && themeIndex < 16)
+                {
+                    float4 dna = _ThemeDna[themeIndex];
+                    float3 p = direction * 90.0;
+
+                    // Manchas largas de solo secundário.
+                    float patches = TerraNoise(p * 0.6);
+                    soil = lerp(soil, _ThemeSoilSecondary[themeIndex].rgb,
+                                smoothstep(0.55, 0.85, patches) * 0.6);
+
+                    // Detalhe fino: rachaduras e pedrinhas (densidade = DNA rocha).
+                    float grain = TerraNoise(p * 4.0);
+                    soil = lerp(soil, _ThemeDetail[themeIndex].rgb,
+                                smoothstep(0.72, 0.95, grain) * dna.y * 0.7);
+
+                    // Vegetação rasteira (densidade = DNA vegetação).
+                    float flora = TerraNoise(p * 2.2 + 31.7);
+                    soil = lerp(soil, _ThemeVegetation[themeIndex].rgb,
+                                smoothstep(0.75, 0.95, flora) * dna.x);
+
+                    // Poeira do bioma lava levemente o conjunto (DD-118).
+                    soil = lerp(soil, soil * 1.12 + 0.04, dna.z * 0.35);
+                }
+
                 // O pixel dominado troca de cor na própria pele do planeta.
-                half3 albedo = lerp(baseColor.rgb, territoryTint, fill);
+                half3 albedo = lerp(baseColor.rgb, soil, fill);
                 albedo = lerp(albedo, outlineColor, outline);
 
                 // Iluminação simples e macia (meia-lambert), estilo cartoon.

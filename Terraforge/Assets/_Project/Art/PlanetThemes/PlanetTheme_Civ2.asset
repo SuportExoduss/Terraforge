@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18f3770fc15dd3d41a32c95b02f7fab2, type: 3}
+  m_Name: PlanetTheme_Civ2
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.PlanetTheme
+  CivilizationName: "Civiliza\xE7\xE3o 2"
+  SoilBase: {r: 1, g: 0, b: 1, a: 1}
+  SoilSecondary: {r: 0.8, g: 0.11999998, b: 0.63680017, a: 1}
+  Detail: {r: 0.5, g: 0.19999999, b: 0.5, a: 1}
+  Vegetation: {r: 0.6731999, g: 0.27, b: 0.9, a: 1}
+  VegetationTall: {fileID: 0}
+  VegetationLow: {fileID: 0}
+  RockLarge: {fileID: 0}
+  RockSmall: {fileID: 0}
+  Construction: {fileID: 0}
+  Decoration: {fileID: 0}
+  FaunaSmall: {fileID: 0}
+  Guardian: {fileID: 0}
+  VegetationDensity: 0.3
+  RockDensity: 0.5
+  Dust: 0.8
+  Humidity: 0.1
+  Saturation: 0.5
+  Contrast: 0.8

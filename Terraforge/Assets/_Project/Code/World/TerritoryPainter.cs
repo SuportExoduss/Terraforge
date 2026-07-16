@@ -40,19 +40,27 @@ namespace Terraforge.World
             public readonly Vector3 Position;
             public readonly Color32 Color;
             public readonly float WorldRadius;
+            public readonly byte OwnerId;
 
-            public PendingCell(Vector3 position, Color32 color, float worldRadius)
+            public PendingCell(Vector3 position, Color32 color, float worldRadius, byte ownerId)
             {
                 Position = position;
                 Color = color;
                 WorldRadius = worldRadius;
+                OwnerId = ownerId;
             }
         }
+
+        // DD-116: até 16 civilizações; cada uma entrega um Kit de Terreno
+        // (4 cores) que o shader compõe com ruído.
+        private const int MaxThemes = 16;
 
         private readonly Queue<PendingCell> _pendingCells = new();
         private Planet _planet;
         private Texture2D _territoryMap;
+        private Texture2D _territoryIdMap;
         private Color32[] _pixels;
+        private Color32[] _idPixels;
         private int _mapHeight;
         private bool _dirty;
         private float _nextUploadTime;
@@ -69,6 +77,49 @@ namespace Terraforge.World
             // Troca os materiais do modelo visual pelo shader da "pele"
             // (preservando a cor/textura original de cada parte).
             ConvertPlanetMaterials();
+
+            // DD-116: entrega os Kits de Terreno ao shader e sorteia a seed
+            // da partida (nenhum planeta Cowboy é igual a outro).
+            UploadThemeKits();
+        }
+
+        // DD-115/DD-116: cada civilização entrega 4 cores; o shader compõe
+        // o solo com elas + ruído. Enviado uma vez, no início da partida.
+        private void UploadThemeKits()
+        {
+            var soilSecondary = new Vector4[MaxThemes];
+            var detail = new Vector4[MaxThemes];
+            var vegetation = new Vector4[MaxThemes];
+            var dna = new Vector4[MaxThemes];
+
+            for (int i = 0; i < MaxThemes; i++)
+            {
+                PlanetTheme theme = PlanetThemeRegistry.Current != null
+                    ? PlanetThemeRegistry.Current.Get((byte)(i + 1))
+                    : null;
+
+                if (theme == null)
+                {
+                    // Sem theme: kit neutro (o shader não altera nada).
+                    soilSecondary[i] = Vector4.zero;
+                    continue;
+                }
+
+                soilSecondary[i] = theme.SoilSecondary;
+                detail[i] = theme.Detail;
+                vegetation[i] = theme.Vegetation;
+
+                // Biome DNA (DD-118) que o terreno usa: quanto de vegetação,
+                // rocha/detalhe e poeira aquele bioma mostra no solo.
+                dna[i] = new Vector4(
+                    theme.VegetationDensity, theme.RockDensity, theme.Dust, theme.Contrast);
+            }
+
+            Shader.SetGlobalVectorArray("_ThemeSoilSecondary", soilSecondary);
+            Shader.SetGlobalVectorArray("_ThemeDetail", detail);
+            Shader.SetGlobalVectorArray("_ThemeVegetation", vegetation);
+            Shader.SetGlobalVectorArray("_ThemeDna", dna);
+            Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
         }
 
         private void OnDestroy()
@@ -87,8 +138,8 @@ namespace Terraforge.World
 
             for (int i = 0; i < claimEvent.CellPositions.Count; i++)
             {
-                _pendingCells.Enqueue(
-                    new PendingCell(claimEvent.CellPositions[i], color, brushRadius));
+                _pendingCells.Enqueue(new PendingCell(
+                    claimEvent.CellPositions[i], color, brushRadius, claimEvent.OwnerId));
             }
         }
 
@@ -142,6 +193,8 @@ namespace Terraforge.World
             {
                 _territoryMap.SetPixels32(_pixels);
                 _territoryMap.Apply(updateMipmaps: false);
+                _territoryIdMap.SetPixels32(_idPixels);
+                _territoryIdMap.Apply(updateMipmaps: false);
                 _dirty = false;
                 _nextUploadTime = Time.unscaledTime + _uploadInterval;
             }
@@ -191,7 +244,13 @@ namespace Terraforge.World
 
                     // Longitude dá a volta no mundo (o mapa emenda nas bordas).
                     int wrappedX = ((x % _mapWidth) + _mapWidth) % _mapWidth;
-                    _pixels[y * _mapWidth + wrappedX] = cell.Color;
+                    int index = y * _mapWidth + wrappedX;
+                    _pixels[index] = cell.Color;
+
+                    // DD-116: o ID identifica QUAL Kit de Terreno o shader usa
+                    // neste pixel. Nunca é interpolado (ler ID médio não faz
+                    // sentido) — por isso vive num mapa próprio, sem filtro.
+                    _idPixels[index] = new Color32(cell.OwnerId, 0, 0, 255);
                 }
             }
 
@@ -212,17 +271,32 @@ namespace Terraforge.World
                 filterMode = FilterMode.Bilinear
             };
 
+            // Mapa de IDs: qual civilização (e portanto qual Kit de Terreno)
+            // domina cada pixel. Point = nunca interpola IDs.
+            _territoryIdMap = new Texture2D(_mapWidth, _mapHeight, TextureFormat.RGBA32, mipChain: false)
+            {
+                name = "TerritoryIdMap",
+                wrapModeU = TextureWrapMode.Repeat,
+                wrapModeV = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Point
+            };
+
             _pixels = new Color32[_mapWidth * _mapHeight];
+            _idPixels = new Color32[_mapWidth * _mapHeight];
             var transparent = new Color32(0, 0, 0, 0);
             for (int i = 0; i < _pixels.Length; i++)
             {
                 _pixels[i] = transparent;
+                _idPixels[i] = transparent;
             }
 
             _territoryMap.SetPixels32(_pixels);
             _territoryMap.Apply(updateMipmaps: false);
+            _territoryIdMap.SetPixels32(_idPixels);
+            _territoryIdMap.Apply(updateMipmaps: false);
 
             Shader.SetGlobalTexture("_TerritoryMap", _territoryMap);
+            Shader.SetGlobalTexture("_TerritoryIdMap", _territoryIdMap);
             Shader.SetGlobalVector("_PlanetCenter", transform.position);
             Shader.SetGlobalVector("_TerritoryMapTexel",
                 new Vector4(1f / _mapWidth, 1f / _mapHeight, _mapWidth, _mapHeight));
