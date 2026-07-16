@@ -93,7 +93,7 @@ git push
 4. **Nunca commite com erro vermelho no Console.**
 5. **Modelos 3D do Tripo** passam pela dieta antes de entrar
    (ver `docs/PADROES_DE_CODIGO.md` e o Adendo 03 do GDMD: orçamento de
-   polígonos DD-114, texturas 2K).
+   polígonos DD-119, texturas 2K).
 
 ---
 
