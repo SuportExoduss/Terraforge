@@ -117,6 +117,11 @@ namespace Terraforge.World.EditorTools
 
             serialized.ApplyModifiedProperties();
             EditorUtility.SetDirty(planet.gameObject);
+
+            // Sem SALVAR a cena, o registro recém-criado evapora ao fechar —
+            // e o shader fica sem Kit nenhum (planeta sem temática).
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(planet.gameObject.scene);
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(planet.gameObject.scene);
         }
 
         private static PlanetTheme CreateOrLoad(string assetName)

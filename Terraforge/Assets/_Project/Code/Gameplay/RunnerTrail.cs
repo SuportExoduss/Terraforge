@@ -34,11 +34,18 @@ namespace Terraforge.Gameplay
         // cerca 90° para a direita — corrige modelos cujo "encaixe" não
         // aponta na direção da corrida.
         [SerializeField] private Vector3 _segmentRotationOffset = new(0f, 90f, 0f);
+
+        // Sombrinha sob cada cerca: em vez de uma faixa pintada contínua,
+        // cada segmento ganha a sua marca no chão (pedido do Diretor).
+        [SerializeField] private bool _segmentShadow = true;
+        [SerializeField, Min(0f)] private float _segmentShadowSize = 1.2f;
+        [SerializeField, Range(0f, 1f)] private float _segmentShadowOpacity = 0.35f;
         [SerializeField] private float _segmentScale = 1f;
         [SerializeField, Min(0)] private int _prewarmSegments = 64;
 
         private readonly List<Transform> _segmentPool = new();
         private Transform _segmentContainer;
+        private Material _shadowMaterial;
         private int _activeSegments;
 
         // Um circuito precisa de pelo menos um triângulo para cercar área.
@@ -235,8 +242,47 @@ namespace Terraforge.Gameplay
                 Destroy(collider);
             }
 
+            if (_segmentShadow)
+            {
+                AttachShadow(instance.transform);
+            }
+
             _segmentPool.Add(instance.transform);
             return instance.transform;
+        }
+
+        // Um disco escuro achatado na base da cerca. Nasce junto com o
+        // segmento (nunca em jogo) e acompanha posição/rotação dele.
+        private void AttachShadow(Transform segment)
+        {
+            GameObject shadow = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            shadow.name = "Sombra";
+            Destroy(shadow.GetComponent<Collider>());
+
+            shadow.transform.SetParent(segment, worldPositionStays: false);
+            shadow.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+            shadow.transform.localScale =
+                new Vector3(_segmentShadowSize, 0.01f, _segmentShadowSize);
+
+            _shadowMaterial ??= CreateShadowMaterial();
+            shadow.GetComponent<MeshRenderer>().sharedMaterial = _shadowMaterial;
+        }
+
+        private Material CreateShadowMaterial()
+        {
+            var material = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+            {
+                name = "M_TrailSegmentShadow"
+            };
+
+            // Transparência no URP exige avisar o modo à superfície.
+            material.SetFloat("_Surface", 1f); // Transparent
+            material.SetFloat("_Blend", 0f);   // Alpha
+            material.SetFloat("_ZWrite", 0f);
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetColor("_BaseColor", new Color(0f, 0f, 0f, _segmentShadowOpacity));
+            return material;
         }
 
         // Todo o estoque visual é preparado antes do GO. Assim a primeira
