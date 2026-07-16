@@ -78,16 +78,11 @@ namespace Terraforge.World
 
         private void OnCellsClaimed(TerritoryCellsClaimedEvent claimEvent)
         {
-            int materialIndex = claimEvent.OwnerId - 1;
-            if (materialIndex < 0 || materialIndex >= _civilizationMaterials.Length)
+            if (!TryGetCivilizationColor(claimEvent.OwnerId, out Color32 color))
             {
-                Debug.LogError(
-                    $"[World] TerritoryPainter sem material para a civilização {claimEvent.OwnerId}.");
                 return;
             }
 
-            Color32 color = _civilizationMaterials[materialIndex].color;
-            color.a = byte.MaxValue;
             float brushRadius = claimEvent.CellSpacing * _brushRadiusFactor;
 
             for (int i = 0; i < claimEvent.CellPositions.Count; i++)
@@ -95,6 +90,41 @@ namespace Terraforge.World
                 _pendingCells.Enqueue(
                     new PendingCell(claimEvent.CellPositions[i], color, brushRadius));
             }
+        }
+
+        // DD-115: a cor do território vem do PLANET THEME da civilização
+        // (o solo do bioma). Enquanto um theme não existir, cai no material
+        // antigo — migração sem quebrar nada.
+        private bool TryGetCivilizationColor(byte ownerId, out Color32 color)
+        {
+            color = default;
+
+            PlanetTheme theme = PlanetThemeRegistry.Current != null
+                ? PlanetThemeRegistry.Current.Get(ownerId)
+                : null;
+
+            if (theme != null)
+            {
+                color = theme.SoilBase;
+                color.a = byte.MaxValue;
+                return true;
+            }
+
+            int materialIndex = ownerId - 1;
+            if (_civilizationMaterials == null ||
+                materialIndex < 0 ||
+                materialIndex >= _civilizationMaterials.Length ||
+                _civilizationMaterials[materialIndex] == null)
+            {
+                Debug.LogError(
+                    $"[World] Civilização {ownerId} não tem Planet Theme nem material. " +
+                    "Configure um PlanetTheme no PlanetThemeRegistry.");
+                return false;
+            }
+
+            color = _civilizationMaterials[materialIndex].color;
+            color.a = byte.MaxValue;
+            return true;
         }
 
         private void LateUpdate()

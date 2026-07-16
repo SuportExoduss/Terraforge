@@ -1,0 +1,11 @@
+{
+    "name": "Terraforge.World.Editor",
+    "rootNamespace": "Terraforge.World.EditorTools",
+    "references": [
+        "Terraforge.Core",
+        "Terraforge.World"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}
