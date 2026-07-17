@@ -1701,6 +1701,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c6b1d24fb2aaa914a84e0032ae44ac08, type: 2}
   - {fileID: 11400000, guid: ce322c06c0b23294e8ec260c18784368, type: 2}
   - {fileID: 11400000, guid: 1ed6ded535ad3fa4eac6b2fc2cad4158, type: 2}
+  _groundTextures: {fileID: 18700000, guid: 7b021cd46f3b22947ade7799c9162d0c, type: 2}
+  _groundNormals: {fileID: 18700000, guid: d6c2225e94923d548b542c06418da6dd, type: 2}
 --- !u!1 &525038852
 GameObject:
   m_ObjectHideFlags: 0

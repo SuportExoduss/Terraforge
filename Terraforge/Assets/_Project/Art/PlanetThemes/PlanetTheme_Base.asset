@@ -13,18 +13,33 @@ MonoBehaviour:
   m_Name: PlanetTheme_Base
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.PlanetTheme
   CivilizationName: Neutro
+  Character: {fileID: 0}
+  Ship: {fileID: 0}
+  Dome: {fileID: 0}
+  Meteor: {fileID: 0}
+  TrailSegment: {fileID: 0}
+  GroundTexture: {fileID: 0}
+  GroundNormalTexture: {fileID: 0}
+  GroundAOTexture: {fileID: 0}
+  GroundRelief: 1
+  GroundHeight: 0.6
+  GroundTiling: 16
   SoilBase: {r: 0.55, g: 0.42, b: 0.28, a: 1}
   SoilSecondary: {r: 0.62, g: 0.33, b: 0.2, a: 1}
   Detail: {r: 0.35, g: 0.28, b: 0.22, a: 1}
   Vegetation: {r: 0.45, g: 0.5, b: 0.25, a: 1}
   VegetationTall: {fileID: 0}
+  VegetationMedium: {fileID: 0}
   VegetationLow: {fileID: 0}
   RockLarge: {fileID: 0}
   RockSmall: {fileID: 0}
-  Construction: {fileID: 0}
-  Decoration: {fileID: 0}
-  FaunaSmall: {fileID: 0}
-  Guardian: {fileID: 0}
+  StructureSmall: {fileID: 0}
+  StructureMedium: {fileID: 0}
+  StructureLarge: {fileID: 0}
+  DecorationNatural: {fileID: 0}
+  DecorationArtificial: {fileID: 0}
+  Container: {fileID: 0}
+  Landmark: {fileID: 0}
   VegetationDensity: 0.15
   RockDensity: 0.35
   Dust: 0.2

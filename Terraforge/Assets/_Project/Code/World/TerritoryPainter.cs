@@ -84,16 +84,13 @@ namespace Terraforge.World
             UploadThemeKits();
         }
 
-        // DD-115/DD-116/DD-120: cada civilização entrega o piso (E00 —
-        // textura tileável) e 4 cores de variação; o shader compõe o solo
-        // com tudo isso + ruído. Enviado uma vez, no início da partida.
+        // DD-115/DD-120: cada civilização entrega o piso E00 (material com
+        // cor original + relevo + altura da camada). Sem manchas de cor
+        // procedurais — direção do Diretor: só as ondulações naturais do
+        // material. Enviado uma vez, no início da partida.
         private void UploadThemeKits()
         {
-            var soilSecondary = new Vector4[MaxThemes];
-            var detail = new Vector4[MaxThemes];
-            var vegetation = new Vector4[MaxThemes];
-            var dna = new Vector4[MaxThemes];
-            var ground = new Vector4[MaxThemes]; // x=tiling, y=tem textura?
+            var ground = new Vector4[MaxThemes]; // x=tiling y=tem? z=relevo w=altura
 
             PlanetThemeRegistry registry = PlanetThemeRegistry.Current;
             for (int i = 0; i < MaxThemes; i++)
@@ -104,31 +101,17 @@ namespace Terraforge.World
 
                 if (theme == null)
                 {
-                    // Sem theme: kit neutro (o shader não altera nada).
-                    soilSecondary[i] = Vector4.zero;
                     continue;
                 }
 
-                soilSecondary[i] = theme.SoilSecondary;
-                detail[i] = theme.Detail;
-                vegetation[i] = theme.Vegetation;
                 ground[i] = new Vector4(
                     theme.GroundTiling,
                     theme.GroundTexture != null ? 1f : 0f,
                     theme.GroundNormalTexture != null ? theme.GroundRelief : 0f,
                     theme.GroundHeight);
                 _themeHeights[i + 1] = theme.GroundHeight;
-
-                // Biome DNA (DD-118) que o terreno usa: quanto de vegetação,
-                // rocha/detalhe e poeira aquele bioma mostra no solo.
-                dna[i] = new Vector4(
-                    theme.VegetationDensity, theme.RockDensity, theme.Dust, theme.Contrast);
             }
 
-            Shader.SetGlobalVectorArray("_ThemeSoilSecondary", soilSecondary);
-            Shader.SetGlobalVectorArray("_ThemeDetail", detail);
-            Shader.SetGlobalVectorArray("_ThemeVegetation", vegetation);
-            Shader.SetGlobalVectorArray("_ThemeDna", dna);
             Shader.SetGlobalVectorArray("_ThemeGroundParams", ground);
             Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
 

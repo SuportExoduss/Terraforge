@@ -13,18 +13,33 @@ MonoBehaviour:
   m_Name: PlanetTheme_Civ3
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.PlanetTheme
   CivilizationName: "Civiliza\xE7\xE3o 3"
+  Character: {fileID: 0}
+  Ship: {fileID: 0}
+  Dome: {fileID: 0}
+  Meteor: {fileID: 0}
+  TrailSegment: {fileID: 0}
+  GroundTexture: {fileID: 0}
+  GroundNormalTexture: {fileID: 0}
+  GroundAOTexture: {fileID: 0}
+  GroundRelief: 1
+  GroundHeight: 0.6
+  GroundTiling: 16
   SoilBase: {r: 0, g: 1, b: 1, a: 1}
-  SoilSecondary: {r: 0.11999998, g: 0.6367998, b: 0.8, a: 1}
-  Detail: {r: 0.19999999, g: 0.5, b: 0.5, a: 1}
-  Vegetation: {r: 0.27, g: 0.9, b: 0.6731999, a: 1}
+  SoilSecondary: {r: 0, g: 0.35959995, b: 0.62, a: 1}
+  Detail: {r: 0.09, g: 0.3, b: 0.27479997, a: 1}
+  Vegetation: {r: 0.19999999, g: 1, b: 0.42399997, a: 1}
   VegetationTall: {fileID: 0}
+  VegetationMedium: {fileID: 0}
   VegetationLow: {fileID: 0}
   RockLarge: {fileID: 0}
   RockSmall: {fileID: 0}
-  Construction: {fileID: 0}
-  Decoration: {fileID: 0}
-  FaunaSmall: {fileID: 0}
-  Guardian: {fileID: 0}
+  StructureSmall: {fileID: 0}
+  StructureMedium: {fileID: 0}
+  StructureLarge: {fileID: 0}
+  DecorationNatural: {fileID: 0}
+  DecorationArtificial: {fileID: 0}
+  Container: {fileID: 0}
+  Landmark: {fileID: 0}
   VegetationDensity: 0.3
   RockDensity: 0.5
   Dust: 0.8

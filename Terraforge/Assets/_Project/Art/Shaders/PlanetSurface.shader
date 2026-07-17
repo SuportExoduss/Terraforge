@@ -41,11 +41,7 @@ Shader "Terraforge/PlanetSurface"
             // id - 1). O piso é a TEXTURA E00 do theme (atlas abaixo); as
             // cores compõem variação procedural por cima — nada é pintado
             // à mão e nenhuma textura planetária pronta é usada.
-            float4 _ThemeSoilSecondary[16];
-            float4 _ThemeDetail[16];
-            float4 _ThemeVegetation[16];
-            float4 _ThemeDna[16];    // x=vegetação y=rocha z=poeira w=contraste
-            float4 _ThemeGroundParams[16]; // x=tiling, y=tem textura?
+            float4 _ThemeGroundParams[16]; // x=tiling y=tem textura? z=relevo w=altura
             float _TerraSeed;        // muda a cada partida: planeta sempre novo
             float _ThemeGroundCount; // fatias no atlas de pisos
 
@@ -102,6 +98,35 @@ Shader "Terraforge/PlanetSurface"
                 return normalize(normalWS + bump * strength);
             }
 
+            // Leitura REDONDA da posse: 10 amostras em anel (cruz +
+            // diagonais). O borrão só em cruz desenhava losangos e cantos
+            // de pixel; com as diagonais as fronteiras ficam CURVAS.
+            half4 SampleOwnership(float2 uv)
+            {
+                float2 t = _TerritoryMapTexel.xy * 5.0;
+                float2 d = t * 0.7071;
+
+                half4 s = SAMPLE_TEXTURE2D_LOD(
+                    _TerritoryMap, sampler_TerritoryMap, uv, 0) * 2.0;
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv + float2(t.x, 0), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv - float2(t.x, 0), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv + float2(0, t.y), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv - float2(0, t.y), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv + float2(d.x, d.y), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv - float2(d.x, d.y), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv + float2(d.x, -d.y), 0);
+                s += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    uv - float2(d.x, -d.y), 0);
+                return s / 10.0;
+            }
+
             // Ruído de valor barato (hash + interpolação suave), suficiente
             // para manchas orgânicas de solo em estilo cartoon.
             float TerraHash(float3 p)
@@ -151,17 +176,7 @@ Shader "Terraforge/PlanetSurface"
             float LayerHeight(float2 territoryUV)
             {
                 float2 t = _TerritoryMapTexel.xy * 5.0;
-                half fillA =
-                    SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap, territoryUV, 0).a * 2.0;
-                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV + float2(t.x, 0), 0).a;
-                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV - float2(t.x, 0), 0).a;
-                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV + float2(0, t.y), 0).a;
-                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV - float2(0, t.y), 0).a;
-                fillA /= 6.0;
+                half fillA = SampleOwnership(territoryUV).a;
 
                 // Altura do dono: o maior theme presente na vizinhança
                 // (a rampa continua até o fim do esfumado).
@@ -218,21 +233,10 @@ Shader "Terraforge/PlanetSurface"
                     atan2(direction.z, direction.x) / (2.0 * PI) + 0.5,
                     asin(clamp(direction.y, -1.0, 1.0)) / PI + 0.5);
 
-                // Leitura LARGA (fusão): mistura as cores dos vizinhos numa
-                // faixa de transição — impérios encostados se fundem
-                // (o "ambiente de transição" dos futuros biomas).
-                float2 blendTexel = _TerritoryMapTexel.xy * 5.0;
-                half4 blend =
-                    SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap, territoryUV, 0) * 2.0;
-                blend += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV + float2(blendTexel.x, 0), 0);
-                blend += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV - float2(blendTexel.x, 0), 0);
-                blend += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV + float2(0, blendTexel.y), 0);
-                blend += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV - float2(0, blendTexel.y), 0);
-                blend /= 6.0;
+                // Leitura LARGA e REDONDA (fusão): mistura os vizinhos numa
+                // faixa de transição — impérios encostados se fundem, sem
+                // cantos de pixel.
+                half4 blend = SampleOwnership(territoryUV);
 
                 half3 territoryTint = blend.rgb / max(blend.a, 0.001);
 
@@ -243,17 +247,17 @@ Shader "Terraforge/PlanetSurface"
                 // a borda preta cartoon foi removida por enquanto).
                 half fill = smoothstep(0.06, 0.9, blend.a);
 
-                // BORDA REAL: areia não termina numa linha — ela se
-                // ESFARELA. Ruído em duas escalas corrói o fim do material:
-                // línguas irregulares e manchinhas soltas que rareiam até
-                // sumir. Só é calculado na faixa da borda (miolo pula).
+                // BORDA REAL: o fim do material é ONDULADO — línguas largas
+                // e curvas de areia avançando e recuando (nada de pixel).
+                // Ruído suave em duas escalas grandes entorta a fronteira;
+                // só é calculado na faixa da borda (miolo pula).
                 half coverage = fill;
                 if (fill > 0.001 && fill < 0.999)
                 {
-                    half crumble = TerraNoise(direction * 140.0) * 0.65 +
-                                   TerraNoise(direction * 420.0) * 0.35;
-                    coverage = smoothstep(0.18, 0.62,
-                        fill + (0.5 - crumble) * 0.55);
+                    half crumble = TerraNoise(direction * 40.0) * 0.6 +
+                                   TerraNoise(direction * 120.0) * 0.4;
+                    coverage = smoothstep(0.1, 0.75,
+                        fill + (0.5 - crumble) * 0.45);
                 }
 
                 // DD-116: o solo do bioma é COMPOSTO aqui, em tempo real.
@@ -271,22 +275,19 @@ Shader "Terraforge/PlanetSurface"
 
                 if (themeIndex >= 0 && themeIndex < 16)
                 {
-                    float4 dna = _ThemeDna[themeIndex];
-                    float3 p = direction * 90.0;
-
-                    // E00 (DD-120): o PISO do bioma é o material real da
-                    // civilização — cor (com AO assado) tingida pela cor do
-                    // território (preserva a fusão) + RELEVO iluminado.
+                    // E00 (DD-120): o material aparece com a COR ORIGINAL —
+                    // sem tingimento de civilização e sem manchas de cor
+                    // procedurais (direção do Diretor: só as ondulações
+                    // naturais do próprio material). Civilizações ainda sem
+                    // textura continuam com sua cor chapada (territoryTint).
                     float4 groundParams = _ThemeGroundParams[themeIndex];
                     if (groundParams.y > 0.5 && themeIndex < (int)_ThemeGroundCount)
                     {
-                        half3 groundTex = SampleGroundTriplanar(
+                        soil = SampleGroundTriplanar(
                             themeIndex, input.positionWS, planetNormal, groundParams.x);
-                        half3 tinted = groundTex * territoryTint * 2.0;
-                        soil = lerp(soil, tinted, 0.85);
 
                         // O relevo acompanha o material: existe onde há
-                        // areia (inclusive nas manchinhas da borda) e some
+                        // areia (inclusive nas línguas da borda) e some
                         // onde ela acabou.
                         if (groundParams.z > 0.01)
                         {
@@ -297,28 +298,6 @@ Shader "Terraforge/PlanetSurface"
                                 lerp(planetNormal, relief, coverage));
                         }
                     }
-
-                    // Com textura real, o ruído vira TEMPERO (variação sutil
-                    // por seed); sem textura, ele é o próprio solo.
-                    half spice = groundParams.y > 0.5 ? 0.35 : 1.0;
-
-                    // Manchas largas de solo secundário.
-                    float patches = TerraNoise(p * 0.6);
-                    soil = lerp(soil, _ThemeSoilSecondary[themeIndex].rgb,
-                                smoothstep(0.55, 0.85, patches) * 0.6 * spice);
-
-                    // Detalhe fino: rachaduras e pedrinhas (densidade = DNA rocha).
-                    float grain = TerraNoise(p * 4.0);
-                    soil = lerp(soil, _ThemeDetail[themeIndex].rgb,
-                                smoothstep(0.72, 0.95, grain) * dna.y * 0.7 * spice);
-
-                    // Vegetação rasteira (densidade = DNA vegetação).
-                    float flora = TerraNoise(p * 2.2 + 31.7);
-                    soil = lerp(soil, _ThemeVegetation[themeIndex].rgb,
-                                smoothstep(0.75, 0.95, flora) * dna.x * spice);
-
-                    // Poeira do bioma lava levemente o conjunto (DD-118).
-                    soil = lerp(soil, soil * 1.12 + 0.04, dna.z * 0.35);
                 }
 
                 // O pixel dominado troca de material na própria pele do
