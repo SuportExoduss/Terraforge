@@ -91,6 +91,7 @@ namespace Terraforge.World
         private void UploadThemeKits()
         {
             var ground = new Vector4[MaxThemes]; // x=tiling y=tem? z=relevo w=altura
+            var tint = new Vector4[MaxThemes];
 
             PlanetThemeRegistry registry = PlanetThemeRegistry.Current;
             for (int i = 0; i < MaxThemes; i++)
@@ -109,10 +110,12 @@ namespace Terraforge.World
                     theme.GroundTexture != null ? 1f : 0f,
                     theme.GroundNormalTexture != null ? theme.GroundRelief : 0f,
                     theme.GroundHeight);
+                tint[i] = theme.GroundTint;
                 _themeHeights[i + 1] = theme.GroundHeight;
             }
 
             Shader.SetGlobalVectorArray("_ThemeGroundParams", ground);
+            Shader.SetGlobalVectorArray("_ThemeGroundTint", tint);
             Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
 
             // Os atlas dos pisos (E00): cor+AO e relevo. Sem eles, o shader

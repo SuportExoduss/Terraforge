@@ -42,6 +42,7 @@ Shader "Terraforge/PlanetSurface"
             // cores compõem variação procedural por cima — nada é pintado
             // à mão e nenhuma textura planetária pronta é usada.
             float4 _ThemeGroundParams[16]; // x=tiling y=tem textura? z=relevo w=altura
+            float4 _ThemeGroundTint[16];   // correção de cor (0,5 = neutra)
             float _TerraSeed;        // muda a cada partida: planeta sempre novo
             float _ThemeGroundCount; // fatias no atlas de pisos
 
@@ -283,8 +284,11 @@ Shader "Terraforge/PlanetSurface"
                     float4 groundParams = _ThemeGroundParams[themeIndex];
                     if (groundParams.y > 0.5 && themeIndex < (int)_ThemeGroundCount)
                     {
+                        // Correção de cor da ficha (×2: cinza 0,5 = neutro):
+                        // a paleta do bioma sobre as ondulações do material.
                         soil = SampleGroundTriplanar(
-                            themeIndex, input.positionWS, planetNormal, groundParams.x);
+                            themeIndex, input.positionWS, planetNormal, groundParams.x)
+                            * _ThemeGroundTint[themeIndex].rgb * 2.0;
 
                         // O relevo acompanha o material: existe onde há
                         // areia (inclusive nas línguas da borda) e some

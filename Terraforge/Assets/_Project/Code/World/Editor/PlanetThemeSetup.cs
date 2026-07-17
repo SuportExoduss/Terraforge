@@ -93,6 +93,12 @@ namespace Terraforge.World.EditorTools
             cowboy.GroundRelief = 1f;
             cowboy.GroundHeight = 0.6f;
             cowboy.GroundTiling = 16f;
+
+            // Paleta extraída das referências de deserto do Diretor: a foto
+            // aérea de praia é areia MOLHADA acinzentada — esta correção a
+            // aquece para areia de deserto (dourado/alaranjado).
+            cowboy.GroundTint = new Color(0.77f, 0.56f, 0.38f);
+            cowboy.SoilBase = new Color(0.87f, 0.65f, 0.42f);
             cowboy.VegetationTall = Load($"{CowboyFolder}/Environment/CowboyCactus.glb");   // E01
             cowboy.VegetationMedium = Load($"{CowboyFolder}/Environment/CowboyArbusto.glb"); // E02
 
@@ -128,12 +134,15 @@ namespace Terraforge.World.EditorTools
 
                 if (theme != null && theme.GroundAOTexture != null)
                 {
+                    // AO a 50%: sombreia as cavidades sem SUJAR a cor
+                    // (a 100% a areia ficava acinzentada e escura).
                     Color32[] ao = ReadPixels(theme.GroundAOTexture, linear: false);
                     for (int p = 0; p < pixels.Length; p++)
                     {
-                        pixels[p].r = (byte)(pixels[p].r * ao[p].r / 255);
-                        pixels[p].g = (byte)(pixels[p].g * ao[p].r / 255);
-                        pixels[p].b = (byte)(pixels[p].b * ao[p].r / 255);
+                        int soft = 255 + ao[p].r;
+                        pixels[p].r = (byte)(pixels[p].r * soft / 510);
+                        pixels[p].g = (byte)(pixels[p].g * soft / 510);
+                        pixels[p].b = (byte)(pixels[p].b * soft / 510);
                     }
                 }
 

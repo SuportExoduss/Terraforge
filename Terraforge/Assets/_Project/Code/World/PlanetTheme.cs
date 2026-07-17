@@ -52,6 +52,11 @@ namespace Terraforge.World
         [Tooltip("E00: sombreamento de cavidades (mapa _ao). Assado na cor.")]
         public Texture2D GroundAOTexture;
 
+        [Tooltip("Correção de cor do material (cinza 50% = neutra): ajusta " +
+                 "a paleta do piso ao bioma sem perder as ondulações. " +
+                 "Ex.: aquecer areia de praia para virar deserto.")]
+        public Color GroundTint = new(0.5f, 0.5f, 0.5f);
+
         [Tooltip("Força do relevo (0 = liso, 1 = natural, 2 = exagerado).")]
         [Range(0f, 2f)] public float GroundRelief = 1f;
 
