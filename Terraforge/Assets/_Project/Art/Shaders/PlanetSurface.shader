@@ -243,6 +243,19 @@ Shader "Terraforge/PlanetSurface"
                 // a borda preta cartoon foi removida por enquanto).
                 half fill = smoothstep(0.06, 0.9, blend.a);
 
+                // BORDA REAL: areia não termina numa linha — ela se
+                // ESFARELA. Ruído em duas escalas corrói o fim do material:
+                // línguas irregulares e manchinhas soltas que rareiam até
+                // sumir. Só é calculado na faixa da borda (miolo pula).
+                half coverage = fill;
+                if (fill > 0.001 && fill < 0.999)
+                {
+                    half crumble = TerraNoise(direction * 140.0) * 0.65 +
+                                   TerraNoise(direction * 420.0) * 0.35;
+                    coverage = smoothstep(0.18, 0.62,
+                        fill + (0.5 - crumble) * 0.55);
+                }
+
                 // DD-116: o solo do bioma é COMPOSTO aqui, em tempo real.
                 // O Kit da civilização dona (lido pelo id, sem interpolação)
                 // é misturado por camadas de ruído: manchas de solo
@@ -272,15 +285,16 @@ Shader "Terraforge/PlanetSurface"
                         half3 tinted = groundTex * territoryTint * 2.0;
                         soil = lerp(soil, tinted, 0.85);
 
-                        // O relevo acompanha o esfumado: forte no meio do
-                        // domínio, sumindo junto com o material na borda.
+                        // O relevo acompanha o material: existe onde há
+                        // areia (inclusive nas manchinhas da borda) e some
+                        // onde ela acabou.
                         if (groundParams.z > 0.01)
                         {
                             half3 relief = GroundReliefNormal(
                                 themeIndex, input.positionWS, planetNormal,
                                 groundParams.x, groundParams.z);
                             shadingNormal = normalize(
-                                lerp(planetNormal, relief, fill));
+                                lerp(planetNormal, relief, coverage));
                         }
                     }
 
@@ -308,8 +322,9 @@ Shader "Terraforge/PlanetSurface"
                 }
 
                 // O pixel dominado troca de material na própria pele do
-                // planeta; na borda, o material vai "acabando" (fill).
-                half3 albedo = lerp(baseColor.rgb, soil, fill);
+                // planeta; na borda, o material vai ACABANDO de verdade:
+                // esfarelado, em manchas, até sumir (coverage).
+                half3 albedo = lerp(baseColor.rgb, soil, coverage);
 
                 // Iluminação simples e macia (meia-lambert), estilo cartoon
                 // — com a normal perturbada pelo relevo do piso.
