@@ -38,8 +38,10 @@ namespace Terraforge.Gameplay
         // Sombrinha sob cada cerca: em vez de uma faixa pintada contínua,
         // cada segmento ganha a sua marca no chão (pedido do Diretor).
         [SerializeField] private bool _segmentShadow = true;
-        [SerializeField, Min(0f)] private float _segmentShadowSize = 1.2f;
-        [SerializeField, Range(0f, 1f)] private float _segmentShadowOpacity = 0.35f;
+
+        // Fração da largura do modelo: 0.6 = sombrinha discreta sob a cerca.
+        [SerializeField, Min(0f)] private float _segmentShadowSize = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float _segmentShadowOpacity = 0.3f;
         [SerializeField] private float _segmentScale = 1f;
         [SerializeField, Min(0)] private int _prewarmSegments = 64;
 
@@ -251,21 +253,72 @@ namespace Terraforge.Gameplay
             return instance.transform;
         }
 
-        // Um disco escuro achatado na base da cerca. Nasce junto com o
-        // segmento (nunca em jogo) e acompanha posição/rotação dele.
+        // Uma sombrinha achatada sob a cerca, medida pelo PRÓPRIO modelo:
+        // o tamanho vem da largura real dele e a posição, do centro da sua
+        // base — por isso fica proporcional e centrada, em vez de um borrão
+        // deslocado. Nasce junto com o segmento (nunca em jogo).
         private void AttachShadow(Transform segment)
         {
+            if (!TryGetLocalBounds(segment, out Bounds bounds))
+            {
+                return;
+            }
+
             GameObject shadow = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             shadow.name = "Sombra";
             Destroy(shadow.GetComponent<Collider>());
-
             shadow.transform.SetParent(segment, worldPositionStays: false);
-            shadow.transform.localPosition = new Vector3(0f, 0.02f, 0f);
-            shadow.transform.localScale =
-                new Vector3(_segmentShadowSize, 0.01f, _segmentShadowSize);
+
+            // Diâmetro proporcional à largura do modelo; o cilindro da Unity
+            // já tem 1 de diâmetro, então a escala é o diâmetro desejado.
+            float width = Mathf.Max(bounds.size.x, bounds.size.z);
+            float diameter = Mathf.Max(0.01f, width * _segmentShadowSize);
+
+            shadow.transform.localPosition =
+                new Vector3(bounds.center.x, bounds.min.y + 0.02f, bounds.center.z);
+            shadow.transform.localScale = new Vector3(diameter, 0.005f, diameter);
 
             _shadowMaterial ??= CreateShadowMaterial();
             shadow.GetComponent<MeshRenderer>().sharedMaterial = _shadowMaterial;
+        }
+
+        // Bounds do modelo no espaço LOCAL do segmento (soma dos renderers).
+        private static bool TryGetLocalBounds(Transform segment, out Bounds bounds)
+        {
+            bounds = default;
+            var renderers = segment.GetComponentsInChildren<MeshRenderer>();
+            if (renderers.Length == 0)
+            {
+                return false;
+            }
+
+            bool started = false;
+            foreach (MeshRenderer meshRenderer in renderers)
+            {
+                var filter = meshRenderer.GetComponent<MeshFilter>();
+                if (filter == null || filter.sharedMesh == null)
+                {
+                    continue;
+                }
+
+                Bounds local = filter.sharedMesh.bounds;
+                Matrix4x4 toSegment = segment.worldToLocalMatrix * meshRenderer.localToWorldMatrix;
+                Bounds transformed = new(toSegment.MultiplyPoint3x4(local.center), Vector3.zero);
+                transformed.Encapsulate(toSegment.MultiplyPoint3x4(local.min));
+                transformed.Encapsulate(toSegment.MultiplyPoint3x4(local.max));
+
+                if (!started)
+                {
+                    bounds = transformed;
+                    started = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(transformed);
+                }
+            }
+
+            return started;
         }
 
         private Material CreateShadowMaterial()
@@ -275,12 +328,16 @@ namespace Terraforge.Gameplay
                 name = "M_TrailSegmentShadow"
             };
 
-            // Transparência no URP exige avisar o modo à superfície.
+            // Transparência no URP: além do modo, é PRECISO definir os
+            // fatores de mistura — sem eles o material continua sólido
+            // (era por isso que a sombra saía preta e dura).
             material.SetFloat("_Surface", 1f); // Transparent
             material.SetFloat("_Blend", 0f);   // Alpha
+            material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
             material.SetFloat("_ZWrite", 0f);
-            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             material.SetColor("_BaseColor", new Color(0f, 0f, 0f, _segmentShadowOpacity));
             return material;
         }

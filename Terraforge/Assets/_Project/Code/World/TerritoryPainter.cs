@@ -273,7 +273,11 @@ namespace Terraforge.World
 
             // Mapa de IDs: qual civilização (e portanto qual Kit de Terreno)
             // domina cada pixel. Point = nunca interpola IDs.
-            _territoryIdMap = new Texture2D(_mapWidth, _mapHeight, TextureFormat.RGBA32, mipChain: false)
+            // LINEAR é obrigatório: id é DADO, não cor. Em sRGB a Unity
+            // aplica gama ao ler e o id 1 chega ao shader como 0,077 —
+            // vira índice inválido e o bioma nunca aparece.
+            _territoryIdMap = new Texture2D(
+                _mapWidth, _mapHeight, TextureFormat.RGBA32, mipChain: false, linear: true)
             {
                 name = "TerritoryIdMap",
                 wrapModeU = TextureWrapMode.Repeat,

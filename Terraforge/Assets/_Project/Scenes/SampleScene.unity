@@ -209,6 +209,10 @@ MonoBehaviour:
   _width: 0.8
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
+  _segmentRotationOffset: {x: 0, y: 90, z: 0}
+  _segmentShadow: 1
+  _segmentShadowSize: 1.2
+  _segmentShadowOpacity: 0.35
   _segmentScale: 1
   _prewarmSegments: 64
 --- !u!120 &56618399
@@ -1258,6 +1262,10 @@ MonoBehaviour:
   _width: 0.8
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
+  _segmentRotationOffset: {x: 0, y: 90, z: 0}
+  _segmentShadow: 1
+  _segmentShadowSize: 1.2
+  _segmentShadowOpacity: 0.35
   _segmentScale: 1
   _prewarmSegments: 64
 --- !u!120 &435824028
@@ -1509,6 +1517,7 @@ GameObject:
   - component: {fileID: 444825551}
   - component: {fileID: 444825552}
   - component: {fileID: 444825553}
+  - component: {fileID: 444825554}
   m_Layer: 0
   m_Name: Planet
   m_TagString: Untagged
@@ -1672,6 +1681,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Terraforge.World::Terraforge.World.SmoothSphereMesh
   _resolution: 65
+--- !u!114 &444825554
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 444825545}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b5ad597cfd849742a4764d662ebd12e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Terraforge.World::Terraforge.World.PlanetThemeRegistry
+  _baseTheme: {fileID: 11400000, guid: 7739f82e8409e654694714c96ce992d6, type: 2}
+  _civilizationThemes:
+  - {fileID: 11400000, guid: 45ea81cb534776943a8281b1d478595e, type: 2}
+  - {fileID: 11400000, guid: 0d50a5d5d0149ef42ba1934f621b2c80, type: 2}
+  - {fileID: 11400000, guid: cc8a6f1594ec04c4d8ffb573e5ae4e89, type: 2}
+  - {fileID: 11400000, guid: c6b1d24fb2aaa914a84e0032ae44ac08, type: 2}
+  - {fileID: 11400000, guid: ce322c06c0b23294e8ec260c18784368, type: 2}
+  - {fileID: 11400000, guid: 1ed6ded535ad3fa4eac6b2fc2cad4158, type: 2}
 --- !u!1 &525038852
 GameObject:
   m_ObjectHideFlags: 0
@@ -2188,6 +2217,10 @@ MonoBehaviour:
   _width: 0.8
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
+  _segmentRotationOffset: {x: 0, y: 90, z: 0}
+  _segmentShadow: 1
+  _segmentShadowSize: 1.2
+  _segmentShadowOpacity: 0.35
   _segmentScale: 1
   _prewarmSegments: 64
 --- !u!120 &762999918
@@ -2761,6 +2794,10 @@ MonoBehaviour:
   _width: 0.8
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
+  _segmentRotationOffset: {x: 0, y: 90, z: 0}
+  _segmentShadow: 1
+  _segmentShadowSize: 1.2
+  _segmentShadowOpacity: 0.35
   _segmentScale: 1
   _prewarmSegments: 64
 --- !u!120 &1084007590
@@ -3617,6 +3654,10 @@ MonoBehaviour:
   _width: 0.8
   _surfaceOffset: 0.15
   _segmentModel: {fileID: -18182944954362313, guid: 186ba28acb6a5ae45a04b7f042074052, type: 3}
+  _segmentRotationOffset: {x: 0, y: 90, z: 0}
+  _segmentShadow: 1
+  _segmentShadowSize: 1.2
+  _segmentShadowOpacity: 0.35
   _segmentScale: 1
   _prewarmSegments: 64
 --- !u!120 &1519421586
@@ -4767,6 +4808,10 @@ MonoBehaviour:
   _width: 0.8
   _surfaceOffset: 0.15
   _segmentModel: {fileID: 0}
+  _segmentRotationOffset: {x: 0, y: 90, z: 0}
+  _segmentShadow: 1
+  _segmentShadowSize: 1.2
+  _segmentShadowOpacity: 0.35
   _segmentScale: 1
   _prewarmSegments: 64
 --- !u!120 &2088968154

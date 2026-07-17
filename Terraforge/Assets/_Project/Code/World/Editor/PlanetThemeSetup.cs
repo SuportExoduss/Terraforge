@@ -145,9 +145,15 @@ namespace Terraforge.World.EditorTools
             Color.RGBToHSV(color, out float h, out float s, out float v);
             theme.CivilizationName = civName;
             theme.SoilBase = color;
-            theme.SoilSecondary = Color.HSVToRGB(Mathf.Repeat(h + 0.04f, 1f), s * 0.85f, v * 0.8f);
-            theme.Detail = Color.HSVToRGB(h, s * 0.6f, v * 0.5f);
-            theme.Vegetation = Color.HSVToRGB(Mathf.Repeat(h - 0.06f, 1f), s * 0.7f, v * 0.9f);
+
+            // As três cores de apoio precisam DESTOAR da base — se forem
+            // quase iguais, o terreno composto parece chapado.
+            theme.SoilSecondary = Color.HSVToRGB(
+                Mathf.Repeat(h + 0.07f, 1f), Mathf.Clamp01(s * 1.1f), Mathf.Clamp01(v * 0.62f));
+            theme.Detail = Color.HSVToRGB(
+                Mathf.Repeat(h - 0.02f, 1f), Mathf.Clamp01(s * 0.7f), Mathf.Clamp01(v * 0.3f));
+            theme.Vegetation = Color.HSVToRGB(
+                Mathf.Repeat(h - 0.12f, 1f), Mathf.Clamp01(s * 0.8f), Mathf.Clamp01(v * 1.15f));
             EditorUtility.SetDirty(theme);
         }
 
