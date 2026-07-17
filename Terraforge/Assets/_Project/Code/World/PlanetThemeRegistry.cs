@@ -18,9 +18,14 @@ namespace Terraforge.World
         [Tooltip("Elemento 0 = civilização 1, elemento 1 = civilização 2...")]
         [SerializeField] private PlanetTheme[] _civilizationThemes;
 
+        [Tooltip("Atlas dos pisos (E00): fatia N = textura de chão da " +
+                 "civilização N+1. Gerado pelo menu Terraforge.")]
+        [SerializeField] private Texture2DArray _groundTextures;
+
         public static PlanetThemeRegistry Current { get; private set; }
 
         public PlanetTheme BaseTheme => _baseTheme;
+        public Texture2DArray GroundTextures => _groundTextures;
 
         private void Awake()
         {

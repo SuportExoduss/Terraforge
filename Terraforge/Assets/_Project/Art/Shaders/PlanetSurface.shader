@@ -37,14 +37,40 @@ Shader "Terraforge/PlanetSurface"
             float4 _PlanetCenter;
             float4 _TerritoryMapTexel; // xy = 1/tamanho (para suavizar bordas)
 
-            // DD-116: Kit de Terreno de cada civilização (índice = id - 1).
-            // O shader COMPÕE o solo com estas cores + ruído; nada é pintado
+            // DD-116/DD-120: Kit de Terreno de cada civilização (índice =
+            // id - 1). O piso é a TEXTURA E00 do theme (atlas abaixo); as
+            // cores compõem variação procedural por cima — nada é pintado
             // à mão e nenhuma textura planetária pronta é usada.
             float4 _ThemeSoilSecondary[16];
             float4 _ThemeDetail[16];
             float4 _ThemeVegetation[16];
-            float4 _ThemeDna[16];   // x=vegetação y=rocha z=poeira w=contraste
-            float _TerraSeed;       // muda a cada partida: planeta sempre novo
+            float4 _ThemeDna[16];    // x=vegetação y=rocha z=poeira w=contraste
+            float4 _ThemeGroundParams[16]; // x=tiling, y=tem textura?
+            float _TerraSeed;        // muda a cada partida: planeta sempre novo
+            float _ThemeGroundCount; // fatias no atlas de pisos
+
+            // Atlas dos pisos (E00): fatia N = chão da civilização N+1.
+            TEXTURE2D_ARRAY(_ThemeGroundArray);
+            SAMPLER(sampler_ThemeGroundArray);
+
+            // Projeção triplanar: a textura é aplicada pelos 3 eixos do
+            // mundo e misturada pela normal — cobre a esfera inteira sem
+            // esticar nos polos (uma projeção única sempre estica).
+            half3 SampleGroundTriplanar(int slice, float3 positionWS, float3 normalWS, float tiling)
+            {
+                float3 weights = abs(normalWS);
+                weights /= max(weights.x + weights.y + weights.z, 0.001);
+                float3 uvw = (positionWS - _PlanetCenter.xyz) * (tiling * 0.01);
+
+                half3 x = SAMPLE_TEXTURE2D_ARRAY(_ThemeGroundArray,
+                    sampler_ThemeGroundArray, uvw.zy, slice).rgb;
+                half3 y = SAMPLE_TEXTURE2D_ARRAY(_ThemeGroundArray,
+                    sampler_ThemeGroundArray, uvw.xz, slice).rgb;
+                half3 z = SAMPLE_TEXTURE2D_ARRAY(_ThemeGroundArray,
+                    sampler_ThemeGroundArray, uvw.xy, slice).rgb;
+
+                return x * weights.x + y * weights.y + z * weights.z;
+            }
 
             // Ruído de valor barato (hash + interpolação suave), suficiente
             // para manchas orgânicas de solo em estilo cartoon.
@@ -169,20 +195,37 @@ Shader "Terraforge/PlanetSurface"
                     float4 dna = _ThemeDna[themeIndex];
                     float3 p = direction * 90.0;
 
+                    // E00 (DD-120): o PISO do bioma é a textura real da
+                    // civilização (areia, grama, neve...), tingida pela cor
+                    // do território para preservar a fusão nas fronteiras.
+                    float4 groundParams = _ThemeGroundParams[themeIndex];
+                    if (groundParams.y > 0.5 && themeIndex < (int)_ThemeGroundCount)
+                    {
+                        half3 groundTex = SampleGroundTriplanar(
+                            themeIndex, input.positionWS,
+                            normalize(input.normalWS), groundParams.x);
+                        half3 tinted = groundTex * territoryTint * 2.0;
+                        soil = lerp(soil, tinted, 0.85);
+                    }
+
+                    // Com textura real, o ruído vira TEMPERO (variação sutil
+                    // por seed); sem textura, ele é o próprio solo.
+                    half spice = groundParams.y > 0.5 ? 0.35 : 1.0;
+
                     // Manchas largas de solo secundário.
                     float patches = TerraNoise(p * 0.6);
                     soil = lerp(soil, _ThemeSoilSecondary[themeIndex].rgb,
-                                smoothstep(0.55, 0.85, patches) * 0.6);
+                                smoothstep(0.55, 0.85, patches) * 0.6 * spice);
 
                     // Detalhe fino: rachaduras e pedrinhas (densidade = DNA rocha).
                     float grain = TerraNoise(p * 4.0);
                     soil = lerp(soil, _ThemeDetail[themeIndex].rgb,
-                                smoothstep(0.72, 0.95, grain) * dna.y * 0.7);
+                                smoothstep(0.72, 0.95, grain) * dna.y * 0.7 * spice);
 
                     // Vegetação rasteira (densidade = DNA vegetação).
                     float flora = TerraNoise(p * 2.2 + 31.7);
                     soil = lerp(soil, _ThemeVegetation[themeIndex].rgb,
-                                smoothstep(0.75, 0.95, flora) * dna.x);
+                                smoothstep(0.75, 0.95, flora) * dna.x * spice);
 
                     // Poeira do bioma lava levemente o conjunto (DD-118).
                     soil = lerp(soil, soil * 1.12 + 0.04, dna.z * 0.35);

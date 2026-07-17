@@ -83,19 +83,22 @@ namespace Terraforge.World
             UploadThemeKits();
         }
 
-        // DD-115/DD-116: cada civilização entrega 4 cores; o shader compõe
-        // o solo com elas + ruído. Enviado uma vez, no início da partida.
+        // DD-115/DD-116/DD-120: cada civilização entrega o piso (E00 —
+        // textura tileável) e 4 cores de variação; o shader compõe o solo
+        // com tudo isso + ruído. Enviado uma vez, no início da partida.
         private void UploadThemeKits()
         {
             var soilSecondary = new Vector4[MaxThemes];
             var detail = new Vector4[MaxThemes];
             var vegetation = new Vector4[MaxThemes];
             var dna = new Vector4[MaxThemes];
+            var ground = new Vector4[MaxThemes]; // x=tiling, y=tem textura?
 
+            PlanetThemeRegistry registry = PlanetThemeRegistry.Current;
             for (int i = 0; i < MaxThemes; i++)
             {
-                PlanetTheme theme = PlanetThemeRegistry.Current != null
-                    ? PlanetThemeRegistry.Current.Get((byte)(i + 1))
+                PlanetTheme theme = registry != null
+                    ? registry.Get((byte)(i + 1))
                     : null;
 
                 if (theme == null)
@@ -108,6 +111,8 @@ namespace Terraforge.World
                 soilSecondary[i] = theme.SoilSecondary;
                 detail[i] = theme.Detail;
                 vegetation[i] = theme.Vegetation;
+                ground[i] = new Vector4(
+                    theme.GroundTiling, theme.GroundTexture != null ? 1f : 0f, 0f, 0f);
 
                 // Biome DNA (DD-118) que o terreno usa: quanto de vegetação,
                 // rocha/detalhe e poeira aquele bioma mostra no solo.
@@ -119,7 +124,19 @@ namespace Terraforge.World
             Shader.SetGlobalVectorArray("_ThemeDetail", detail);
             Shader.SetGlobalVectorArray("_ThemeVegetation", vegetation);
             Shader.SetGlobalVectorArray("_ThemeDna", dna);
+            Shader.SetGlobalVectorArray("_ThemeGroundParams", ground);
             Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
+
+            // O atlas dos pisos (E00). Sem ele, o shader compõe só com cores.
+            if (registry != null && registry.GroundTextures != null)
+            {
+                Shader.SetGlobalTexture("_ThemeGroundArray", registry.GroundTextures);
+                Shader.SetGlobalFloat("_ThemeGroundCount", registry.GroundTextures.depth);
+            }
+            else
+            {
+                Shader.SetGlobalFloat("_ThemeGroundCount", 0f);
+            }
         }
 
         private void OnDestroy()
