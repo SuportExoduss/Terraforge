@@ -91,6 +91,7 @@ namespace Terraforge.World.EditorTools
             cowboy.GroundAOTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
                 $"{GroundFolder}/Ground_VelhoOeste_AO.jpg");
             cowboy.GroundRelief = 1f;
+            cowboy.GroundHeight = 0.6f;
             cowboy.GroundTiling = 16f;
             cowboy.VegetationTall = Load($"{CowboyFolder}/Environment/CowboyCactus.glb");   // E01
             cowboy.VegetationMedium = Load($"{CowboyFolder}/Environment/CowboyArbusto.glb"); // E02

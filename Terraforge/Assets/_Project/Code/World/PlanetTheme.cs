@@ -55,6 +55,10 @@ namespace Terraforge.World
         [Tooltip("Força do relevo (0 = liso, 1 = natural, 2 = exagerado).")]
         [Range(0f, 2f)] public float GroundRelief = 1f;
 
+        [Tooltip("Altura da CAMADA do bioma (unidades): o terreno dominado " +
+                 "SOBE sobre o planeta e afina até acabar na borda.")]
+        [Range(0f, 3f)] public float GroundHeight = 0.6f;
+
         [Tooltip("Repetições da textura ao redor do planeta (maior = mais miúda).")]
         [Range(1f, 64f)] public float GroundTiling = 16f;
 

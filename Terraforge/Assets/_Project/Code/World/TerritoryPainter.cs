@@ -56,6 +56,7 @@ namespace Terraforge.World
         private const int MaxThemes = 16;
 
         private readonly Queue<PendingCell> _pendingCells = new();
+        private readonly float[] _themeHeights = new float[MaxThemes + 1];
         private Planet _planet;
         private Texture2D _territoryMap;
         private Texture2D _territoryIdMap;
@@ -115,7 +116,8 @@ namespace Terraforge.World
                     theme.GroundTiling,
                     theme.GroundTexture != null ? 1f : 0f,
                     theme.GroundNormalTexture != null ? theme.GroundRelief : 0f,
-                    0f);
+                    theme.GroundHeight);
+                _themeHeights[i + 1] = theme.GroundHeight;
 
                 // Biome DNA (DD-118) que o terreno usa: quanto de vegetação,
                 // rocha/detalhe e poeira aquele bioma mostra no solo.
@@ -224,6 +226,76 @@ namespace Terraforge.World
                 _dirty = false;
                 _nextUploadTime = Time.unscaledTime + _uploadInterval;
             }
+        }
+
+        /// <summary>
+        /// A ALTURA da camada de bioma numa direção do planeta (0 = terra
+        /// neutra). Espelha o esfumado do shader: média em cruz larga da
+        /// posse + curva suave × altura do theme dono. É o que faz
+        /// corredores, cercas e bases andarem POR CIMA da areia, não
+        /// afundados nela.
+        /// </summary>
+        public float GetElevationAt(Vector3 surfaceDirection)
+        {
+            if (_pixels == null)
+            {
+                return 0f;
+            }
+
+            Vector3 dir = surfaceDirection.normalized;
+            float longitude = Mathf.Atan2(dir.z, dir.x);
+            float latitude = Mathf.Asin(Mathf.Clamp(dir.y, -1f, 1f));
+            int x = Mathf.RoundToInt((longitude / (2f * Mathf.PI) + 0.5f) * _mapWidth);
+            int y = Mathf.Clamp(
+                Mathf.RoundToInt((latitude / Mathf.PI + 0.5f) * _mapHeight), 0, _mapHeight - 1);
+
+            // Mesma leitura larga do shader (cruz de 5 texels).
+            int alpha = AlphaAt(x, y) * 2 + AlphaAt(x + 5, y) + AlphaAt(x - 5, y) +
+                        AlphaAt(x, y + 5) + AlphaAt(x, y - 5);
+            float fill = SmoothFill(alpha / (6f * 255f));
+            if (fill <= 0f)
+            {
+                return 0f;
+            }
+
+            // Altura do dono: o maior theme presente na vizinhança (para a
+            // rampa continuar existindo logo fora do último pixel possuído).
+            float height = Mathf.Max(
+                Mathf.Max(HeightAt(x, y), HeightAt(x + 5, y)),
+                Mathf.Max(HeightAt(x - 5, y),
+                    Mathf.Max(HeightAt(x, y + 5), HeightAt(x, y - 5))));
+
+            return fill * height;
+        }
+
+        private int AlphaAt(int x, int y)
+        {
+            if (y < 0 || y >= _mapHeight)
+            {
+                return 0;
+            }
+
+            int wrappedX = ((x % _mapWidth) + _mapWidth) % _mapWidth;
+            return _pixels[y * _mapWidth + wrappedX].a;
+        }
+
+        private float HeightAt(int x, int y)
+        {
+            if (y < 0 || y >= _mapHeight)
+            {
+                return 0f;
+            }
+
+            int wrappedX = ((x % _mapWidth) + _mapWidth) % _mapWidth;
+            byte owner = _idPixels[y * _mapWidth + wrappedX].r;
+            return owner <= MaxThemes ? _themeHeights[owner] : 0f;
+        }
+
+        // smoothstep(0.06, 0.9, x) — os mesmos limiares do shader.
+        private static float SmoothFill(float value)
+        {
+            float t = Mathf.Clamp01((value - 0.06f) / (0.9f - 0.06f));
+            return t * t * (3f - 2f * t);
         }
 
         // ------------------------------------------------------------------

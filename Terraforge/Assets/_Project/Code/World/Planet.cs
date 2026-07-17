@@ -13,6 +13,7 @@ namespace Terraforge.World
     {
         private readonly RaycastHit[] _probeHits = new RaycastHit[8];
         private bool _hasVisualColliders;
+        private TerritoryPainter _painter;
 
         public Vector3 Center => transform.position;
 
@@ -24,6 +25,10 @@ namespace Terraforge.World
         {
             PlanetLocator.Register(this);
             PrepareVisualColliders();
+
+            // A camada de bioma SOBE sobre o planeta (DD-121); o pintor
+            // sabe a altura dela em cada ponto.
+            _painter = GetComponent<TerritoryPainter>();
         }
 
         private void OnDestroy()
@@ -33,9 +38,15 @@ namespace Terraforge.World
 
         public float GetSurfaceRadius(Vector3 surfaceDirection)
         {
+            // A camada do bioma dominado eleva o chão (afina até 0 na
+            // borda) — quem pisa em areia, pisa POR CIMA dela.
+            float elevation = _painter != null
+                ? _painter.GetElevationAt(surfaceDirection)
+                : 0f;
+
             if (!_hasVisualColliders)
             {
-                return Radius;
+                return Radius + elevation;
             }
 
             // Sonda: um raio desce do espaço em direção ao centro; o primeiro
@@ -63,7 +74,7 @@ namespace Terraforge.World
                 }
             }
 
-            return highestRadius > 0f ? highestRadius : Radius;
+            return (highestRadius > 0f ? highestRadius : Radius) + elevation;
         }
 
         // O colisor esférico primitivo sai de cena; o modelo visual filho

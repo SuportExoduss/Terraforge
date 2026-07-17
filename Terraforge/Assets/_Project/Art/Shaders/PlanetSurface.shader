@@ -145,13 +145,63 @@ Shader "Terraforge/PlanetSurface"
                 float2 uv : TEXCOORD2;
             };
 
+            // Altura da camada de bioma num ponto do mapa (DD-121): posse
+            // esfumada × altura do theme dono da vizinhança. A camada SOBE
+            // no miolo do domínio e AFINA até acabar na borda.
+            float LayerHeight(float2 territoryUV)
+            {
+                float2 t = _TerritoryMapTexel.xy * 5.0;
+                half fillA =
+                    SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap, territoryUV, 0).a * 2.0;
+                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    territoryUV + float2(t.x, 0), 0).a;
+                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    territoryUV - float2(t.x, 0), 0).a;
+                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    territoryUV + float2(0, t.y), 0).a;
+                fillA += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
+                    territoryUV - float2(0, t.y), 0).a;
+                fillA /= 6.0;
+
+                // Altura do dono: o maior theme presente na vizinhança
+                // (a rampa continua até o fim do esfumado).
+                float height = 0.0;
+                [unroll]
+                for (int k = 0; k < 5; k++)
+                {
+                    float2 offsets[5] = {
+                        float2(0, 0), float2(t.x, 0), float2(-t.x, 0),
+                        float2(0, t.y), float2(0, -t.y)
+                    };
+                    int id = (int)round(SAMPLE_TEXTURE2D_LOD(_TerritoryIdMap,
+                        sampler_TerritoryIdMap, territoryUV + offsets[k], 0).r * 255.0);
+                    if (id >= 1 && id <= 16)
+                    {
+                        height = max(height, _ThemeGroundParams[id - 1].w);
+                    }
+                }
+
+                return smoothstep(0.06, 0.9, fillA) * height;
+            }
+
             Varyings Vertex(Attributes input)
             {
                 Varyings output;
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
-                output.positionHCS = TransformWorldToHClip(output.positionWS);
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+
+                // DD-121: a camada do bioma LEVANTA a pele do planeta.
+                // Deslocamento radial no vértice — a malha e as colisões
+                // nunca mudam (DD-114); o chão físico acompanha via
+                // TerritoryPainter.GetElevationAt (mesma conta, na CPU).
+                float3 dir = normalize(output.positionWS - _PlanetCenter.xyz);
+                float2 territoryUV = float2(
+                    atan2(dir.z, dir.x) / (2.0 * PI) + 0.5,
+                    asin(clamp(dir.y, -1.0, 1.0)) / PI + 0.5);
+                output.positionWS += dir * LayerHeight(territoryUV);
+
+                output.positionHCS = TransformWorldToHClip(output.positionWS);
                 return output;
             }
 
