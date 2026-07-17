@@ -22,10 +22,15 @@ namespace Terraforge.World
                  "civilização N+1. Gerado pelo menu Terraforge.")]
         [SerializeField] private Texture2DArray _groundTextures;
 
+        [Tooltip("Atlas dos relevos (E00): fatia N = mapa normal do chão " +
+                 "da civilização N+1. Gerado pelo menu Terraforge.")]
+        [SerializeField] private Texture2DArray _groundNormals;
+
         public static PlanetThemeRegistry Current { get; private set; }
 
         public PlanetTheme BaseTheme => _baseTheme;
         public Texture2DArray GroundTextures => _groundTextures;
+        public Texture2DArray GroundNormals => _groundNormals;
 
         private void Awake()
         {

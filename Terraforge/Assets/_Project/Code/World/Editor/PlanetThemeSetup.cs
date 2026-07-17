@@ -16,6 +16,7 @@ namespace Terraforge.World.EditorTools
         private const string CowboyFolder = "Assets/_Project/Art/Models/Civilizations/Cowboy";
         private const string GroundFolder = "Assets/_Project/Art/Textures/Ground";
         private const string AtlasPath = ThemeFolder + "/GroundAtlas.asset";
+        private const string NormalAtlasPath = ThemeFolder + "/GroundNormalAtlas.asset";
         private const int AtlasSize = 512;
 
         [MenuItem("Terraforge/Gerar Planet Themes (PLS)")]
@@ -57,8 +58,9 @@ namespace Terraforge.World.EditorTools
             baseTheme.Humidity = 0.4f;
             EditorUtility.SetDirty(baseTheme);
 
-            Texture2DArray atlas = BakeGroundAtlas(themes);
-            AttachRegistry(baseTheme, themes, atlas);
+            Texture2DArray atlas = BakeColorAtlas(themes);
+            Texture2DArray normalAtlas = BakeNormalAtlas(themes);
+            AttachRegistry(baseTheme, themes, atlas, normalAtlas);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -80,9 +82,15 @@ namespace Terraforge.World.EditorTools
             cowboy.Meteor = Load("Assets/_Project/Art/Models/Events/meteoroevent3D.glb");
             cowboy.TrailSegment = Load($"{CowboyFolder}/CowboyTrail.glb");
 
-            // Ambiente: piso (E00) + modelos existentes.
+            // Ambiente: piso (E00) — o material COMPLETO da areia
+            // (cor + relevo + sombreamento de cavidades).
             cowboy.GroundTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
                 $"{GroundFolder}/Ground_VelhoOeste.jpg");
+            cowboy.GroundNormalTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                $"{GroundFolder}/Ground_VelhoOeste_Normal.png");
+            cowboy.GroundAOTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                $"{GroundFolder}/Ground_VelhoOeste_AO.jpg");
+            cowboy.GroundRelief = 1f;
             cowboy.GroundTiling = 16f;
             cowboy.VegetationTall = Load($"{CowboyFolder}/Environment/CowboyCactus.glb");   // E01
             cowboy.VegetationMedium = Load($"{CowboyFolder}/Environment/CowboyArbusto.glb"); // E02
@@ -101,44 +109,121 @@ namespace Terraforge.World.EditorTools
             EditorUtility.SetDirty(cowboy);
         }
 
-        // Assa o atlas de pisos: fatia N = textura E00 da civilização N+1,
-        // redimensionada para 512 (o shader indexa a fatia pelo dono do
-        // pixel). Blit+ReadPixels funciona mesmo com textura não legível.
-        private static Texture2DArray BakeGroundAtlas(PlanetTheme[] themes)
+        // Assa o atlas de pisos: fatia N = cor E00 da civilização N+1 já
+        // MULTIPLICADA pelo AO (sombreamento de cavidades vira parte da
+        // cor — efeito de material completo sem custo em jogo).
+        private static Texture2DArray BakeColorAtlas(PlanetTheme[] themes)
         {
-            var atlas = new Texture2DArray(
-                AtlasSize, AtlasSize, Mathf.Max(1, themes.Length),
-                TextureFormat.RGBA32, mipChain: true)
-            {
-                name = "GroundAtlas",
-                wrapMode = TextureWrapMode.Repeat
-            };
-
-            RenderTexture target = RenderTexture.GetTemporary(
-                AtlasSize, AtlasSize, 0, RenderTextureFormat.ARGB32);
-            var reader = new Texture2D(AtlasSize, AtlasSize, TextureFormat.RGBA32, false);
-            RenderTexture previous = RenderTexture.active;
+            var atlas = NewAtlas("GroundAtlas", themes.Length, linear: false);
 
             for (int i = 0; i < themes.Length; i++)
             {
-                Texture source = themes[i] != null && themes[i].GroundTexture != null
-                    ? themes[i].GroundTexture
+                PlanetTheme theme = themes[i];
+                Texture color = theme != null && theme.GroundTexture != null
+                    ? theme.GroundTexture
                     : Texture2D.whiteTexture;
 
-                Graphics.Blit(source, target);
-                RenderTexture.active = target;
-                reader.ReadPixels(new Rect(0, 0, AtlasSize, AtlasSize), 0, 0);
-                reader.Apply(false);
-                atlas.SetPixels32(reader.GetPixels32(), i, 0);
+                Color32[] pixels = ReadPixels(color, linear: false);
+
+                if (theme != null && theme.GroundAOTexture != null)
+                {
+                    Color32[] ao = ReadPixels(theme.GroundAOTexture, linear: false);
+                    for (int p = 0; p < pixels.Length; p++)
+                    {
+                        pixels[p].r = (byte)(pixels[p].r * ao[p].r / 255);
+                        pixels[p].g = (byte)(pixels[p].g * ao[p].r / 255);
+                        pixels[p].b = (byte)(pixels[p].b * ao[p].r / 255);
+                    }
+                }
+
+                atlas.SetPixels32(pixels, i, 0);
             }
 
+            atlas.Apply(updateMipmaps: true);
+            return SaveAtlas(atlas, AtlasPath);
+        }
+
+        // Assa o atlas de relevos: fatia N = mapa normal E00. Normal é
+        // DADO (0,5 = plano): tudo em espaço LINEAR, sem correção de gama.
+        private static Texture2DArray BakeNormalAtlas(PlanetTheme[] themes)
+        {
+            var atlas = NewAtlas("GroundNormalAtlas", themes.Length, linear: true);
+            var flat = new Color32(128, 128, 255, 255); // normal "plana"
+
+            for (int i = 0; i < themes.Length; i++)
+            {
+                PlanetTheme theme = themes[i];
+                if (theme != null && theme.GroundNormalTexture != null)
+                {
+                    EnsureLinearImport(theme.GroundNormalTexture);
+                    atlas.SetPixels32(
+                        ReadPixels(theme.GroundNormalTexture, linear: true), i, 0);
+                }
+                else
+                {
+                    var pixels = new Color32[AtlasSize * AtlasSize];
+                    for (int p = 0; p < pixels.Length; p++)
+                    {
+                        pixels[p] = flat;
+                    }
+
+                    atlas.SetPixels32(pixels, i, 0);
+                }
+            }
+
+            atlas.Apply(updateMipmaps: true);
+            return SaveAtlas(atlas, NormalAtlasPath);
+        }
+
+        private static Texture2DArray NewAtlas(string name, int slices, bool linear)
+        {
+            return new Texture2DArray(
+                AtlasSize, AtlasSize, Mathf.Max(1, slices),
+                TextureFormat.RGBA32, mipChain: true, linear: linear)
+            {
+                name = name,
+                wrapMode = TextureWrapMode.Repeat
+            };
+        }
+
+        // Blit+ReadPixels redimensiona para 512 mesmo com textura não
+        // legível; o modo linear evita o desvio de gama em mapas de dado.
+        private static Color32[] ReadPixels(Texture source, bool linear)
+        {
+            RenderTexture target = RenderTexture.GetTemporary(
+                AtlasSize, AtlasSize, 0, RenderTextureFormat.ARGB32,
+                linear ? RenderTextureReadWrite.Linear : RenderTextureReadWrite.Default);
+            RenderTexture previous = RenderTexture.active;
+
+            Graphics.Blit(source, target);
+            RenderTexture.active = target;
+            var reader = new Texture2D(AtlasSize, AtlasSize, TextureFormat.RGBA32, false, linear);
+            reader.ReadPixels(new Rect(0, 0, AtlasSize, AtlasSize), 0, 0);
+            reader.Apply(false);
+
+            Color32[] pixels = reader.GetPixels32();
             RenderTexture.active = previous;
             RenderTexture.ReleaseTemporary(target);
             Object.DestroyImmediate(reader);
-            atlas.Apply(updateMipmaps: true);
+            return pixels;
+        }
 
-            AssetDatabase.DeleteAsset(AtlasPath);
-            AssetDatabase.CreateAsset(atlas, AtlasPath);
+        // Mapa normal importado como sRGB distorce o relevo (0,5 deixa de
+        // ser "plano"). Garante a importação em espaço linear.
+        private static void EnsureLinearImport(Texture2D texture)
+        {
+            string path = AssetDatabase.GetAssetPath(texture);
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer && importer.sRGBTexture)
+            {
+                importer.sRGBTexture = false;
+                importer.SaveAndReimport();
+            }
+        }
+
+        private static Texture2DArray SaveAtlas(Texture2DArray atlas, string path)
+        {
+            AssetDatabase.DeleteAsset(path);
+            AssetDatabase.CreateAsset(atlas, path);
             return atlas;
         }
 
@@ -159,7 +244,8 @@ namespace Terraforge.World.EditorTools
 
         // Coloca o registro no planeta e entrega fichas + atlas prontos.
         private static void AttachRegistry(
-            PlanetTheme baseTheme, PlanetTheme[] themes, Texture2DArray atlas)
+            PlanetTheme baseTheme, PlanetTheme[] themes,
+            Texture2DArray atlas, Texture2DArray normalAtlas)
         {
             var planet = Object.FindAnyObjectByType<Planet>();
             if (planet == null)
@@ -177,6 +263,7 @@ namespace Terraforge.World.EditorTools
             var serialized = new SerializedObject(registry);
             serialized.FindProperty("_baseTheme").objectReferenceValue = baseTheme;
             serialized.FindProperty("_groundTextures").objectReferenceValue = atlas;
+            serialized.FindProperty("_groundNormals").objectReferenceValue = normalAtlas;
 
             SerializedProperty list = serialized.FindProperty("_civilizationThemes");
             list.arraySize = themes.Length;

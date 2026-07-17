@@ -41,9 +41,19 @@ namespace Terraforge.World
         // AMBIENTE (E00) — o piso: material com TEXTURA aplicado ao planeta
         // conforme o território é conquistado. Não é um modelo 3D.
         // ------------------------------------------------------------------
-        [Header("Ambiente — E00 Terreno (textura do piso)")]
-        [Tooltip("E00: textura tileável do chão (areia, grama, neve, lava...).")]
+        [Header("Ambiente — E00 Terreno (material completo do piso)")]
+        [Tooltip("E00: a COR do chão (areia, grama, neve, lava...). Mapa _diff.")]
         public Texture2D GroundTexture;
+
+        [Tooltip("E00: o RELEVO do chão (mapa normal, _nor). O terreno ganha " +
+                 "ondulações e volume iluminados de verdade.")]
+        public Texture2D GroundNormalTexture;
+
+        [Tooltip("E00: sombreamento de cavidades (mapa _ao). Assado na cor.")]
+        public Texture2D GroundAOTexture;
+
+        [Tooltip("Força do relevo (0 = liso, 1 = natural, 2 = exagerado).")]
+        [Range(0f, 2f)] public float GroundRelief = 1f;
 
         [Tooltip("Repetições da textura ao redor do planeta (maior = mais miúda).")]
         [Range(1f, 64f)] public float GroundTiling = 16f;

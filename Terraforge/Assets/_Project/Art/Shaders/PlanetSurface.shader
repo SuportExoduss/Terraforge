@@ -53,6 +53,11 @@ Shader "Terraforge/PlanetSurface"
             TEXTURE2D_ARRAY(_ThemeGroundArray);
             SAMPLER(sampler_ThemeGroundArray);
 
+            // Atlas dos relevos (E00): o mapa normal do chão de cada
+            // civilização — o terreno ganha ondulações iluminadas.
+            TEXTURE2D_ARRAY(_ThemeGroundNormalArray);
+            SAMPLER(sampler_ThemeGroundNormalArray);
+
             // Projeção triplanar: a textura é aplicada pelos 3 eixos do
             // mundo e misturada pela normal — cobre a esfera inteira sem
             // esticar nos polos (uma projeção única sempre estica).
@@ -70,6 +75,31 @@ Shader "Terraforge/PlanetSurface"
                     sampler_ThemeGroundArray, uvw.xy, slice).rgb;
 
                 return x * weights.x + y * weights.y + z * weights.z;
+            }
+
+            // Relevo triplanar (mistura UDN): perturba a normal do planeta
+            // com o mapa normal do piso — as ondulações da areia reagem à
+            // luz de verdade, pelos 3 eixos, sem esticar nos polos.
+            half3 GroundReliefNormal(int slice, float3 positionWS, float3 normalWS,
+                                     float tiling, half strength)
+            {
+                float3 weights = abs(normalWS);
+                weights /= max(weights.x + weights.y + weights.z, 0.001);
+                float3 uvw = (positionWS - _PlanetCenter.xyz) * (tiling * 0.01);
+
+                half3 nx = SAMPLE_TEXTURE2D_ARRAY(_ThemeGroundNormalArray,
+                    sampler_ThemeGroundNormalArray, uvw.zy, slice).rgb * 2.0 - 1.0;
+                half3 ny = SAMPLE_TEXTURE2D_ARRAY(_ThemeGroundNormalArray,
+                    sampler_ThemeGroundNormalArray, uvw.xz, slice).rgb * 2.0 - 1.0;
+                half3 nz = SAMPLE_TEXTURE2D_ARRAY(_ThemeGroundNormalArray,
+                    sampler_ThemeGroundNormalArray, uvw.xy, slice).rgb * 2.0 - 1.0;
+
+                half3 bump =
+                    half3(0.0, nx.y, nx.x) * weights.x +
+                    half3(ny.x, 0.0, ny.y) * weights.y +
+                    half3(nz.x, nz.y, 0.0) * weights.z;
+
+                return normalize(normalWS + bump * strength);
             }
 
             // Ruído de valor barato (hash + interpolação suave), suficiente
@@ -138,22 +168,6 @@ Shader "Terraforge/PlanetSurface"
                     atan2(direction.z, direction.x) / (2.0 * PI) + 0.5,
                     asin(clamp(direction.y, -1.0, 1.0)) / PI + 0.5);
 
-                // Amostragem em cruz + curva suave: a fronteira da dominação
-                // fica ARREDONDADA e orgânica, sem escadinha de pixels.
-                // Leitura FINA (máscara): decide preenchimento e traço.
-                float2 maskTexel = _TerritoryMapTexel.xy * 2.5;
-                half4 mask =
-                    SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap, territoryUV, 0) * 2.0;
-                mask += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV + float2(maskTexel.x, 0), 0);
-                mask += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV - float2(maskTexel.x, 0), 0);
-                mask += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV + float2(0, maskTexel.y), 0);
-                mask += SAMPLE_TEXTURE2D_LOD(_TerritoryMap, sampler_TerritoryMap,
-                    territoryUV - float2(0, maskTexel.y), 0);
-                mask /= 6.0;
-
                 // Leitura LARGA (fusão): mistura as cores dos vizinhos numa
                 // faixa de transição — impérios encostados se fundem
                 // (o "ambiente de transição" dos futuros biomas).
@@ -172,12 +186,12 @@ Shader "Terraforge/PlanetSurface"
 
                 half3 territoryTint = blend.rgb / max(blend.a, 0.001);
 
-                // Preenchimento tolerante a frestas (impérios encostados se
-                // emendam pela fusão, sem traço entre eles) e BORDA CARTOON
-                // preta-tinta apenas na fronteira com terra neutra.
-                half fill = smoothstep(0.35, 0.6, mask.a);
-                half outline = smoothstep(0.10, 0.30, mask.a) * (1.0 - fill);
-                const half3 outlineColor = half3(0.015, 0.015, 0.025);
+                // A fronteira do domínio é o MATERIAL ACABANDO: um esfumado
+                // largo em que a areia (ou grama, neve...) vai rareando até
+                // sumir na terra neutra — e, entre dois impérios colados,
+                // os dois materiais se mesclam na faixa (pedido do Diretor;
+                // a borda preta cartoon foi removida por enquanto).
+                half fill = smoothstep(0.06, 0.9, blend.a);
 
                 // DD-116: o solo do bioma é COMPOSTO aqui, em tempo real.
                 // O Kit da civilização dona (lido pelo id, sem interpolação)
@@ -186,6 +200,8 @@ Shader "Terraforge/PlanetSurface"
                 // A cor base vem do mapa borrado, o que preserva a fusão
                 // entre impérios vizinhos.
                 half3 soil = territoryTint;
+                float3 planetNormal = normalize(input.normalWS);
+                half3 shadingNormal = planetNormal;
                 int themeIndex = (int)round(
                     SAMPLE_TEXTURE2D_LOD(_TerritoryIdMap, sampler_TerritoryIdMap,
                         territoryUV, 0).r * 255.0) - 1;
@@ -195,17 +211,27 @@ Shader "Terraforge/PlanetSurface"
                     float4 dna = _ThemeDna[themeIndex];
                     float3 p = direction * 90.0;
 
-                    // E00 (DD-120): o PISO do bioma é a textura real da
-                    // civilização (areia, grama, neve...), tingida pela cor
-                    // do território para preservar a fusão nas fronteiras.
+                    // E00 (DD-120): o PISO do bioma é o material real da
+                    // civilização — cor (com AO assado) tingida pela cor do
+                    // território (preserva a fusão) + RELEVO iluminado.
                     float4 groundParams = _ThemeGroundParams[themeIndex];
                     if (groundParams.y > 0.5 && themeIndex < (int)_ThemeGroundCount)
                     {
                         half3 groundTex = SampleGroundTriplanar(
-                            themeIndex, input.positionWS,
-                            normalize(input.normalWS), groundParams.x);
+                            themeIndex, input.positionWS, planetNormal, groundParams.x);
                         half3 tinted = groundTex * territoryTint * 2.0;
                         soil = lerp(soil, tinted, 0.85);
+
+                        // O relevo acompanha o esfumado: forte no meio do
+                        // domínio, sumindo junto com o material na borda.
+                        if (groundParams.z > 0.01)
+                        {
+                            half3 relief = GroundReliefNormal(
+                                themeIndex, input.positionWS, planetNormal,
+                                groundParams.x, groundParams.z);
+                            shadingNormal = normalize(
+                                lerp(planetNormal, relief, fill));
+                        }
                     }
 
                     // Com textura real, o ruído vira TEMPERO (variação sutil
@@ -231,14 +257,15 @@ Shader "Terraforge/PlanetSurface"
                     soil = lerp(soil, soil * 1.12 + 0.04, dna.z * 0.35);
                 }
 
-                // O pixel dominado troca de cor na própria pele do planeta.
+                // O pixel dominado troca de material na própria pele do
+                // planeta; na borda, o material vai "acabando" (fill).
                 half3 albedo = lerp(baseColor.rgb, soil, fill);
-                albedo = lerp(albedo, outlineColor, outline);
 
-                // Iluminação simples e macia (meia-lambert), estilo cartoon.
+                // Iluminação simples e macia (meia-lambert), estilo cartoon
+                // — com a normal perturbada pelo relevo do piso.
                 Light mainLight = GetMainLight();
                 half lighting =
-                    saturate(dot(normalize(input.normalWS), mainLight.direction)) * 0.7 + 0.3;
+                    saturate(dot(shadingNormal, mainLight.direction)) * 0.7 + 0.3;
 
                 return half4(albedo * mainLight.color.rgb * lighting, 1.0);
             }

@@ -112,7 +112,10 @@ namespace Terraforge.World
                 detail[i] = theme.Detail;
                 vegetation[i] = theme.Vegetation;
                 ground[i] = new Vector4(
-                    theme.GroundTiling, theme.GroundTexture != null ? 1f : 0f, 0f, 0f);
+                    theme.GroundTiling,
+                    theme.GroundTexture != null ? 1f : 0f,
+                    theme.GroundNormalTexture != null ? theme.GroundRelief : 0f,
+                    0f);
 
                 // Biome DNA (DD-118) que o terreno usa: quanto de vegetação,
                 // rocha/detalhe e poeira aquele bioma mostra no solo.
@@ -127,11 +130,17 @@ namespace Terraforge.World
             Shader.SetGlobalVectorArray("_ThemeGroundParams", ground);
             Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
 
-            // O atlas dos pisos (E00). Sem ele, o shader compõe só com cores.
+            // Os atlas dos pisos (E00): cor+AO e relevo. Sem eles, o shader
+            // compõe só com cores.
             if (registry != null && registry.GroundTextures != null)
             {
                 Shader.SetGlobalTexture("_ThemeGroundArray", registry.GroundTextures);
                 Shader.SetGlobalFloat("_ThemeGroundCount", registry.GroundTextures.depth);
+
+                if (registry.GroundNormals != null)
+                {
+                    Shader.SetGlobalTexture("_ThemeGroundNormalArray", registry.GroundNormals);
+                }
             }
             else
             {
