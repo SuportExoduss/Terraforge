@@ -21,6 +21,7 @@ MonoBehaviour:
   GroundTexture: {fileID: 0}
   GroundNormalTexture: {fileID: 0}
   GroundAOTexture: {fileID: 0}
+  GroundTint: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   GroundRelief: 1
   GroundHeight: 0.6
   GroundTiling: 16

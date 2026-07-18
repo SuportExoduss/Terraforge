@@ -43,6 +43,9 @@ namespace Terraforge.World
         private readonly Queue<int> _searchFrontier = new();
         private readonly List<Vector3> _claimBuffer = new(256);
         private readonly HashSet<byte> _dispossessedBuffer = new();
+        private readonly HashSet<int> _pocketVisited = new();
+        private readonly List<int> _pocketBuffer = new(256);
+        private readonly int[] _pocketBorderCounts = new int[MaxOwners];
 
         private void Awake()
         {
@@ -109,6 +112,10 @@ namespace Terraforge.World
             }
 
             PublishClaims(conquerorId);
+
+            // A herança pode ter emendado territórios ao redor de vãos
+            // livres — era a origem dos "buracos" no fim da partida.
+            SealEnclosedFreePockets(planet);
         }
 
         public Vector3 GetRandomUnownedPosition()
@@ -273,6 +280,150 @@ namespace Terraforge.World
             Debug.Log(
                 $"[World] Civilização {ownerId} anexou {_claimBuffer.Count} células" +
                 (_dispossessedBuffer.Count > 0 ? " (convertendo território inimigo!)." : "."));
+
+            // Nenhum vão preso: bolsões livres cercados são selados.
+            SealEnclosedFreePockets(planet);
+        }
+
+        // ------------------------------------------------------------------
+        // Nenhum buraco fica para trás: após qualquer conversão em massa,
+        // regiões LIVRES que perderam contato com o "oceano" (a maior região
+        // livre do planeta) estão cercadas — e são entregues ao dono que
+        // mais as cerca. Pedido do Diretor: sem espaços abertos presos.
+        // ------------------------------------------------------------------
+        private void SealEnclosedFreePockets(IPlanet planet)
+        {
+            // 1. Acha a maior região livre (o oceano respirável).
+            _pocketVisited.Clear();
+            int largestSeed = -1;
+            int largestSize = 0;
+            for (int i = 0; i < _cellDirections.Length; i++)
+            {
+                if (_cellOwners[i] != NoOwner || _pocketVisited.Contains(i))
+                {
+                    continue;
+                }
+
+                int size = FloodFreeRegion(i, collectCells: false);
+                if (size > largestSize)
+                {
+                    largestSize = size;
+                    largestSeed = i;
+                }
+            }
+
+            if (largestSeed < 0)
+            {
+                return; // não há terra livre nenhuma
+            }
+
+            // 2. Marca o oceano em _searchSet.
+            _searchSet.Clear();
+            _searchFrontier.Clear();
+            _searchSet.Add(largestSeed);
+            _searchFrontier.Enqueue(largestSeed);
+            while (_searchFrontier.Count > 0)
+            {
+                int cell = _searchFrontier.Dequeue();
+                int[] neighbors = _neighbors[cell];
+                for (int n = 0; n < neighbors.Length; n++)
+                {
+                    int neighbor = neighbors[n];
+                    if (_cellOwners[neighbor] == NoOwner && _searchSet.Add(neighbor))
+                    {
+                        _searchFrontier.Enqueue(neighbor);
+                    }
+                }
+            }
+
+            // 3. Toda célula livre fora do oceano pertence a um bolsão:
+            //    entrega cada bolsão a quem mais o cerca.
+            _pocketVisited.Clear();
+            for (int i = 0; i < _cellDirections.Length; i++)
+            {
+                if (_cellOwners[i] != NoOwner || _searchSet.Contains(i) ||
+                    _pocketVisited.Contains(i))
+                {
+                    continue;
+                }
+
+                FloodFreeRegion(i, collectCells: true);
+
+                byte bestOwner = NoOwner;
+                int bestCount = 0;
+                for (int owner = 1; owner < MaxOwners; owner++)
+                {
+                    if (_pocketBorderCounts[owner] > bestCount)
+                    {
+                        bestCount = _pocketBorderCounts[owner];
+                        bestOwner = (byte)owner;
+                    }
+                }
+
+                if (bestOwner == NoOwner)
+                {
+                    continue;
+                }
+
+                _claimBuffer.Clear();
+                _dispossessedBuffer.Clear();
+                for (int p = 0; p < _pocketBuffer.Count; p++)
+                {
+                    ClaimCell(bestOwner, _pocketBuffer[p], planet);
+                }
+
+                PublishClaims(bestOwner);
+                Debug.Log(
+                    $"[World] Bolsão cercado de {_pocketBuffer.Count} células " +
+                    $"selado para a civilização {bestOwner}.");
+            }
+        }
+
+        // Inunda uma região livre a partir da semente. Com collectCells,
+        // guarda as células em _pocketBuffer e conta os donos vizinhos em
+        // _pocketBorderCounts. Sempre marca _pocketVisited. Devolve o tamanho.
+        private int FloodFreeRegion(int seed, bool collectCells)
+        {
+            if (collectCells)
+            {
+                _pocketBuffer.Clear();
+                System.Array.Clear(_pocketBorderCounts, 0, _pocketBorderCounts.Length);
+            }
+
+            int size = 0;
+            _searchFrontier.Clear();
+            _pocketVisited.Add(seed);
+            _searchFrontier.Enqueue(seed);
+
+            while (_searchFrontier.Count > 0)
+            {
+                int cell = _searchFrontier.Dequeue();
+                size++;
+                if (collectCells)
+                {
+                    _pocketBuffer.Add(cell);
+                }
+
+                int[] neighbors = _neighbors[cell];
+                for (int n = 0; n < neighbors.Length; n++)
+                {
+                    int neighbor = neighbors[n];
+                    byte owner = _cellOwners[neighbor];
+                    if (owner == NoOwner)
+                    {
+                        if (_pocketVisited.Add(neighbor))
+                        {
+                            _searchFrontier.Enqueue(neighbor);
+                        }
+                    }
+                    else if (collectCells)
+                    {
+                        _pocketBorderCounts[owner]++;
+                    }
+                }
+            }
+
+            return size;
         }
 
         // ------------------------------------------------------------------

@@ -34,6 +34,13 @@ namespace Terraforge.World.EditorTools
             // Cores já escolhidas pelo Diretor, lidas dos materiais atuais.
             Color[] colors = ReadCivilizationColors(painter);
 
+            // Pincel mais gordo = células emendadas em manchas redondas
+            // (cantos quadrados são proibidos — direção do Diretor).
+            var painterSerialized = new SerializedObject(painter);
+            painterSerialized.FindProperty("_brushRadiusFactor").floatValue = 1.2f;
+            painterSerialized.ApplyModifiedProperties();
+            EditorUtility.SetDirty(painter);
+
             var themes = new PlanetTheme[colors.Length];
             for (int i = 0; i < colors.Length; i++)
             {

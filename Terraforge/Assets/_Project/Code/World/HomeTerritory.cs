@@ -45,6 +45,7 @@ namespace Terraforge.World
         private TerritoryMap _map;
         private Civilization _civilization;
         private BaseState _state = BaseState.Grounded;
+        private bool _ruined;
         private float _checkClock;
         private float _countdown;
         private float _flightClock;
@@ -69,7 +70,10 @@ namespace Terraforge.World
         {
             if (_civilization != null && eliminatedEvent.OwnerId == _civilization.Id)
             {
-                enabled = false;
+                // DD-122: o dono morreu, mas a base NÃO congela o mundo — ela
+                // vira RUÍNA: fica de pé, com o território morto ao redor, e
+                // continua capturável (dominar o chão dela herda o império).
+                _ruined = true;
             }
         }
 
@@ -228,6 +232,23 @@ namespace Terraforge.World
 
             // O derrotado embarca no foguete NA HORA (some do campo).
             EventBus.Publish(new BaseFallenEvent(_civilization.Id, conqueror));
+
+            // DD-122: ruína conquistada não decola para lugar nenhum — o
+            // dono está morto. A nave/domo somem e a base se aposenta.
+            if (_ruined)
+            {
+                HomeBaseRegistry.Unregister(_civilization.Id);
+                foreach (Renderer childRenderer in GetComponentsInChildren<Renderer>())
+                {
+                    childRenderer.enabled = false;
+                }
+
+                enabled = false;
+                Debug.Log(
+                    $"[World] Ruína da civilização {_civilization.Id} foi conquistada " +
+                    "— o império morto tem novo dono (DD-122).");
+                return;
+            }
 
             _state = BaseState.Countdown;
             _countdown = _relocationDelaySeconds;

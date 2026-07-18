@@ -32,5 +32,11 @@ namespace Terraforge.Core
         {
             return _bases.TryGetValue(civilizationId, out baseInfo);
         }
+
+        /// <summary>A base deixou de existir (ex.: ruína conquistada, DD-122).</summary>
+        public static void Unregister(byte civilizationId)
+        {
+            _bases.Remove(civilizationId);
+        }
     }
 }

@@ -57,6 +57,7 @@ namespace Terraforge.World
 
         private readonly Queue<PendingCell> _pendingCells = new();
         private readonly float[] _themeHeights = new float[MaxThemes + 1];
+        private readonly bool[] _deadCivilizations = new bool[MaxThemes + 1];
         private Planet _planet;
         private Texture2D _territoryMap;
         private Texture2D _territoryIdMap;
@@ -71,6 +72,18 @@ namespace Terraforge.World
             _planet = GetComponent<Planet>();
             BuildTerritoryMap();
             EventBus.Subscribe<TerritoryCellsClaimedEvent>(OnCellsClaimed);
+            EventBus.Subscribe<CivilizationEliminatedEvent>(OnEliminated);
+        }
+
+        // DD-122: o império do morto escurece — mesma temática, versão
+        // "morta" — até a ruína ser conquistada.
+        private void OnEliminated(CivilizationEliminatedEvent eliminatedEvent)
+        {
+            if (eliminatedEvent.OwnerId <= MaxThemes)
+            {
+                _deadCivilizations[eliminatedEvent.OwnerId] = true;
+                UploadThemeKits();
+            }
         }
 
         private void Start()
@@ -80,8 +93,10 @@ namespace Terraforge.World
             ConvertPlanetMaterials();
 
             // DD-116: entrega os Kits de Terreno ao shader e sorteia a seed
-            // da partida (nenhum planeta Cowboy é igual a outro).
+            // da partida (nenhum planeta Cowboy é igual a outro). A seed sai
+            // UMA vez — reenvios de kit (ex.: morte, DD-122) não a mudam.
             UploadThemeKits();
+            Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
         }
 
         // DD-115/DD-120: cada civilização entrega o piso E00 (material com
@@ -110,13 +125,16 @@ namespace Terraforge.World
                     theme.GroundTexture != null ? 1f : 0f,
                     theme.GroundNormalTexture != null ? theme.GroundRelief : 0f,
                     theme.GroundHeight);
-                tint[i] = theme.GroundTint;
+                // O alfa do tint carrega o estado de vida: 1 = viva,
+                // 0 = morta (o shader escurece a temática, DD-122).
+                Vector4 tintValue = theme.GroundTint;
+                tintValue.w = _deadCivilizations[i + 1] ? 0f : 1f;
+                tint[i] = tintValue;
                 _themeHeights[i + 1] = theme.GroundHeight;
             }
 
             Shader.SetGlobalVectorArray("_ThemeGroundParams", ground);
             Shader.SetGlobalVectorArray("_ThemeGroundTint", tint);
-            Shader.SetGlobalFloat("_TerraSeed", Random.Range(0f, 1000f));
 
             // Os atlas dos pisos (E00): cor+AO e relevo. Sem eles, o shader
             // compõe só com cores.
@@ -139,6 +157,7 @@ namespace Terraforge.World
         private void OnDestroy()
         {
             EventBus.Unsubscribe<TerritoryCellsClaimedEvent>(OnCellsClaimed);
+            EventBus.Unsubscribe<CivilizationEliminatedEvent>(OnEliminated);
         }
 
         private void OnCellsClaimed(TerritoryCellsClaimedEvent claimEvent)

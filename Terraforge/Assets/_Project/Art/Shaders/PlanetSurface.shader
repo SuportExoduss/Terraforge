@@ -104,7 +104,7 @@ Shader "Terraforge/PlanetSurface"
             // de pixel; com as diagonais as fronteiras ficam CURVAS.
             half4 SampleOwnership(float2 uv)
             {
-                float2 t = _TerritoryMapTexel.xy * 5.0;
+                float2 t = _TerritoryMapTexel.xy * 8.0;
                 float2 d = t * 0.7071;
 
                 half4 s = SAMPLE_TEXTURE2D_LOD(
@@ -176,7 +176,7 @@ Shader "Terraforge/PlanetSurface"
             // no miolo do domínio e AFINA até acabar na borda.
             float LayerHeight(float2 territoryUV)
             {
-                float2 t = _TerritoryMapTexel.xy * 5.0;
+                float2 t = _TerritoryMapTexel.xy * 8.0;
                 half fillA = SampleOwnership(territoryUV).a;
 
                 // Altura do dono: o maior theme presente na vizinhança
@@ -257,8 +257,8 @@ Shader "Terraforge/PlanetSurface"
                 {
                     half crumble = TerraNoise(direction * 40.0) * 0.6 +
                                    TerraNoise(direction * 120.0) * 0.4;
-                    coverage = smoothstep(0.1, 0.75,
-                        fill + (0.5 - crumble) * 0.45);
+                    coverage = smoothstep(0.12, 0.8,
+                        fill + (0.5 - crumble) * 0.35);
                 }
 
                 // DD-116: o solo do bioma é COMPOSTO aqui, em tempo real.
@@ -301,6 +301,14 @@ Shader "Terraforge/PlanetSurface"
                             shadingNormal = normalize(
                                 lerp(planetNormal, relief, coverage));
                         }
+                    }
+
+                    // DD-122: civilização morta = temática escurecida e
+                    // dessaturada (o "mundo morto") até a ruína cair.
+                    if (_ThemeGroundTint[themeIndex].a < 0.5)
+                    {
+                        half gray = dot(soil, half3(0.299, 0.587, 0.114));
+                        soil = lerp(soil, gray.xxx, 0.6) * 0.45;
                     }
                 }
 

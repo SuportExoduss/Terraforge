@@ -21,10 +21,11 @@ MonoBehaviour:
   GroundTexture: {fileID: 2800000, guid: 53ede6d79d6bab3409fdb74f354f3780, type: 3}
   GroundNormalTexture: {fileID: 2800000, guid: 624c730289fd84e448d63960bfc1592f, type: 3}
   GroundAOTexture: {fileID: 2800000, guid: d89c1a37477bd8e4a9fa681ecce554be, type: 3}
+  GroundTint: {r: 0.77, g: 0.56, b: 0.38, a: 1}
   GroundRelief: 1
   GroundHeight: 0.6
   GroundTiling: 16
-  SoilBase: {r: 1, g: 0.5019608, b: 0, a: 1}
+  SoilBase: {r: 0.87, g: 0.65, b: 0.42, a: 1}
   SoilSecondary: {r: 0.62, g: 0.5716157, b: 0, a: 1}
   Detail: {r: 0.3, g: 0.17021178, b: 0.09, a: 1}
   Vegetation: {r: 1, g: 0.19999999, b: 0.3744316, a: 1}
