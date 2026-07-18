@@ -107,6 +107,7 @@ namespace Terraforge.World
         {
             var ground = new Vector4[MaxThemes]; // x=tiling y=tem? z=relevo w=altura
             var tint = new Vector4[MaxThemes];
+            var deadTint = new Vector4[MaxThemes];
 
             PlanetThemeRegistry registry = PlanetThemeRegistry.Current;
             for (int i = 0; i < MaxThemes; i++)
@@ -126,22 +127,29 @@ namespace Terraforge.World
                     theme.GroundNormalTexture != null ? theme.GroundRelief : 0f,
                     theme.GroundHeight);
                 // O alfa do tint carrega o estado de vida: 1 = viva,
-                // 0 = morta (o shader escurece a temática, DD-122).
+                // 0 = morta (o shader troca para o Death Biome, DD-122).
                 Vector4 tintValue = theme.GroundTint;
                 tintValue.w = _deadCivilizations[i + 1] ? 0f : 1f;
                 tint[i] = tintValue;
+
+                // Death Biome: correção de cor do material morto; o alfa
+                // diz se existe material morto (senão, escurece o vivo).
+                Vector4 deadValue = theme.DeadGroundTint;
+                deadValue.w = theme.DeadGroundTexture != null ? 1f : 0f;
+                deadTint[i] = deadValue;
                 _themeHeights[i + 1] = theme.GroundHeight;
             }
 
             Shader.SetGlobalVectorArray("_ThemeGroundParams", ground);
             Shader.SetGlobalVectorArray("_ThemeGroundTint", tint);
+            Shader.SetGlobalVectorArray("_ThemeDeadGroundTint", deadTint);
 
-            // Os atlas dos pisos (E00): cor+AO e relevo. Sem eles, o shader
-            // compõe só com cores.
+            // Os atlas dos pisos (E00): cor+AO e relevo. As fatias vêm em
+            // dobro (vivas + mortas, DD-122): a contagem útil é a metade.
             if (registry != null && registry.GroundTextures != null)
             {
                 Shader.SetGlobalTexture("_ThemeGroundArray", registry.GroundTextures);
-                Shader.SetGlobalFloat("_ThemeGroundCount", registry.GroundTextures.depth);
+                Shader.SetGlobalFloat("_ThemeGroundCount", registry.GroundTextures.depth / 2);
 
                 if (registry.GroundNormals != null)
                 {

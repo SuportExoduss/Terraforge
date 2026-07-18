@@ -42,7 +42,8 @@ Shader "Terraforge/PlanetSurface"
             // cores compõem variação procedural por cima — nada é pintado
             // à mão e nenhuma textura planetária pronta é usada.
             float4 _ThemeGroundParams[16]; // x=tiling y=tem textura? z=relevo w=altura
-            float4 _ThemeGroundTint[16];   // correção de cor (0,5 = neutra)
+            float4 _ThemeGroundTint[16];   // correção de cor; a: 1=viva 0=morta
+            float4 _ThemeDeadGroundTint[16]; // Death Biome; a: tem material morto?
             float _TerraSeed;        // muda a cada partida: planeta sempre novo
             float _ThemeGroundCount; // fatias no atlas de pisos
 
@@ -282,13 +283,29 @@ Shader "Terraforge/PlanetSurface"
                     // naturais do próprio material). Civilizações ainda sem
                     // textura continuam com sua cor chapada (territoryTint).
                     float4 groundParams = _ThemeGroundParams[themeIndex];
+                    float4 aliveTint = _ThemeGroundTint[themeIndex];
+                    float4 deadTint = _ThemeDeadGroundTint[themeIndex];
+                    bool isDead = aliveTint.a < 0.5;
+                    bool hasDeadMaterial = deadTint.a > 0.5;
+
                     if (groundParams.y > 0.5 && themeIndex < (int)_ThemeGroundCount)
                     {
+                        // DD-122: civilização morta com Death Biome na ficha
+                        // usa o MATERIAL MORTO (fatia N+i do atlas) com sua
+                        // própria correção de cor.
+                        int slice = themeIndex;
+                        half3 tintRgb = aliveTint.rgb;
+                        if (isDead && hasDeadMaterial)
+                        {
+                            slice += (int)_ThemeGroundCount;
+                            tintRgb = deadTint.rgb;
+                        }
+
                         // Correção de cor da ficha (×2: cinza 0,5 = neutro):
                         // a paleta do bioma sobre as ondulações do material.
                         soil = SampleGroundTriplanar(
-                            themeIndex, input.positionWS, planetNormal, groundParams.x)
-                            * _ThemeGroundTint[themeIndex].rgb * 2.0;
+                            slice, input.positionWS, planetNormal, groundParams.x)
+                            * tintRgb * 2.0;
 
                         // O relevo acompanha o material: existe onde há
                         // areia (inclusive nas línguas da borda) e some
@@ -296,16 +313,16 @@ Shader "Terraforge/PlanetSurface"
                         if (groundParams.z > 0.01)
                         {
                             half3 relief = GroundReliefNormal(
-                                themeIndex, input.positionWS, planetNormal,
+                                slice, input.positionWS, planetNormal,
                                 groundParams.x, groundParams.z);
                             shadingNormal = normalize(
                                 lerp(planetNormal, relief, coverage));
                         }
                     }
 
-                    // DD-122: civilização morta = temática escurecida e
-                    // dessaturada (o "mundo morto") até a ruína cair.
-                    if (_ThemeGroundTint[themeIndex].a < 0.5)
+                    // DD-122: morto SEM material próprio = a temática viva
+                    // escurecida e dessaturada, automática.
+                    if (isDead && !hasDeadMaterial)
                     {
                         half gray = dot(soil, half3(0.299, 0.587, 0.114));
                         soil = lerp(soil, gray.xxx, 0.6) * 0.45;

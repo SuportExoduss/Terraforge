@@ -123,73 +123,96 @@ namespace Terraforge.World.EditorTools
             EditorUtility.SetDirty(cowboy);
         }
 
-        // Assa o atlas de pisos: fatia N = cor E00 da civilização N+1 já
-        // MULTIPLICADA pelo AO (sombreamento de cavidades vira parte da
-        // cor — efeito de material completo sem custo em jogo).
+        // Assa o atlas de pisos com o DOBRO de fatias (DD-122): fatia i =
+        // material VIVO da civilização i+1 (cor multiplicada pelo AO);
+        // fatia N+i = material MORTO (Death Biome; sem D00, repete o vivo
+        // e o shader escurece sozinho).
         private static Texture2DArray BakeColorAtlas(PlanetTheme[] themes)
         {
-            var atlas = NewAtlas("GroundAtlas", themes.Length, linear: false);
+            int count = themes.Length;
+            var atlas = NewAtlas("GroundAtlas", count * 2, linear: false);
 
-            for (int i = 0; i < themes.Length; i++)
+            for (int i = 0; i < count; i++)
             {
-                PlanetTheme theme = themes[i];
-                Texture color = theme != null && theme.GroundTexture != null
-                    ? theme.GroundTexture
-                    : Texture2D.whiteTexture;
-
-                Color32[] pixels = ReadPixels(color, linear: false);
-
-                if (theme != null && theme.GroundAOTexture != null)
-                {
-                    // AO a 50%: sombreia as cavidades sem SUJAR a cor
-                    // (a 100% a areia ficava acinzentada e escura).
-                    Color32[] ao = ReadPixels(theme.GroundAOTexture, linear: false);
-                    for (int p = 0; p < pixels.Length; p++)
-                    {
-                        int soft = 255 + ao[p].r;
-                        pixels[p].r = (byte)(pixels[p].r * soft / 510);
-                        pixels[p].g = (byte)(pixels[p].g * soft / 510);
-                        pixels[p].b = (byte)(pixels[p].b * soft / 510);
-                    }
-                }
-
-                atlas.SetPixels32(pixels, i, 0);
+                atlas.SetPixels32(BakeAliveColor(themes[i]), i, 0);
+                atlas.SetPixels32(BakeDeadColor(themes[i]), count + i, 0);
             }
 
             atlas.Apply(updateMipmaps: true);
             return SaveAtlas(atlas, AtlasPath);
         }
 
-        // Assa o atlas de relevos: fatia N = mapa normal E00. Normal é
+        private static Color32[] BakeAliveColor(PlanetTheme theme)
+        {
+            Texture color = theme != null && theme.GroundTexture != null
+                ? theme.GroundTexture
+                : Texture2D.whiteTexture;
+
+            Color32[] pixels = ReadPixels(color, linear: false);
+
+            if (theme != null && theme.GroundAOTexture != null)
+            {
+                // AO a 50%: sombreia as cavidades sem SUJAR a cor
+                // (a 100% a areia ficava acinzentada e escura).
+                Color32[] ao = ReadPixels(theme.GroundAOTexture, linear: false);
+                for (int p = 0; p < pixels.Length; p++)
+                {
+                    int soft = 255 + ao[p].r;
+                    pixels[p].r = (byte)(pixels[p].r * soft / 510);
+                    pixels[p].g = (byte)(pixels[p].g * soft / 510);
+                    pixels[p].b = (byte)(pixels[p].b * soft / 510);
+                }
+            }
+
+            return pixels;
+        }
+
+        private static Color32[] BakeDeadColor(PlanetTheme theme)
+        {
+            return theme != null && theme.DeadGroundTexture != null
+                ? ReadPixels(theme.DeadGroundTexture, linear: false)
+                : BakeAliveColor(theme);
+        }
+
+        // Assa o atlas de relevos (também em dobro, DD-122). Normal é
         // DADO (0,5 = plano): tudo em espaço LINEAR, sem correção de gama.
         private static Texture2DArray BakeNormalAtlas(PlanetTheme[] themes)
         {
-            var atlas = NewAtlas("GroundNormalAtlas", themes.Length, linear: true);
-            var flat = new Color32(128, 128, 255, 255); // normal "plana"
+            int count = themes.Length;
+            var atlas = NewAtlas("GroundNormalAtlas", count * 2, linear: true);
 
-            for (int i = 0; i < themes.Length; i++)
+            for (int i = 0; i < count; i++)
             {
                 PlanetTheme theme = themes[i];
-                if (theme != null && theme.GroundNormalTexture != null)
-                {
-                    EnsureLinearImport(theme.GroundNormalTexture);
-                    atlas.SetPixels32(
-                        ReadPixels(theme.GroundNormalTexture, linear: true), i, 0);
-                }
-                else
-                {
-                    var pixels = new Color32[AtlasSize * AtlasSize];
-                    for (int p = 0; p < pixels.Length; p++)
-                    {
-                        pixels[p] = flat;
-                    }
+                Texture2D alive = theme != null ? theme.GroundNormalTexture : null;
+                Texture2D dead = theme != null && theme.DeadGroundNormalTexture != null
+                    ? theme.DeadGroundNormalTexture
+                    : alive;
 
-                    atlas.SetPixels32(pixels, i, 0);
-                }
+                atlas.SetPixels32(BakeNormalPixels(alive), i, 0);
+                atlas.SetPixels32(BakeNormalPixels(dead), count + i, 0);
             }
 
             atlas.Apply(updateMipmaps: true);
             return SaveAtlas(atlas, NormalAtlasPath);
+        }
+
+        private static Color32[] BakeNormalPixels(Texture2D normalMap)
+        {
+            if (normalMap != null)
+            {
+                EnsureLinearImport(normalMap);
+                return ReadPixels(normalMap, linear: true);
+            }
+
+            var flat = new Color32(128, 128, 255, 255); // normal "plana"
+            var pixels = new Color32[AtlasSize * AtlasSize];
+            for (int p = 0; p < pixels.Length; p++)
+            {
+                pixels[p] = flat;
+            }
+
+            return pixels;
         }
 
         private static Texture2DArray NewAtlas(string name, int slices, bool linear)

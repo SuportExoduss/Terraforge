@@ -121,6 +121,28 @@ namespace Terraforge.World
         public GameObject Landmark;
 
         // ------------------------------------------------------------------
+        // DEATH BIOME (DD-122) — a versão MORTA do bioma, exibida quando a
+        // civilização é eliminada, até a ruína ser conquistada. Enquanto os
+        // campos estiverem vazios, o jogo escurece a temática viva sozinho.
+        // ------------------------------------------------------------------
+        [Header("Death Biome (DD-122) — a versão morta do bioma")]
+        [Tooltip("D00: a COR do chão morto (areia cinza, terra queimada...). " +
+                 "Vazio = escurecimento automático da temática viva.")]
+        public Texture2D DeadGroundTexture;
+
+        [Tooltip("D00: o RELEVO do chão morto. Vazio = usa o relevo vivo.")]
+        public Texture2D DeadGroundNormalTexture;
+
+        [Tooltip("Correção de cor do material morto (cinza 50% = neutra).")]
+        public Color DeadGroundTint = new(0.4f, 0.38f, 0.36f);
+
+        [Tooltip("D01: a nave DESTRUÍDA, exibida na ruína (arte futura).")]
+        public GameObject DeadShip;
+
+        [Tooltip("D02: o domo QUEBRADO, exibido na ruína (arte futura).")]
+        public GameObject DeadDome;
+
+        // ------------------------------------------------------------------
         // BIOME DNA (DD-118) — a personalidade ambiental.
         // ------------------------------------------------------------------
         [Header("Biome DNA (DD-118) — a personalidade ambiental")]
