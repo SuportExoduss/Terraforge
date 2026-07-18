@@ -35,8 +35,20 @@ namespace Terraforge.Gameplay
             }
 
             EventBus.Subscribe<TrailCutEvent>(OnTrailCut);
+            EventBus.Subscribe<TrailAnchorLostEvent>(OnAnchorLost);
             EventBus.Subscribe<BaseRelocatedEvent>(OnBaseRelocated);
             EventBus.Subscribe<RadialDamageEvent>(OnRadialDamage);
+        }
+
+        // DD-123: a retaguarda da expedição foi tomada — o corredor volta
+        // ao domo, mas SEM dano (perder terreno não é ser cortado).
+        private void OnAnchorLost(TrailAnchorLostEvent anchorEvent)
+        {
+            if (!_eliminated && _civilization != null &&
+                anchorEvent.OwnerId == _civilization.Id)
+            {
+                ReturnToForceField();
+            }
         }
 
         private void Start()
@@ -47,6 +59,7 @@ namespace Terraforge.Gameplay
         private void OnDestroy()
         {
             EventBus.Unsubscribe<TrailCutEvent>(OnTrailCut);
+            EventBus.Unsubscribe<TrailAnchorLostEvent>(OnAnchorLost);
             EventBus.Unsubscribe<BaseRelocatedEvent>(OnBaseRelocated);
             EventBus.Unsubscribe<RadialDamageEvent>(OnRadialDamage);
         }

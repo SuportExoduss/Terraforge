@@ -58,6 +58,11 @@ namespace Terraforge.Gameplay
         private Civilization _civilization;
         private PlanetRunner _runner;
         private bool _wasInsideOwnedTerritory = true;
+        private float _anchorCheckClock;
+
+        // Frequência da vigia da retaguarda (DD-123): barata, não precisa
+        // rodar todo frame.
+        private const float AnchorCheckInterval = 0.25f;
 
         /// <summary>Os pontos do rastro, para os sistemas de circuito e corte.</summary>
         public IReadOnlyList<Vector3> Points => _points;
@@ -179,6 +184,21 @@ namespace Terraforge.Gameplay
             else
             {
                 RecordPointIfFarEnough(GetFootPointOnSurface(planet));
+
+                // DD-123: a vigia da retaguarda. Se o ponto de onde a
+                // expedição SAIU do próprio território for tomado, a
+                // conexão morreu: a expansão evapora e o corredor é
+                // chamado de volta ao domo (sem dano — não foi corte).
+                _anchorCheckClock += Time.deltaTime;
+                if (_anchorCheckClock >= AnchorCheckInterval && _points.Count > 0)
+                {
+                    _anchorCheckClock = 0f;
+                    if (!territory.IsOwnedBy(_civilization.Id, _points[0]))
+                    {
+                        ClearTrail();
+                        EventBus.Publish(new TrailAnchorLostEvent(_civilization.Id));
+                    }
+                }
             }
 
             _wasInsideOwnedTerritory = insideOwned;
