@@ -142,6 +142,46 @@ namespace Terraforge.World
         [Tooltip("D02: o domo QUEBRADO, exibido na ruína (arte futura).")]
         public GameObject DeadDome;
 
+        // O espelho morto dos 12 slots ambientais (pedido do Diretor: tudo
+        // que existe vivo existe morto). Slot morto vazio = a Fase 3 exibe
+        // a versão viva escurecida automaticamente.
+        [Header("Death Biome — E01 a E12 mortos (espelho dos slots)")]
+        [Tooltip("E01 morto: vegetação alta morta (cacto seco/quebrado...).")]
+        public GameObject DeadVegetationTall;
+
+        [Tooltip("E02 morto: vegetação média morta (arbusto ressecado...).")]
+        public GameObject DeadVegetationMedium;
+
+        [Tooltip("E03 morto: vegetação baixa morta (capim queimado...).")]
+        public GameObject DeadVegetationLow;
+
+        [Tooltip("E04 morto: rocha grande rachada/escurecida.")]
+        public GameObject DeadRockLarge;
+
+        [Tooltip("E05 morto: rocha pequena morta.")]
+        public GameObject DeadRockSmall;
+
+        [Tooltip("E06 morto: estrutura pequena destruída (barril quebrado...).")]
+        public GameObject DeadStructureSmall;
+
+        [Tooltip("E07 morto: estrutura média destruída (poste caído...).")]
+        public GameObject DeadStructureMedium;
+
+        [Tooltip("E08 morto: estrutura grande destruída (cabana em ruínas...).")]
+        public GameObject DeadStructureLarge;
+
+        [Tooltip("E09 morto: decorativo natural morto.")]
+        public GameObject DeadDecorationNatural;
+
+        [Tooltip("E10 morto: decorativo artificial morto.")]
+        public GameObject DeadDecorationArtificial;
+
+        [Tooltip("E11 morto: container destruído (caixa quebrada...).")]
+        public GameObject DeadContainer;
+
+        [Tooltip("E12 morto: o landmark em ruínas.")]
+        public GameObject DeadLandmark;
+
         // ------------------------------------------------------------------
         // BIOME DNA (DD-118) — a personalidade ambiental.
         // ------------------------------------------------------------------
@@ -173,6 +213,30 @@ namespace Terraforge.World
                 SlotCategory.DecorationArtificial => DecorationArtificial,
                 SlotCategory.Container => Container,
                 SlotCategory.Landmark => Landmark,
+                _ => null,
+            };
+        }
+
+        /// <summary>
+        /// DD-122: o equivalente MORTO de um slot. Sem versão morta na
+        /// ficha, devolve null — quem exibe usa a versão viva escurecida.
+        /// </summary>
+        public GameObject GetDeadSlotAsset(SlotCategory category)
+        {
+            return category switch
+            {
+                SlotCategory.VegetationTall => DeadVegetationTall,
+                SlotCategory.VegetationMedium => DeadVegetationMedium,
+                SlotCategory.VegetationLow => DeadVegetationLow,
+                SlotCategory.RockLarge => DeadRockLarge,
+                SlotCategory.RockSmall => DeadRockSmall,
+                SlotCategory.StructureSmall => DeadStructureSmall,
+                SlotCategory.StructureMedium => DeadStructureMedium,
+                SlotCategory.StructureLarge => DeadStructureLarge,
+                SlotCategory.DecorationNatural => DeadDecorationNatural,
+                SlotCategory.DecorationArtificial => DeadDecorationArtificial,
+                SlotCategory.Container => DeadContainer,
+                SlotCategory.Landmark => DeadLandmark,
                 _ => null,
             };
         }
