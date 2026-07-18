@@ -107,9 +107,13 @@ Progresso das fases:
 - ✅ **Fase 2** — terreno: textura E00 por civilização (atlas
   Texture2DArray, projeção triplanar) + variação procedural por
   ruído/seed (nenhuma partida é igual);
-- 🔜 **Fase 3** — slots ambientais (milhares de pontos invisíveis que
-  revelam os modelos do tema dono);
-- 🔜 **Fase 4** — a transformação orgânica de 0,8–1,2s (DD-117);
+- ✅ **Fase 3** — slots ambientais (`EnvironmentSlotSystem`,
+  auto-instalado): centenas de posições sorteadas por seed, invisíveis
+  no planeta neutro; conquista revela o equivalente do tema dono
+  (densidade via Biome DNA), morte revela o gêmeo morto (DD-122),
+  troca de dono troca o conteúdo via pooling;
+- 🔜 **Fase 4** — a transformação orgânica completa de 0,8–1,2s
+  (DD-117; o crescimento básico de ~0,9s já existe);
 - 🔜 **Fase 5** — Biome DNA vivo (partículas, luz, clima por tema).
 
 ## 6. Como trabalhamos

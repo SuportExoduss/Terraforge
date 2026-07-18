@@ -80,47 +80,76 @@ namespace Terraforge.World.EditorTools
         // ficam vazios esperando os próximos assets do Diretor.
         private static void FillCowboy(PlanetTheme cowboy)
         {
+            // Batismo: só na PRIMEIRA geração o gerador define os valores
+            // de arte (densidades, cores, alturas). Depois disso, os
+            // ajustes manuais do Diretor na ficha são SAGRADOS — o gerador
+            // apenas completa referências de modelo que estejam vazias.
+            bool fresh = cowboy.CivilizationName != "Velho Oeste";
             cowboy.CivilizationName = "Velho Oeste";
 
-            // Gameplay.
-            cowboy.Character = Load($"{CowboyFolder}/CowboyRunner.glb");
-            cowboy.Ship = Load($"{CowboyFolder}/NaveCowboy.glb");
-            cowboy.Dome = Load($"{CowboyFolder}/DomoEnergia.glb");
-            cowboy.Meteor = Load("Assets/_Project/Art/Models/Events/meteoroevent3D.glb");
-            cowboy.TrailSegment = Load($"{CowboyFolder}/CowboyTrail.glb");
+            // Gameplay (só preenche o que está vazio).
+            FillIfEmpty(ref cowboy.Character, $"{CowboyFolder}/CowboyRunner.glb");
+            FillIfEmpty(ref cowboy.Ship, $"{CowboyFolder}/NaveCowboy.glb");
+            FillIfEmpty(ref cowboy.Dome, $"{CowboyFolder}/DomoEnergia.glb");
+            FillIfEmpty(ref cowboy.Meteor, "Assets/_Project/Art/Models/Events/meteoroevent3D.glb");
+            FillIfEmpty(ref cowboy.TrailSegment, $"{CowboyFolder}/CowboyTrail.glb");
 
-            // Ambiente: piso (E00) — o material COMPLETO da areia
-            // (cor + relevo + sombreamento de cavidades).
-            cowboy.GroundTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                $"{GroundFolder}/Ground_VelhoOeste.jpg");
-            cowboy.GroundNormalTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                $"{GroundFolder}/Ground_VelhoOeste_Normal.png");
-            cowboy.GroundAOTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                $"{GroundFolder}/Ground_VelhoOeste_AO.jpg");
-            cowboy.GroundRelief = 1f;
-            cowboy.GroundHeight = 0.6f;
-            cowboy.GroundTiling = 16f;
+            // Ambiente: piso (E00) e slots já produzidos.
+            if (cowboy.GroundTexture == null)
+            {
+                cowboy.GroundTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    $"{GroundFolder}/Ground_VelhoOeste.jpg");
+            }
 
-            // Paleta extraída das referências de deserto do Diretor: a foto
-            // aérea de praia é areia MOLHADA acinzentada — esta correção a
-            // aquece para areia de deserto (dourado/alaranjado).
-            cowboy.GroundTint = new Color(0.77f, 0.56f, 0.38f);
-            cowboy.SoilBase = new Color(0.87f, 0.65f, 0.42f);
-            cowboy.VegetationTall = Load($"{CowboyFolder}/Environment/CowboyCactus.glb");   // E01
-            cowboy.VegetationMedium = Load($"{CowboyFolder}/Environment/CowboyArbusto.glb"); // E02
+            if (cowboy.GroundNormalTexture == null)
+            {
+                cowboy.GroundNormalTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    $"{GroundFolder}/Ground_VelhoOeste_Normal.png");
+            }
 
-            // Fichas antigas guardaram o arbusto no campo que hoje é o E03:
-            // limpa para os slots vazios esperarem os assets certos.
-            cowboy.VegetationLow = null;
+            if (cowboy.GroundAOTexture == null)
+            {
+                cowboy.GroundAOTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                    $"{GroundFolder}/Ground_VelhoOeste_AO.jpg");
+            }
 
-            // Biome DNA do Velho Oeste (DD-118).
-            cowboy.VegetationDensity = 0.2f;
-            cowboy.RockDensity = 0.5f;
-            cowboy.Dust = 0.9f;
-            cowboy.Humidity = 0.05f;
-            cowboy.Saturation = 0.5f;
-            cowboy.Contrast = 0.85f;
+            FillIfEmpty(ref cowboy.VegetationTall, $"{CowboyFolder}/Environment/CowboyCactus.glb");
+            FillIfEmpty(ref cowboy.VegetationMedium, $"{CowboyFolder}/Environment/CowboyArbusto.glb");
+
+            if (fresh)
+            {
+                cowboy.GroundRelief = 1f;
+                cowboy.GroundHeight = 0.6f;
+                cowboy.GroundTiling = 16f;
+
+                // Paleta extraída das referências de deserto do Diretor: a
+                // foto aérea de praia é areia MOLHADA acinzentada — esta
+                // correção a aquece para deserto (dourado/alaranjado).
+                cowboy.GroundTint = new Color(0.77f, 0.56f, 0.38f);
+                cowboy.SoilBase = new Color(0.87f, 0.65f, 0.42f);
+
+                // Fichas antigas guardaram o arbusto no campo que hoje é o
+                // E03: limpa para o slot vazio esperar o asset certo.
+                cowboy.VegetationLow = null;
+
+                // Biome DNA do Velho Oeste (DD-118) — ponto de partida.
+                cowboy.VegetationDensity = 0.2f;
+                cowboy.RockDensity = 0.5f;
+                cowboy.Dust = 0.9f;
+                cowboy.Humidity = 0.05f;
+                cowboy.Saturation = 0.5f;
+                cowboy.Contrast = 0.85f;
+            }
+
             EditorUtility.SetDirty(cowboy);
+        }
+
+        private static void FillIfEmpty(ref GameObject field, string path)
+        {
+            if (field == null)
+            {
+                field = Load(path);
+            }
         }
 
         // Assa o atlas de pisos com o DOBRO de fatias (DD-122): fatia i =
@@ -345,18 +374,22 @@ namespace Terraforge.World.EditorTools
             return theme;
         }
 
-        // Deriva um kit de terreno plausível a partir da cor da civilização:
-        // ponto de partida editável, não uma camisa de força.
+        // Deriva um kit de terreno plausível a partir da cor da civilização.
+        // REGRA DO BATISMO: ficha renomeada pelo Diretor (nome que não é
+        // mais "Civilização N") = ajustes manuais preservados; o gerador
+        // não pinta mais nada nela.
         private static void Paint(PlanetTheme theme, string civName, Color color)
         {
-            Color.RGBToHSV(color, out float h, out float s, out float v);
-            if (string.IsNullOrEmpty(theme.CivilizationName) ||
-                theme.CivilizationName.StartsWith("Civilização") ||
-                theme.CivilizationName == "Neutro")
+            bool fresh = string.IsNullOrEmpty(theme.CivilizationName) ||
+                         theme.CivilizationName.StartsWith("Civilização") ||
+                         theme.CivilizationName == "Neutro";
+            if (!fresh)
             {
-                theme.CivilizationName = civName;
+                return;
             }
 
+            theme.CivilizationName = civName;
+            Color.RGBToHSV(color, out float h, out float s, out float v);
             theme.SoilBase = color;
 
             // As três cores de apoio precisam DESTOAR da base — se forem
