@@ -8,6 +8,15 @@
 [ext_resource type="Script" path="res://scripts/world/territory_map.gd" id="6"]
 [ext_resource type="Script" path="res://scripts/world/home_territory.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/core/civilization.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/world/territory_painter.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/world/planet_theme_registry.gd" id="10"]
+[ext_resource type="Resource" path="res://art/themes/ground_atlas.res" id="11"]
+[ext_resource type="Resource" path="res://art/themes/theme_civ1.tres" id="t1"]
+[ext_resource type="Resource" path="res://art/themes/theme_civ2.tres" id="t2"]
+[ext_resource type="Resource" path="res://art/themes/theme_civ3.tres" id="t3"]
+[ext_resource type="Resource" path="res://art/themes/theme_civ4.tres" id="t4"]
+[ext_resource type="Resource" path="res://art/themes/theme_civ5.tres" id="t5"]
+[ext_resource type="Resource" path="res://art/themes/theme_civ6.tres" id="t6"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -26,10 +35,18 @@ environment = SubResource("env")
 transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 0, 0)
 light_energy = 1.2
 
+[node name="Themes" type="Node" parent="."]
+script = ExtResource("10")
+civilization_themes = [ExtResource("t1"), ExtResource("t2"), ExtResource("t3"), ExtResource("t4"), ExtResource("t5"), ExtResource("t6")]
+atlas = ExtResource("11")
+
 [node name="Planet" type="Node3D" parent="."]
 script = ExtResource("2")
 
 [node name="Model" parent="Planet" instance=ExtResource("3")]
+
+[node name="Painter" type="Node" parent="Planet"]
+script = ExtResource("9")
 
 [node name="Territory" type="Node" parent="."]
 script = ExtResource("6")

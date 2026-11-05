@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PlanetTheme" format=3]
+
+[ext_resource type="Script" path="res://scripts/world/planet_theme.gd" id="1_ojqyu"]
+
+[resource]
+script = ExtResource("1_ojqyu")
+civilization_name = "Velho Oeste"
+ground_texture_file = "res://art/textures/ground/Ground_VelhoOeste.jpg"
+ground_normal_file = "res://art/textures/ground/Ground_VelhoOeste_Normal.png"
+ground_ao_file = "res://art/textures/ground/Ground_VelhoOeste_AO.jpg"
+ground_tint = Color(0.77, 0.56, 0.38, 1)
+soil_base = Color(0.87, 0.65, 0.42, 1)
