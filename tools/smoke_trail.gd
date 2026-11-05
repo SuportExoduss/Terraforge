@@ -45,10 +45,11 @@ func _process(delta: float) -> bool:
 	match _phase:
 		0:  # sai do círculo (raio 20 a 12 u/s) e grava cerca por alguns segundos
 			if _time > 4.0:
-				var visible_segments: int = _trail._pool.filter(func(s): return s.visible).size()
-				print("fase0: pontos=%d cercas_visiveis=%d" % [_trail.points.size(), visible_segments])
-				if _trail.points.size() < 3 or visible_segments < 2:
-					return _finish_fail("rastro não gravou/plantou cercas")
+				var posts: int = _trail._posts.filter(func(s): return s.visible).size()
+				var links: int = _trail._links.filter(func(s): return s.visible).size()
+				print("fase0: pontos=%d postes=%d elos=%d" % [_trail.points.size(), posts, links])
+				if _trail.points.size() < 3 or posts != _trail.points.size() or links != posts - 1:
+					return _finish_fail("rastro não gravou/plantou postes e elos (um poste por ponto, um elo entre cada par)")
 				_fake.owned_all = true   # "voltou" ao território
 				_phase = 1
 		1:  # um frame depois: circuito fechado e rastro limpo

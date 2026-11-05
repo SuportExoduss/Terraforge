@@ -8,15 +8,19 @@ extends Node
 const MIN_POINTS_FOR_LOOP := 3          # um circuito precisa de ao menos um triângulo
 const ANCHOR_CHECK_INTERVAL := 0.25     # vigia da retaguarda (DD-123): barata, não roda todo frame
 
-@export var segment_model: PackedScene
+# A cerca é POSTE + ELO (DD-125): um poste em cada ponto do rastro, um elo esticado entre cada par.
+# O elo é um modelo de 1 unidade de comprimento ao longo de +Z, esticado até a distância real dos postes.
+@export var post_model: PackedScene
+@export var link_model: PackedScene
 @export var point_spacing: float = 1.5
 @export var surface_offset: float = 0.15            # levanta o rastro do chão (anti z-fighting)
-@export var segment_rotation_offset_degrees := Vector3(0.0, 90.0, 0.0)
-@export var segment_scale: float = 1.0
-@export var segment_shadow := true
-@export_range(0.0, 2.0) var segment_shadow_size: float = 0.6     # fração da largura do modelo
-@export_range(0.0, 1.0) var segment_shadow_opacity: float = 0.3
-@export var prewarm_segments: int = 64
+@export var post_rotation_offset_degrees := Vector3(0.0, 90.0, 0.0)
+@export var post_scale: float = 1.0
+@export var link_height: float = 0.2                # altura do elo no poste (unidades do modelo; anda com post_scale)
+@export var post_shadow := true
+@export_range(0.0, 3.0) var post_shadow_size: float = 1.4        # fração da largura do poste
+@export_range(0.0, 1.0) var post_shadow_opacity: float = 0.3
+@export var prewarm_segments: int = 64              # quantos postes (e elos) nascem antes do GO
 
 var points: Array[Vector3] = []
 
@@ -27,8 +31,10 @@ var owner_id: int:
 var _runner: PlanetRunner
 var _civilization: Civilization
 var _container: Node3D
-var _pool: Array[Node3D] = []
-var _active_segments := 0
+var _posts: Array[Node3D] = []
+var _links: Array[Node3D] = []
+var _active_posts := 0
+var _active_links := 0
 var _was_inside := true
 var _last_inside_position := Vector3.ZERO
 var _has_last_inside := false
@@ -51,7 +57,7 @@ func _ready() -> void:
 	# Embarcou no foguete (DD-100) ou foi eliminado (R1): a expansão pendente evapora.
 	EventBus.base_fallen.connect(_on_base_fallen)
 	EventBus.civilization_eliminated.connect(_on_eliminated)
-	if segment_model != null:
+	if post_model != null or link_model != null:
 		_prewarm_segments()
 
 
@@ -112,12 +118,16 @@ func _check_anchor(territory: Object, delta: float) -> void:
 func _record_point_if_far_enough(surface_point: Vector3) -> void:
 	if not points.is_empty() and points[-1].distance_to(surface_point) < point_spacing:
 		return
+	var from := surface_point   # 1º ponto: sem ponto anterior, o poste segue a direção do corredor
 	if points.is_empty():
 		_anchor = _last_inside_position
 		_has_anchor = _has_last_inside
+	else:
+		from = points[-1]
 	points.append(surface_point)
-	if segment_model != null and points.size() >= 2:
-		_place_segment(points[-2], points[-1])
+	_place_post(surface_point, surface_point - from)
+	if from != surface_point:
+		_place_link(from, surface_point)
 
 
 # O rastro deita no TERRENO real (vales e morros), como os pés.
@@ -126,24 +136,47 @@ func _foot_point(planet: Planet, from: Vector3) -> Vector3:
 	return planet.center + up * (planet.get_surface_radius(up) + surface_offset)
 
 
-# Planta um segmento (cerca) entre os dois últimos pontos, deitado na superfície e apontando na
-# direção da corrida. Reciclado de um bolso (nunca instanciado em jogo).
-func _place_segment(from: Vector3, to: Vector3) -> void:
-	# A lista lógica segue completa; estoque visual esgotado não pode causar instanciação tardia.
-	if _active_segments >= _pool.size():
-		return
-	var segment := _pool[_active_segments]
-	_active_segments += 1
+func _up_at(point: Vector3) -> Vector3:
+	return (point - Services.planet.center).normalized()
 
-	var middle := (from + to) * 0.5
-	var up := (middle - Services.planet.center).normalized()
-	var forward := (to - from).slide(up)
+
+# Planta um poste no ponto, em pé na superfície e virado para a direção da corrida.
+# Reciclado de um bolso (nunca instanciado em jogo).
+func _place_post(at: Vector3, direction: Vector3) -> void:
+	# A lista lógica segue completa; estoque visual esgotado não pode causar instanciação tardia.
+	if _active_posts >= _posts.size():
+		return
+	var post := _posts[_active_posts]
+	_active_posts += 1
+
+	var up := _up_at(at)
+	var forward := direction.slide(up)
 	if forward.length_squared() < 0.001:
 		forward = _runner.global_transform.basis.z
 	var basis := Basis.looking_at(forward.normalized(), up, true) \
-			* Basis.from_euler(segment_rotation_offset_degrees * (PI / 180.0))
-	segment.global_transform = Transform3D(basis.scaled(Vector3.ONE * segment_scale), middle)
-	segment.visible = true
+			* Basis.from_euler(post_rotation_offset_degrees * (PI / 180.0))
+	post.global_transform = Transform3D(basis.scaled(Vector3.ONE * post_scale), at)
+	post.visible = true
+
+
+# Estica um elo entre o alto de dois postes vizinhos: as pontas caem sempre DENTRO dos postes,
+# então a cerca fecha em retas e em curvas, seja qual for a distância real entre eles.
+func _place_link(from: Vector3, to: Vector3) -> void:
+	if _active_links >= _links.size():
+		return
+	var lift := link_height * post_scale
+	var a := from + _up_at(from) * lift
+	var b := to + _up_at(to) * lift
+	var length := a.distance_to(b)
+	if length < 0.001:
+		return
+	var middle := (a + b) * 0.5
+	var link := _links[_active_links]
+	_active_links += 1
+	var basis := Basis.looking_at((b - a) / length, _up_at(middle), true) \
+			* Basis.from_scale(Vector3(1.0, 1.0, length))   # à direita: estica o eixo LOCAL +Z
+	link.global_transform = Transform3D(basis, middle)
+	link.visible = true
 
 
 # Todo o estoque visual nasce antes do GO: a primeira grande incursão não instancia nada.
@@ -154,23 +187,29 @@ func _prewarm_segments() -> void:
 	_container.top_level = true
 	add_child(_container)
 	for i in prewarm_segments:
-		var segment := segment_model.instantiate() as Node3D
-		_container.add_child(segment)
-		if segment_shadow:
-			if i == 0:
-				_build_shadow_resources(segment)
-			_attach_shadow(segment)
-		segment.visible = false
-		_pool.append(segment)
+		if post_model != null:
+			var post := post_model.instantiate() as Node3D
+			_container.add_child(post)
+			if post_shadow:
+				if i == 0:
+					_build_shadow_resources(post)
+				_attach_shadow(post)
+			post.visible = false
+			_posts.append(post)
+		if link_model != null:
+			var link := link_model.instantiate() as Node3D
+			_container.add_child(link)
+			link.visible = false
+			_links.append(link)
 
 
 # A sombrinha é medida pelo PRÓPRIO modelo: tamanho pela largura real, posição pelo centro da base.
-func _build_shadow_resources(segment: Node3D) -> void:
-	var box := ModelUtils.local_aabb(segment)
+func _build_shadow_resources(post: Node3D) -> void:
+	var box := ModelUtils.local_aabb(post)
 	if box.size == Vector3.ZERO:
-		segment_shadow = false
+		post_shadow = false
 		return
-	var diameter := maxf(0.01, maxf(box.size.x, box.size.z) * segment_shadow_size)
+	var diameter := maxf(0.01, maxf(box.size.x, box.size.z) * post_shadow_size)
 	_shadow_mesh = CylinderMesh.new()
 	_shadow_mesh.top_radius = diameter * 0.5
 	_shadow_mesh.bottom_radius = diameter * 0.5
@@ -181,11 +220,11 @@ func _build_shadow_resources(segment: Node3D) -> void:
 	_shadow_material = StandardMaterial3D.new()
 	_shadow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_shadow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_shadow_material.albedo_color = Color(0.0, 0.0, 0.0, segment_shadow_opacity)
+	_shadow_material.albedo_color = Color(0.0, 0.0, 0.0, post_shadow_opacity)
 
 
-func _attach_shadow(segment: Node3D) -> void:
-	if not segment_shadow:
+func _attach_shadow(post: Node3D) -> void:
+	if not post_shadow:
 		return
 	var shadow := MeshInstance3D.new()
 	shadow.name = "Sombra"
@@ -193,16 +232,19 @@ func _attach_shadow(segment: Node3D) -> void:
 	shadow.material_override = _shadow_material
 	shadow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	shadow.position = _shadow_offset
-	segment.add_child(shadow)
+	post.add_child(shadow)
 
 
 func _clear() -> void:
 	points.clear()
 	_has_anchor = false
-	# As cercas voltam para o bolso (recicladas para o próximo rastro).
-	for i in _active_segments:
-		_pool[i].visible = false
-	_active_segments = 0
+	# Postes e elos voltam para o bolso (reciclados para o próximo rastro).
+	for i in _active_posts:
+		_posts[i].visible = false
+	for i in _active_links:
+		_links[i].visible = false
+	_active_posts = 0
+	_active_links = 0
 
 
 func _on_base_fallen(owned_by: int, _conqueror_id: int) -> void:

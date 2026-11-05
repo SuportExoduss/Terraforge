@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[sub_resource type="CylinderMesh" id="1"]
+top_radius = 0.025
+bottom_radius = 0.025
+height = 1.0
+radial_segments = 6
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.74, 0.58, 0.32, 1)
+roughness = 1.0
+
+[node name="CowboyTrailLink" type="Node3D"]
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("1")
+surface_material_override/0 = SubResource("2")

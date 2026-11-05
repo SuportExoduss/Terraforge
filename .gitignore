@@ -5,3 +5,4 @@ export_presets.cfg.bak
 *.apk
 *.aab
 .smoke_*.txt
+tools/_shots/
