@@ -8,6 +8,8 @@ extends Node3D
 
 ## O pintor de território soma a elevação do bioma (DD-121); é ligado na etapa do território.
 var painter: Node = null
+signal surface_became_ready
+
 var surface_ready := false
 
 var center: Vector3:
@@ -26,6 +28,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	surface_ready = true
+	surface_became_ready.emit()
 
 
 func _exit_tree() -> void:

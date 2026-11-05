@@ -11,6 +11,9 @@ class FakeTerritory extends RefCounted:
 	func is_owned_by(_id: int, pos: Vector3) -> bool:
 		return owned_all or pos.distance_to(home) < 20.0
 
+	func claim_cap(_id: int, _dir: Vector3, _angle: float) -> void:
+		pass   # a base do jogador também tenta reivindicar a calota
+
 
 var _fake := FakeTerritory.new()
 var _trail: Node   # sem tipo: referenciar RunnerTrail aqui compilaria antes dos autoloads existirem
@@ -27,7 +30,7 @@ func _initialize() -> void:
 	var bus := root.get_node("EventBus")
 	bus.territory_loop_closed.connect(func(_id, pts): _loops += 1; _loop_points = pts.size())
 	bus.trail_anchor_lost.connect(func(_id): _anchors += 1)
-	root.get_node("Services").territory = _fake
+	# O _ready dos nós só roda no 1º quadro, e o TerritoryMap real se registra nele: o falso entra depois.
 
 
 func _fail(msg: String) -> void:
@@ -36,6 +39,8 @@ func _fail(msg: String) -> void:
 
 
 func _process(delta: float) -> bool:
+	if _time == 0.0:
+		root.get_node("Services").territory = _fake
 	_time += delta
 	match _phase:
 		0:  # sai do círculo (raio 20 a 12 u/s) e grava cerca por alguns segundos

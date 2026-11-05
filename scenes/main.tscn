@@ -5,6 +5,9 @@
 [ext_resource type="PackedScene" path="res://art/models/planet/Planet_Base.glb" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/runner.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/gameplay/runner_camera.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/world/territory_map.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/world/home_territory.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/core/civilization.gd" id="8"]
 
 [sub_resource type="Environment" id="env"]
 background_mode = 1
@@ -27,6 +30,16 @@ light_energy = 1.2
 script = ExtResource("2")
 
 [node name="Model" parent="Planet" instance=ExtResource("3")]
+
+[node name="Territory" type="Node" parent="."]
+script = ExtResource("6")
+
+[node name="HomeBase" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 101, 0)
+script = ExtResource("7")
+
+[node name="Civilization" type="Node" parent="HomeBase"]
+script = ExtResource("8")
 
 [node name="Runner" parent="." instance=ExtResource("4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 101, 0)
