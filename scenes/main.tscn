@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/world/territory_painter.gd" id="9"]
 [ext_resource type="Script" path="res://scripts/world/planet_theme_registry.gd" id="10"]
 [ext_resource type="Resource" path="res://art/themes/ground_atlas.res" id="11"]
+[ext_resource type="Script" path="res://scripts/world/environment_slot_system.gd" id="12"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ1.tres" id="t1"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ2.tres" id="t2"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ3.tres" id="t3"]
@@ -47,6 +48,9 @@ script = ExtResource("2")
 
 [node name="Painter" type="Node" parent="Planet"]
 script = ExtResource("9")
+
+[node name="Slots" type="Node3D" parent="."]
+script = ExtResource("12")
 
 [node name="Territory" type="Node" parent="."]
 script = ExtResource("6")

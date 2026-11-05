@@ -64,9 +64,31 @@ func _process(delta: float) -> bool:
 				print("fase2: ancora_perdida=%d" % _anchors)
 				if _anchors < 1:
 					return _finish_fail("vigia da âncora não disparou")
+				_fake.owned_all = false
+				_time = 0.0
+				_phase = 3
+		3:  # recall (DD-123): volta sozinho ao domo, sem fechar circuito nem gravar rastro; depois devolve o controle
+			var runner := root.get_node("Main/Runner")
+			if not runner.is_active_in_field() and not runner._recalling and _time > 0.5:
+				return _finish_fail("recall terminou sem o corredor voltar a campo")
+			if _recalling_seen(runner) and not runner._recalling:
+				var home := Vector3(0.0, 100.0, 0.0)
+				var dist: float = runner.global_position.distance_to(home)
+				print("fase3: recall terminou a %.1f u do domo | loops=%d pontos=%d" % [dist, _loops, _trail.points.size()])
+				if dist > 20.0 or _loops != 1 or not _trail.points.is_empty() or not runner.is_active_in_field():
+					return _finish_fail("recall não voltou ao domo limpo (sem circuito, sem rastro)")
 				print("OK")
 				quit(0)
+			elif _time > 12.0:
+				return _finish_fail("recall não terminou em 12 s")
 	return false
+
+
+var _was_recalling := false
+
+func _recalling_seen(runner: Node) -> bool:
+	_was_recalling = _was_recalling or runner._recalling
+	return _was_recalling
 
 
 func _finish_fail(msg: String) -> bool:

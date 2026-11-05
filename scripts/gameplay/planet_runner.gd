@@ -19,11 +19,13 @@ var _aboard_ship := false
 var _eliminated := false
 var _enabled := true
 var _placed := false
+var _recalling := false   # DD-123: voltando ao domo sozinho (sem rastro, sem dano)
 
 
-## O corredor está de fato em campo? (Partida rolando, não embarcado, não eliminado.)
+## O corredor está de fato em campo? (Partida rolando, não embarcado, não eliminado, não em recall:
+## o rastro não grava e não pode ser cortado enquanto ele volta.)
 func is_active_in_field() -> bool:
-	return _enabled and _match_started and not _aboard_ship and not _eliminated
+	return _enabled and _match_started and not _aboard_ship and not _eliminated and not _recalling
 
 
 func _ready() -> void:
@@ -42,6 +44,7 @@ func _ready() -> void:
 	EventBus.base_fallen.connect(_on_base_fallen)
 	EventBus.base_relocated.connect(_on_base_relocated)
 	EventBus.civilization_eliminated.connect(_on_eliminated)
+	EventBus.trail_anchor_lost.connect(_on_anchor_lost)
 
 
 func _process(delta: float) -> void:
@@ -53,10 +56,9 @@ func _process(delta: float) -> void:
 	if not _match_started or _aboard_ship:
 		return
 
-	var steer: float = _steering.get_steer() if _steering != null else 0.0
-
 	# 1. Gira a direção ao redor do "up" local (o volante). Direita = sentido negativo (Godot é destro).
 	var up := (global_position - planet.center).normalized()
+	var steer: float = _recall_steer(up, delta) if _recalling else (_steering.get_steer() if _steering != null else 0.0)
 	forward = forward.rotated(up, -steer * deg_to_rad(turn_speed_degrees) * delta)
 
 	# 2. Avança sempre.
@@ -71,6 +73,18 @@ func _process(delta: float) -> void:
 
 	# 5. Pés para o centro, olhar para a frente.
 	global_transform = Transform3D(Basis.looking_at(forward, next_up, true), next)
+
+
+# DD-123: no recall o volante aponta para o domo. Termina ao pisar de novo no próprio território
+# (ou se a base sumiu): aí o controle volta ao motorista. Devolve o giro (-1..1) deste quadro.
+func _recall_steer(up: Vector3, delta: float) -> float:
+	var base: Dictionary = Services.home_bases.get(_civilization.id, {})
+	var territory := Services.territory
+	if base.is_empty() or territory == null or territory.is_owned_by(_civilization.id, global_position):
+		_recalling = false
+		return 0.0
+	var to_base: Vector3 = ((base["position"] as Vector3) - global_position).slide(up)
+	return clampf(-forward.signed_angle_to(to_base, up) / (deg_to_rad(turn_speed_degrees) * delta), -1.0, 1.0)
 
 
 # Cola o personagem na superfície e escolhe uma direção inicial tangente a ela. O eixo de referência
@@ -128,6 +142,12 @@ func _on_match_started() -> void:
 
 func _on_match_ended() -> void:
 	_enabled = false
+
+
+# DD-123: o chão de onde a expedição saiu foi tomado: o rastro já evaporou (RunnerTrail), o corredor volta.
+func _on_anchor_lost(owner_id: int) -> void:
+	if _is_me(owner_id) and is_active_in_field():
+		_recalling = true
 
 
 # DD-100: base dominada = embarque IMEDIATO (some do campo até a nave pousar).
