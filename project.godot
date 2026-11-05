@@ -8,6 +8,7 @@ config/features=PackedStringArray("4.7", "Mobile")
 
 [autoload]
 EventBus="*res://scripts/core/event_bus.gd"
+Services="*res://scripts/core/services.gd"
 
 [display]
 window/size/viewport_width=540

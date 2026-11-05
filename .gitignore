@@ -4,3 +4,4 @@ export_presets.cfg.bak
 /android/
 *.apk
 *.aab
+.smoke_*.txt
