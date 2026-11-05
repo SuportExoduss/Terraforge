@@ -3,7 +3,7 @@ extends Node
 ## Quem cria o serviço se registra aqui; quem precisa só consulta. Ninguém referencia ninguém.
 
 var planet: Planet = null          # centro, raio e get_surface_radius
-var territory: Node = null         # is_owned_by(id, pos), get_random_unowned_position()
+var territory: Object = null       # duck-typed: is_owned_by(id, pos), get_random_unowned_position()
 var trails: Array = []             # rastros cortáveis (owner_id, points, cut(attacker_id))
 var home_bases: Dictionary = {}    # id -> {position: Vector3, radius: float}
 
