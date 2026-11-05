@@ -1,0 +1,107 @@
+class_name Health
+extends Node
+## A vida oficial (DD-105): 16 pontos = 4 corações x 4 segmentos. Corte de rastro tira 2 pontos e
+## devolve o corredor à base (R2); o campo de força regenera 1 ponto a cada 1,5 s (R3); zerar os 4
+## corações ELIMINA a civilização (R1). Eventos, defensores e armadilhas usam take_damage(1/2/4).
+## Nó filho de um PlanetRunner (precisa do irmão "Civilization").
+## DD-123: perder a retaguarda NÃO tira vida; o próprio corredor volta andando (PlanetRunner).
+
+const MAX_POINTS := 16
+
+@export var cut_damage_points := 2
+@export var seconds_per_regen_point := 1.5
+
+var points := MAX_POINTS
+
+var _runner: PlanetRunner
+var _civilization: Civilization
+var _regen_clock := 0.0
+var _eliminated := false
+
+
+func _ready() -> void:
+	_runner = get_parent() as PlanetRunner
+	_civilization = get_parent().get_node_or_null("Civilization") as Civilization
+	if _runner == null or _civilization == null:
+		push_error("[Health] %s precisa estar sob um PlanetRunner com crachá Civilization." % name)
+		set_process(false)
+		return
+	EventBus.trail_cut.connect(_on_trail_cut)
+	EventBus.base_relocated.connect(_on_base_relocated)
+	EventBus.radial_damage.connect(_on_radial_damage)
+	_publish_points.call_deferred()   # os ouvintes (HUD) nascem depois; o 1º valor chega a eles
+
+
+func _process(delta: float) -> void:
+	if _eliminated or points >= MAX_POINTS:
+		return
+	var base: Dictionary = Services.home_bases.get(_civilization.id, {})
+	if base.is_empty() or _runner.global_position.distance_to(base["position"]) > base["radius"]:
+		_regen_clock = 0.0
+		return
+	_regen_clock += delta
+	if _regen_clock >= seconds_per_regen_point:
+		_regen_clock -= seconds_per_regen_point
+		heal(1)
+
+
+## Dano de qualquer origem (corte, eventos, defensores).
+func take_damage(amount: int) -> void:
+	if _eliminated:
+		return
+	points = maxi(0, points - amount)
+	_publish_points()
+	if points <= 0:
+		_eliminated = true   # R1
+		EventBus.civilization_eliminated.emit(_civilization.id)
+		print("[Gameplay] Civilização %d foi ELIMINADA da partida!" % _civilization.id)
+
+
+func heal(amount: int) -> void:
+	if _eliminated:
+		return
+	points = mini(MAX_POINTS, points + amount)
+	_publish_points()
+
+
+func _on_trail_cut(victim_id: int, _attacker_id: int) -> void:
+	if victim_id != _civilization.id or _eliminated:
+		return
+	take_damage(cut_damage_points)
+	if not _eliminated:
+		_return_to_force_field()
+
+
+# DD-107: dano de eventos globais em anéis exclusivos; o anel interno também devolve a vítima ao campo.
+func _on_radial_damage(center: Vector3, inner_radius: float, inner_damage: int, inner_returns_to_base: bool,
+		mid_radius: float, mid_damage: int, outer_radius: float, outer_damage: int) -> void:
+	if _eliminated:
+		return
+	var distance := _runner.global_position.distance_to(center)
+	if distance <= inner_radius:
+		take_damage(inner_damage)
+		if not _eliminated and inner_returns_to_base:
+			_return_to_force_field()
+	elif distance <= mid_radius:
+		take_damage(mid_damage)
+	elif distance <= outer_radius:
+		take_damage(outer_damage)
+
+
+# DD-100: perdeu a base = recomeço junto à nave, com a vida cheia.
+func _on_base_relocated(owner_id: int, new_position: Vector3) -> void:
+	if owner_id != _civilization.id or _eliminated:
+		return
+	_runner.teleport_to(new_position)
+	points = MAX_POINTS
+	_publish_points()
+
+
+func _return_to_force_field() -> void:
+	var base: Dictionary = Services.home_bases.get(_civilization.id, {})
+	if not base.is_empty():
+		_runner.teleport_to(base["position"])
+
+
+func _publish_points() -> void:
+	EventBus.health_changed.emit(_civilization.id, points, MAX_POINTS)

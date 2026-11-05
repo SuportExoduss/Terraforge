@@ -16,6 +16,7 @@ var _ready_for_bench := false
 func _initialize() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	_main = load("res://scenes/main.tscn").instantiate()
+	_main.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
 	root.add_child(_main)
 
 

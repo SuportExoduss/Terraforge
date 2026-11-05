@@ -14,6 +14,7 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	_out = args[0] if args.size() > 0 else "user://"
 	_main = load("res://scenes/main.tscn").instantiate()
+	_main.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
 	root.add_child(_main)
 
 

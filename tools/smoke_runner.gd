@@ -13,7 +13,9 @@ var _fwd0 := Vector3.ZERO
 
 
 func _initialize() -> void:
-	root.add_child(load("res://scenes/main.tscn").instantiate())
+	var main_scene: Node = load("res://scenes/main.tscn").instantiate()
+	main_scene.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
+	root.add_child(main_scene)
 	_runner = root.get_node("Main/Runner")
 	_planet = root.get_node("Main/Planet")
 

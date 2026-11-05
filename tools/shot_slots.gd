@@ -14,6 +14,7 @@ var _out := ""
 func _initialize() -> void:
 	_out = OS.get_cmdline_user_args()[0]
 	_main = load("res://scenes/main.tscn").instantiate()
+	_main.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
 	root.add_child(_main)
 	_slots = _main.get_node("Slots")
 

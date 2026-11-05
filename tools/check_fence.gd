@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_out = args[0] if args.size() > 0 else "user://"
 	_height = float(args[1]) if args.size() > 1 else 0.0
 	_main = load("res://scenes/main.tscn").instantiate()
+	_main.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
 	root.add_child(_main)
 
 

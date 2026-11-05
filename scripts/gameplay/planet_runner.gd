@@ -87,6 +87,19 @@ func _recall_steer(up: Vector3, delta: float) -> float:
 	return clampf(-forward.signed_angle_to(to_base, up) / (deg_to_rad(turn_speed_degrees) * delta), -1.0, 1.0)
 
 
+## Leva o corredor a outro ponto da superfície (volta à base, nave pousada) mantendo a direção
+## tangente; se a direção antiga ficar de pé no novo ponto, escolhe outra.
+func teleport_to(point: Vector3) -> void:
+	var planet := Services.planet
+	var up := (point - planet.center).normalized()
+	var tangent := forward.slide(up)
+	if tangent.length_squared() < 0.01:
+		tangent = Vector3.BACK.slide(up) if absf(up.dot(Vector3.BACK)) < 0.99 else Vector3.RIGHT.slide(up)
+	forward = tangent.normalized()
+	var pos: Vector3 = planet.center + up * (planet.get_surface_radius(up) + height_offset)
+	global_transform = Transform3D(Basis.looking_at(forward, up, true), pos)
+
+
 # Cola o personagem na superfície e escolhe uma direção inicial tangente a ela. O eixo de referência
 # troca se o spawn cair alinhado a ele. Postura aplicada JÁ no nascimento (câmera enquadra sem solavanco).
 func _place_on_surface(planet: Planet) -> void:

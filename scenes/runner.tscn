@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://scripts/gameplay/runner_trail.gd" id="5"]
 [ext_resource type="PackedScene" path="res://art/models/cowboy/CowboyFencePost.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://art/models/cowboy/CowboyFenceLink.tscn" id="7"]
+[ext_resource type="Script" path="res://scripts/gameplay/health.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/gameplay/trail_cut_sensor.gd" id="9"]
 
 [node name="Runner" type="Node3D"]
 script = ExtResource("1")
@@ -21,5 +23,11 @@ script = ExtResource("3")
 script = ExtResource("5")
 post_model = ExtResource("6")
 link_model = ExtResource("7")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("8")
+
+[node name="CutSensor" type="Node" parent="."]
+script = ExtResource("9")
 
 [node name="Model" parent="." instance=ExtResource("4")]

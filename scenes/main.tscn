@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scripts/world/planet_theme_registry.gd" id="10"]
 [ext_resource type="Resource" path="res://art/themes/ground_atlas.res" id="11"]
 [ext_resource type="Script" path="res://scripts/world/environment_slot_system.gd" id="12"]
+[ext_resource type="PackedScene" path="res://art/models/cowboy/DomoEnergia.glb" id="dome"]
+[ext_resource type="PackedScene" path="res://art/models/cowboy/NaveCowboy.glb" id="ship"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ1.tres" id="t1"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ2.tres" id="t2"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ3.tres" id="t3"]
@@ -61,6 +63,12 @@ script = ExtResource("7")
 
 [node name="Civilization" type="Node" parent="HomeBase"]
 script = ExtResource("8")
+
+[node name="Dome" parent="HomeBase" instance=ExtResource("dome")]
+transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0)
+
+[node name="Ship" parent="HomeBase" instance=ExtResource("ship")]
+transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0)
 
 [node name="Runner" parent="." instance=ExtResource("4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 101, 0)

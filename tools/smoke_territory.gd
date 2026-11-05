@@ -23,7 +23,9 @@ var _path_n := 0
 
 
 func _initialize() -> void:
-	root.add_child(load("res://scenes/main.tscn").instantiate())
+	var main_scene: Node = load("res://scenes/main.tscn").instantiate()
+	main_scene.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
+	root.add_child(main_scene)
 	_map = root.get_node("Main/Territory")
 	_runner = root.get_node("Main/Runner")
 	var bus := root.get_node("EventBus")

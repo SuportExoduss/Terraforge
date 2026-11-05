@@ -25,7 +25,9 @@ var _anchors := 0
 
 
 func _initialize() -> void:
-	root.add_child(load("res://scenes/main.tscn").instantiate())
+	var main_scene: Node = load("res://scenes/main.tscn").instantiate()
+	main_scene.get_node("HomeBase").skip_ceremony()   # sem a descida de abertura (7 s)
+	root.add_child(main_scene)
 	_trail = root.get_node("Main/Runner/Trail")
 	var bus := root.get_node("EventBus")
 	bus.territory_loop_closed.connect(func(_id, pts): _loops += 1; _loop_points = pts.size())
