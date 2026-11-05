@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/main.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/world/match_setup.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/core/match_timer.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/home_base.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/runner.tscn" id="5"]
+
+[node name="Match" type="Node"]
+
+[node name="Main" parent="." instance=ExtResource("1")]
+
+[node name="MatchSetup" type="Node" parent="."]
+script = ExtResource("2")
+home_scene = ExtResource("4")
+runner_scene = ExtResource("5")
+
+[node name="MatchTimer" type="Node" parent="."]
+script = ExtResource("3")

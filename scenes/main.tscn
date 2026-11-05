@@ -6,14 +6,11 @@
 [ext_resource type="PackedScene" path="res://scenes/runner.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/gameplay/runner_camera.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/world/territory_map.gd" id="6"]
-[ext_resource type="Script" path="res://scripts/world/home_territory.gd" id="7"]
-[ext_resource type="Script" path="res://scripts/core/civilization.gd" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/home_base.tscn" id="7"]
 [ext_resource type="Script" path="res://scripts/world/territory_painter.gd" id="9"]
 [ext_resource type="Script" path="res://scripts/world/planet_theme_registry.gd" id="10"]
 [ext_resource type="Resource" path="res://art/themes/ground_atlas.res" id="11"]
 [ext_resource type="Script" path="res://scripts/world/environment_slot_system.gd" id="12"]
-[ext_resource type="PackedScene" path="res://art/models/cowboy/DomoEnergia.glb" id="dome"]
-[ext_resource type="PackedScene" path="res://art/models/cowboy/NaveCowboy.glb" id="ship"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ1.tres" id="t1"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ2.tres" id="t2"]
 [ext_resource type="Resource" path="res://art/themes/theme_civ3.tres" id="t3"]
@@ -57,18 +54,8 @@ script = ExtResource("12")
 [node name="Territory" type="Node" parent="."]
 script = ExtResource("6")
 
-[node name="HomeBase" type="Node3D" parent="."]
+[node name="HomeBase" parent="." instance=ExtResource("7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 101, 0)
-script = ExtResource("7")
-
-[node name="Civilization" type="Node" parent="HomeBase"]
-script = ExtResource("8")
-
-[node name="Dome" parent="HomeBase" instance=ExtResource("dome")]
-transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0)
-
-[node name="Ship" parent="HomeBase" instance=ExtResource("ship")]
-transform = Transform3D(15, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0)
 
 [node name="Runner" parent="." instance=ExtResource("4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 101, 0)
