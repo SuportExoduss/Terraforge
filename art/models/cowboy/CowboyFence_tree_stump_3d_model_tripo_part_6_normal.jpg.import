@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bx1nlk2wvmwgc"
-path="res://.godot/imported/CowboyTrail_tree_stump_3d_model_normal.png-5ee095e6b3162c7fe1227a72c232baf0.ctex"
+uid="uid://b6blv355c8v7q"
+path="res://.godot/imported/CowboyFence_tree_stump_3d_model_tripo_part_6_normal.jpg-06b1455dbde1b1ccdfd02905ec461274.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "c3d82d06e0657af16e9f9d02605e9851"
+"md5": "f422457f2ecb1c90954f0d345374a99e"
 }
 
 [deps]
 
-source_file="res://art/models/cowboy/CowboyTrail_tree_stump_3d_model_normal.png"
-dest_files=["res://.godot/imported/CowboyTrail_tree_stump_3d_model_normal.png-5ee095e6b3162c7fe1227a72c232baf0.ctex"]
+source_file="res://art/models/cowboy/CowboyFence_tree_stump_3d_model_tripo_part_6_normal.jpg"
+dest_files=["res://.godot/imported/CowboyFence_tree_stump_3d_model_tripo_part_6_normal.jpg-06b1455dbde1b1ccdfd02905ec461274.ctex"]
 
 [params]
 

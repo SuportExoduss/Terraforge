@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://buicscwk5fenq"
-path="res://.godot/imported/CowboyTrail.glb-693ca359aed9f497f321513a8eb22f35.scn"
+uid="uid://dw6ainq7vpcup"
+path="res://.godot/imported/CowboyFence.glb-30d5e380b8cc434985bc30d874565497.scn"
 
 [deps]
 
-source_file="res://art/models/cowboy/CowboyTrail.glb"
-dest_files=["res://.godot/imported/CowboyTrail.glb-693ca359aed9f497f321513a8eb22f35.scn"]
+source_file="res://art/models/cowboy/CowboyFence.glb"
+dest_files=["res://.godot/imported/CowboyFence.glb-30d5e380b8cc434985bc30d874565497.scn"]
 
 [params]
 

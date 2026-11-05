@@ -1,8 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="ArrayMesh" path="res://art/models/cowboy/CowboyTrailPost.res" id="1"]
-
-[node name="CowboyTrailPost" type="Node3D"]
-
-[node name="Mesh" type="MeshInstance3D" parent="."]
-mesh = ExtResource("1")

@@ -14,9 +14,9 @@ const ANCHOR_CHECK_INTERVAL := 0.25     # vigia da retaguarda (DD-123): barata, 
 @export var link_model: PackedScene
 @export var point_spacing: float = 1.5
 @export var surface_offset: float = 0.15            # levanta o rastro do chão (anti z-fighting)
-@export var post_rotation_offset_degrees := Vector3(0.0, 90.0, 0.0)
+@export var post_rotation_offset_degrees := Vector3.ZERO
 @export var post_scale: float = 1.0
-@export var link_height: float = 0.2                # altura do elo no poste (unidades do modelo; anda com post_scale)
+@export var link_height: float = 0.16               # altura do elo no poste (unidades do modelo; anda com post_scale)
 @export var post_shadow := true
 @export_range(0.0, 3.0) var post_shadow_size: float = 1.4        # fração da largura do poste
 @export_range(0.0, 1.0) var post_shadow_opacity: float = 0.3
