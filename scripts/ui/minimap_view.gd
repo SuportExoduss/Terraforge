@@ -20,6 +20,7 @@ var _down_msec := 0
 func _ready() -> void:
 	texture = ($SubViewport as SubViewport).get_texture()
 	_layout()
+	EventBus.match_ended.connect(hide)   # o painel de resultados assume a tela
 
 
 func _gui_input(event: InputEvent) -> void:
