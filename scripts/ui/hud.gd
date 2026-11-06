@@ -1,0 +1,149 @@
+class_name Hud
+extends CanvasLayer
+## HUD da partida: relógio, domínio, vida em corações (DD-105), contagem de respawn, aviso de evento e o
+## analógico flutuante. Montado em código e dirigido só pelo EventBus (a UI não conhece o Gameplay);
+## mostra apenas o jogador local — o placar dos adversários é da tela de resultados (6f).
+## ponytail: fonte padrão do Godot e quadrados no lugar de ícones de coração; arte final na fase de polimento.
+
+const HEARTS := 4
+const SEGMENTS_PER_HEART := 4
+const FULL := Color(1.0, 0.27, 0.32)
+const EMPTY := Color(0.12, 0.12, 0.15, 0.85)
+const AMBER := Color(1.0, 0.85, 0.3)
+const QUADRANT := 10.0
+const GAP := 1.0
+const HEART_GAP := 8.0
+const GO_SECONDS := 1.0
+const IMPACT_SECONDS := 1.2
+const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
+const KNOB_RADIUS := 22.0
+
+var _clock: Label
+var _score: Label
+var _countdown: Label
+var _event: Label
+var _hearts: Control
+var _joystick: Control
+
+
+func _ready() -> void:
+	var root := Control.new()
+	root.name = "Root"
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE   # o HUD nunca engole o toque de direção
+	add_child(root)
+
+	_clock = _label(root, "ClockLabel", 30, Color.WHITE, Control.PRESET_TOP_WIDE, Vector2(0, 14))
+	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
+	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62))
+	_countdown = _label(root, "CountdownLabel", 110, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
+	_countdown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_score.text = "Domínio: 0,0%"
+
+	_build_hearts(root)
+	_joystick = Control.new()
+	_joystick.name = "Joystick"
+	_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_joystick.visible = false
+	_joystick.draw.connect(_draw_joystick)
+	root.add_child(_joystick)
+
+	EventBus.match_clock_changed.connect(_on_clock)
+	EventBus.match_ended.connect(func(): _clock.text = "")   # o painel de resultados assume a tela
+	EventBus.territory_score_changed.connect(_on_score)
+	EventBus.health_changed.connect(_on_health)
+	EventBus.respawn_countdown.connect(_on_respawn_countdown)
+	EventBus.global_event_warning.connect(_on_event_warning)
+
+
+func _process(_delta: float) -> void:
+	_joystick.visible = TouchSteering.is_active
+	if _joystick.visible:
+		_joystick.queue_redraw()
+
+
+func _label(parent: Control, label_name: String, size: int, color: Color, preset: int, offset: Vector2) -> Label:
+	var l := Label.new()
+	l.name = label_name
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	l.add_theme_color_override("font_outline_color", Color(0.04, 0.06, 0.13))
+	l.add_theme_constant_override("outline_size", maxi(3, size / 8))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.set_anchors_and_offsets_preset(preset)
+	l.position += offset
+	if preset == Control.PRESET_TOP_LEFT:
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	parent.add_child(l)
+	return l
+
+
+# 4 quadrados (corações) lado a lado, cada um em 4 quadrantes 2x2: o quadrante APAGA ao perder o ponto.
+func _build_hearts(parent: Control) -> void:
+	_hearts = Control.new()
+	_hearts.name = "Hearts"
+	_hearts.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var heart_width := QUADRANT * 2.0 + GAP
+	var total_width := HEARTS * heart_width + (HEARTS - 1) * HEART_GAP
+	parent.add_child(_hearts)
+	_hearts.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_hearts.offset_left = -total_width - 16.0   # ancorado à direita: 16 px da borda (position seria relativa ao canto esquerdo)
+	_hearts.offset_top = 20.0
+	for heart in HEARTS:
+		for quadrant in SEGMENTS_PER_HEART:
+			var segment := ColorRect.new()
+			segment.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			segment.size = Vector2.ONE * QUADRANT
+			segment.position = Vector2(
+					heart * (heart_width + HEART_GAP) + (quadrant % 2) * (QUADRANT + GAP),
+					(quadrant / 2) * (QUADRANT + GAP))
+			_hearts.add_child(segment)
+	_refresh_hearts(HEARTS * SEGMENTS_PER_HEART)
+
+
+func _refresh_hearts(points: int) -> void:
+	for i in _hearts.get_child_count():
+		(_hearts.get_child(i) as ColorRect).color = FULL if i < points else EMPTY
+
+
+func _draw_joystick() -> void:
+	_joystick.draw_arc(TouchSteering.origin, JOYSTICK_RADIUS, 0.0, TAU, 40, Color(1, 1, 1, 0.35), 3.0)
+	_joystick.draw_circle(TouchSteering.origin + TouchSteering.knob_offset, KNOB_RADIUS, Color(1, 1, 1, 0.6))
+
+
+func _on_clock(seconds_remaining: int) -> void:
+	_clock.text = "%d:%02d" % [floori(seconds_remaining / 60.0), seconds_remaining % 60]
+
+
+func _on_score(owner_id: int, owned_fraction: float) -> void:
+	if owner_id == Civilization.PLAYER_ID:
+		_score.text = "Domínio: %s%%" % ("%.1f" % (owned_fraction * 100.0)).replace(".", ",")
+
+
+func _on_health(owner_id: int, points: int, _max_points: int) -> void:
+	if owner_id == Civilization.PLAYER_ID:
+		_refresh_hearts(points)
+
+
+func _on_respawn_countdown(owner_id: int, seconds_remaining: int) -> void:
+	if owner_id != Civilization.PLAYER_ID:
+		return
+	if seconds_remaining > 0:
+		_countdown.text = str(seconds_remaining)
+	else:
+		_flash(_countdown, "GO!", GO_SECONDS)
+
+
+func _on_event_warning(event_name: String, seconds_remaining: int) -> void:
+	if seconds_remaining > 0:
+		_event.text = "%s... %d" % [event_name, seconds_remaining]
+	else:
+		_flash(_event, "IMPACTO!", IMPACT_SECONDS)
+
+
+# Mostra o texto e o apaga depois, a menos que algo novo já o tenha trocado.
+func _flash(label: Label, text: String, seconds: float) -> void:
+	label.text = text
+	get_tree().create_timer(seconds).timeout.connect(func(): if label.text == text: label.text = "")
