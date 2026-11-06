@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/world/meteor_event_system.gd" id="8"]
 [ext_resource type="PackedScene" path="res://art/models/events/meteoroevent3D.glb" id="9"]
 [ext_resource type="Script" path="res://scripts/ui/results_panel.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/world/bonus_system.gd" id="11"]
 
 [node name="Match" type="Node"]
 
@@ -26,6 +27,9 @@ script = ExtResource("3")
 [node name="Meteors" type="Node3D" parent="."]
 script = ExtResource("8")
 model = ExtResource("9")
+
+[node name="Bonuses" type="Node3D" parent="."]
+script = ExtResource("11")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6")

@@ -4,6 +4,8 @@ extends Node
 
 signal base_fallen(owner_id: int, conqueror_id: int)
 signal base_relocated(owner_id: int, new_position: Vector3)
+signal bonus_activated(owner_id: int, kind: String, seconds: float)   # seconds = 0 -> efeito instantâneo
+signal bonus_drop_requested(center: Vector3, count: int)
 signal civilization_eliminated(owner_id: int)
 signal global_event_warning(event_name: String, seconds_remaining: int)
 signal health_changed(owner_id: int, points: int, max_points: int)

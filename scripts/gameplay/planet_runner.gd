@@ -11,6 +11,8 @@ extends Node3D
 @export var model_height: float = 2.0
 
 var forward := Vector3.FORWARD
+var speed_multiplier := 1.0   # SYS-005: bônus de velocidade (BonusSystem)
+var freeze_multiplier := 1.0  # SYS-005: Congelamento do adversário (BonusSystem); multiplica a velocidade
 var _steering: Node
 var _civilization: Civilization
 var _model: Node3D
@@ -33,6 +35,7 @@ func _ready() -> void:
 	if _steering == null:
 		push_error("[PlanetRunner] %s não tem um motorista (filho 'Steering')." % name)
 	_civilization = get_node_or_null("Civilization") as Civilization
+	add_to_group("runners")
 	_model = get_node_or_null("Model") as Node3D
 	_fit_model()
 	_start_animation()
@@ -62,7 +65,7 @@ func _process(delta: float) -> void:
 	forward = forward.rotated(up, -steer * deg_to_rad(turn_speed_degrees) * delta)
 
 	# 2. Avança sempre.
-	var next := global_position + forward * (move_speed * delta)
+	var next := global_position + forward * (move_speed * speed_multiplier * freeze_multiplier * delta)
 
 	# 3. Recola na superfície REAL (vale ou morro), nunca na esfera matemática.
 	var next_up := (next - planet.center).normalized()

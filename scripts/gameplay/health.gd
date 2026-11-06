@@ -7,11 +7,14 @@ extends Node
 ## DD-123: perder a retaguarda NÃO tira vida; o próprio corredor volta andando (PlanetRunner).
 
 const MAX_POINTS := 16
+const MAX_EXTRA_POINTS := 4   # SYS-005: o bônus Vida Extra acrescenta, no máximo, 1 coração (teto de balanceamento)
 
 @export var cut_damage_points := 2
 @export var seconds_per_regen_point := 1.5
 
 var points := MAX_POINTS
+var max_points := MAX_POINTS
+var shield_left := 0.0   # SYS-005 Escudo Temporal: enquanto > 0, nenhum dano tira pontos (o corte do rastro acontece igual)
 
 var _runner: PlanetRunner
 var _civilization: Civilization
@@ -33,6 +36,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	shield_left = maxf(0.0, shield_left - delta)
 	if _eliminated or points >= MAX_POINTS:
 		return
 	var base: Dictionary = Services.home_bases.get(_civilization.id, {})
@@ -47,7 +51,7 @@ func _process(delta: float) -> void:
 
 ## Dano de qualquer origem (corte, eventos, defensores).
 func take_damage(amount: int) -> void:
-	if _eliminated:
+	if _eliminated or shield_left > 0.0:
 		return
 	points = maxi(0, points - amount)
 	_publish_points()
@@ -60,8 +64,22 @@ func take_damage(amount: int) -> void:
 func heal(amount: int) -> void:
 	if _eliminated:
 		return
-	points = mini(MAX_POINTS, points + amount)
+	points = mini(max_points, points + amount)
 	_publish_points()
+
+
+## SYS-005 Vida Extra: +1 coração cheio, até o teto. A regeneração do campo continua parando nos 16 normais.
+func grant_extra_heart() -> void:
+	if _eliminated:
+		return
+	max_points = mini(MAX_POINTS + MAX_EXTRA_POINTS, max_points + 4)
+	points = mini(max_points, points + 4)
+	_publish_points()
+
+
+## SYS-005 Escudo Temporal.
+func grant_shield(seconds: float) -> void:
+	shield_left = maxf(shield_left, seconds)
 
 
 func _on_trail_cut(victim_id: int, _attacker_id: int) -> void:
@@ -69,7 +87,7 @@ func _on_trail_cut(victim_id: int, _attacker_id: int) -> void:
 		return
 	take_damage(cut_damage_points)
 	if not _eliminated:
-		_return_to_force_field()
+		return_to_force_field()
 
 
 # DD-107: dano de eventos globais em anéis exclusivos; o anel interno também devolve a vítima ao campo.
@@ -81,7 +99,7 @@ func _on_radial_damage(center: Vector3, inner_radius: float, inner_damage: int, 
 	if distance <= inner_radius:
 		take_damage(inner_damage)
 		if not _eliminated and inner_returns_to_base:
-			_return_to_force_field()
+			return_to_force_field()
 	elif distance <= mid_radius:
 		take_damage(mid_damage)
 	elif distance <= outer_radius:
@@ -93,15 +111,16 @@ func _on_base_relocated(owner_id: int, new_position: Vector3) -> void:
 	if owner_id != _civilization.id or _eliminated:
 		return
 	_runner.teleport_to(new_position)
-	points = MAX_POINTS
+	points = max_points
 	_publish_points()
 
 
-func _return_to_force_field() -> void:
+## DD-107: devolve o corredor ao campo de força (anel interno dos eventos, 4ª bola do Vulcão...).
+func return_to_force_field() -> void:
 	var base: Dictionary = Services.home_bases.get(_civilization.id, {})
 	if not base.is_empty():
 		_runner.teleport_to(base["position"])
 
 
 func _publish_points() -> void:
-	EventBus.health_changed.emit(_civilization.id, points, MAX_POINTS)
+	EventBus.health_changed.emit(_civilization.id, points, max_points)
