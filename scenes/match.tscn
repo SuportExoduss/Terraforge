@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scripts/world/tsunami_event.gd" id="14"]
 [ext_resource type="Script" path="res://scripts/world/volcano_event.gd" id="15"]
 [ext_resource type="Script" path="res://scripts/world/hurricane_event.gd" id="16"]
+[ext_resource type="Script" path="res://scripts/world/acid_rain_event.gd" id="17"]
 
 [node name="Match" type="Node"]
 
@@ -41,6 +42,9 @@ script = ExtResource("15")
 
 [node name="Hurricane" type="Node3D" parent="."]
 script = ExtResource("16")
+
+[node name="AcidRain" type="Node3D" parent="."]
+script = ExtResource("17")
 
 [node name="Bonuses" type="Node3D" parent="."]
 script = ExtResource("11")
