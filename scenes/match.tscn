@@ -7,6 +7,8 @@
 [ext_resource type="PackedScene" path="res://scenes/runner.tscn" id="5"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/minimap.tscn" id="7"]
+[ext_resource type="Script" path="res://scripts/world/meteor_event_system.gd" id="8"]
+[ext_resource type="PackedScene" path="res://art/models/events/meteoroevent3D.glb" id="9"]
 
 [node name="Match" type="Node"]
 
@@ -19,6 +21,10 @@ runner_scene = ExtResource("5")
 
 [node name="MatchTimer" type="Node" parent="."]
 script = ExtResource("3")
+
+[node name="Meteors" type="Node3D" parent="."]
+script = ExtResource("8")
+model = ExtResource("9")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6")
