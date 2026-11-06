@@ -96,10 +96,10 @@ func _setup() -> void:
 func _begin_warning() -> bool:
 	var cracks := []
 	for i in CRACKS:
-		cracks.append(_spot_near_runner(crack_spread))
+		cracks.append(spot_near_runner(0.0, crack_spread))
 	var rocks := []
 	for i in ROCKS:
-		rocks.append(_spot_near_runner(rock_spread))
+		rocks.append(spot_near_runner(0.0, rock_spread))
 	plan(cracks, rocks)
 	print("[World] TERREMOTO iminente! (DD-107)")
 	return true
@@ -110,13 +110,13 @@ func _begin_warning() -> bool:
 func plan(cracks: Array, rocks: Array) -> void:
 	_hide()
 	for i in CRACKS:
-		_crack_dir[i] = (cracks[i] if i < cracks.size() else _random_dir()).normalized()
+		_crack_dir[i] = (cracks[i] if i < cracks.size() else random_direction()).normalized()
 		_crack_axis[i] = ground_basis(_crack_dir[i]).x.rotated(_crack_dir[i], randf() * TAU)
 		_closed[i] = false
 		_inside[i].clear()
 		_place_crack(i, 0.1)
 	for i in ROCKS:
-		_rock_dir[i] = (rocks[i] if i < rocks.size() else _random_dir()).normalized()
+		_rock_dir[i] = (rocks[i] if i < rocks.size() else random_direction()).normalized()
 
 
 func _tick_warning(remaining: float, _delta: float) -> void:
@@ -263,19 +263,3 @@ func _hurt(runner: PlanetRunner, points: int) -> void:
 	if health != null:
 		health.take_damage(points)
 
-
-func _random_dir() -> Vector3:
-	return Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized()   # uniforme na esfera
-
-
-# Ponto a até `spread` u (pelo chão) de um corredor em campo sorteado; sem corredor, qualquer lugar.
-func _spot_near_runner(spread: float) -> Vector3:
-	var live := get_tree().get_nodes_in_group("runners").filter(func(n): return (n as PlanetRunner).is_active_in_field())
-	if live.is_empty():
-		return _random_dir()
-	var planet := Services.planet
-	var unit: Vector3 = ((live.pick_random() as Node3D).global_position - planet.center).normalized()
-	var axis := unit.cross(_random_dir())
-	if axis.is_zero_approx():
-		return unit
-	return unit.rotated(axis.normalized(), randf_range(0.0, spread) / planet.radius)

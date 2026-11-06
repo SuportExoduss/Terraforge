@@ -137,6 +137,25 @@ func ground_point(direction: Vector3) -> Vector3:
 	return planet.center + direction * planet.get_surface_radius(direction)
 
 
+## Direção aleatória (uniforme na esfera) a partir do centro do planeta.
+func random_direction() -> Vector3:
+	return Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized()
+
+
+## Direção de um ponto a entre `min_distance` e `max_distance` u (pelo chão) de um corredor em campo sorteado;
+## sem corredor em campo, qualquer lugar do planeta.
+func spot_near_runner(min_distance: float, max_distance: float) -> Vector3:
+	var live := get_tree().get_nodes_in_group("runners").filter(func(n): return (n as PlanetRunner).is_active_in_field())
+	if live.is_empty():
+		return random_direction()
+	var planet := Services.planet
+	var unit: Vector3 = ((live.pick_random() as Node3D).global_position - planet.center).normalized()
+	var axis := unit.cross(random_direction())
+	if axis.is_zero_approx():
+		return unit
+	return unit.rotated(axis.normalized(), randf_range(min_distance, max_distance) / planet.radius)
+
+
 func _unshaded(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
