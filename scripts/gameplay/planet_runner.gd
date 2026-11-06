@@ -13,6 +13,7 @@ extends Node3D
 var forward := Vector3.FORWARD
 var speed_multiplier := 1.0   # SYS-005: bônus de velocidade (BonusSystem)
 var freeze_multiplier := 1.0  # SYS-005: Congelamento do adversário (BonusSystem); multiplica a velocidade
+var slow_multiplier := 1.0    # SYS-004: lentidão vinda de eventos (zona 2 do Furacão); quem aplica renova a cada quadro
 var push := Vector3.ZERO      # SYS-004: velocidade EXTRA vinda de fora (onda do Tsunami); quem empurra renova, ela decai sozinha
 const PUSH_DECAY := 60.0      # unidades/s² (30 u/s some em 0,5 s)
 var _steering: Node
@@ -67,7 +68,7 @@ func _process(delta: float) -> void:
 	forward = forward.rotated(up, -steer * deg_to_rad(turn_speed_degrees) * delta)
 
 	# 2. Avança sempre.
-	var next := global_position + forward * (move_speed * speed_multiplier * freeze_multiplier * delta) + push * delta
+	var next := global_position + forward * (move_speed * speed_multiplier * freeze_multiplier * slow_multiplier * delta) + push * delta
 	push = push.move_toward(Vector3.ZERO, PUSH_DECAY * delta)
 
 	# 3. Recola na superfície REAL (vale ou morro), nunca na esfera matemática.
