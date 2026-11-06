@@ -13,6 +13,8 @@ extends Node3D
 var forward := Vector3.FORWARD
 var speed_multiplier := 1.0   # SYS-005: bônus de velocidade (BonusSystem)
 var freeze_multiplier := 1.0  # SYS-005: Congelamento do adversário (BonusSystem); multiplica a velocidade
+var push := Vector3.ZERO      # SYS-004: velocidade EXTRA vinda de fora (onda do Tsunami); quem empurra renova, ela decai sozinha
+const PUSH_DECAY := 60.0      # unidades/s² (30 u/s some em 0,5 s)
 var _steering: Node
 var _civilization: Civilization
 var _model: Node3D
@@ -65,7 +67,8 @@ func _process(delta: float) -> void:
 	forward = forward.rotated(up, -steer * deg_to_rad(turn_speed_degrees) * delta)
 
 	# 2. Avança sempre.
-	var next := global_position + forward * (move_speed * speed_multiplier * freeze_multiplier * delta)
+	var next := global_position + forward * (move_speed * speed_multiplier * freeze_multiplier * delta) + push * delta
+	push = push.move_toward(Vector3.ZERO, PUSH_DECAY * delta)
 
 	# 3. Recola na superfície REAL (vale ou morro), nunca na esfera matemática.
 	var next_up := (next - planet.center).normalized()
@@ -93,6 +96,7 @@ func _recall_steer(up: Vector3, delta: float) -> float:
 ## Leva o corredor a outro ponto da superfície (volta à base, nave pousada) mantendo a direção
 ## tangente; se a direção antiga ficar de pé no novo ponto, escolhe outra.
 func teleport_to(point: Vector3) -> void:
+	push = Vector3.ZERO
 	var planet := Services.planet
 	var up := (point - planet.center).normalized()
 	var tangent := forward.slide(up)
