@@ -5,7 +5,9 @@ extends CanvasLayer
 ## mostra apenas o jogador local — o placar dos adversários é da tela de resultados (6f).
 ## ponytail: fonte padrão do Godot e quadrados no lugar de ícones de coração; arte final na fase de polimento.
 
-const HEARTS := 4
+const HEARTS := 5   # 4 normais + 1 do bônus Vida Extra (SYS-005), escondido até existir
+const BASE_POINTS := 16
+const BONUS_FLASH_SECONDS := 1.5
 const SEGMENTS_PER_HEART := 4
 const FULL := Color(1.0, 0.27, 0.32)
 const EMPTY := Color(0.12, 0.12, 0.15, 0.85)
@@ -24,6 +26,9 @@ var _countdown: Label
 var _event: Label
 var _hearts: Control
 var _joystick: Control
+var _bonus_column: VBoxContainer
+var _bonus_labels: Dictionary = {}   # nome do bônus -> Label
+var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
 
 
 func _ready() -> void:
@@ -41,6 +46,7 @@ func _ready() -> void:
 	_score.text = "Domínio: 0,0%"
 
 	_build_hearts(root)
+	_build_bonus_column(root)
 	_joystick = Control.new()
 	_joystick.name = "Joystick"
 	_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -55,12 +61,14 @@ func _ready() -> void:
 	EventBus.health_changed.connect(_on_health)
 	EventBus.respawn_countdown.connect(_on_respawn_countdown)
 	EventBus.global_event_warning.connect(_on_event_warning)
+	EventBus.bonus_activated.connect(_on_bonus)
 
 
 func _process(_delta: float) -> void:
 	_joystick.visible = TouchSteering.is_active
 	if _joystick.visible:
 		_joystick.queue_redraw()
+	_tick_bonuses()
 
 
 func _label(parent: Control, label_name: String, size: int, color: Color, preset: int, offset: Vector2) -> Label:
@@ -98,12 +106,50 @@ func _build_hearts(parent: Control) -> void:
 					heart * (heart_width + HEART_GAP) + (quadrant % 2) * (QUADRANT + GAP),
 					(quadrant / 2) * (QUADRANT + GAP))
 			_hearts.add_child(segment)
-	_refresh_hearts(HEARTS * SEGMENTS_PER_HEART)
+	_refresh_hearts(BASE_POINTS, BASE_POINTS)
 
 
-func _refresh_hearts(points: int) -> void:
+func _refresh_hearts(points: int, max_points: int) -> void:
 	for i in _hearts.get_child_count():
-		(_hearts.get_child(i) as ColorRect).color = FULL if i < points else EMPTY
+		var segment := _hearts.get_child(i) as ColorRect
+		segment.visible = i < max_points
+		segment.color = FULL if i < points else EMPTY
+
+
+# SYS-005: coluna de bônus na lateral direita. Efeito com duração mostra a contagem; instantâneo pisca e some.
+func _build_bonus_column(parent: Control) -> void:
+	_bonus_column = VBoxContainer.new()
+	_bonus_column.name = "Bonuses"
+	_bonus_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(_bonus_column)
+	_bonus_column.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	_bonus_column.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_bonus_column.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_bonus_column.offset_left = -16.0
+	_bonus_column.offset_right = -16.0
+
+
+func _on_bonus(owner_id: int, kind: String, seconds: float) -> void:
+	if owner_id != Civilization.PLAYER_ID:
+		return
+	if not _bonus_labels.has(kind):
+		_bonus_labels[kind] = _label(_bonus_column, "Bonus", 20, AMBER, Control.PRESET_TOP_LEFT, Vector2.ZERO)
+	var label: Label = _bonus_labels[kind]
+	label.text = kind
+	label.visible = true
+	_bonus_until[kind] = {"until_ms": Time.get_ticks_msec() + int((seconds if seconds > 0.0 else BONUS_FLASH_SECONDS) * 1000.0), "timed": seconds > 0.0}
+
+
+func _tick_bonuses() -> void:
+	for kind in _bonus_until.keys():
+		var entry: Dictionary = _bonus_until[kind]
+		var left_ms: int = entry["until_ms"] - Time.get_ticks_msec()
+		var label: Label = _bonus_labels[kind]
+		if left_ms <= 0:
+			label.visible = false
+			_bonus_until.erase(kind)
+		elif entry["timed"]:
+			label.text = "%s %ds" % [kind, ceili(left_ms / 1000.0)]
 
 
 func _draw_joystick() -> void:
@@ -120,9 +166,9 @@ func _on_score(owner_id: int, owned_fraction: float) -> void:
 		_score.text = "Domínio: %s%%" % ("%.1f" % (owned_fraction * 100.0)).replace(".", ",")
 
 
-func _on_health(owner_id: int, points: int, _max_points: int) -> void:
+func _on_health(owner_id: int, points: int, max_points: int) -> void:
 	if owner_id == Civilization.PLAYER_ID:
-		_refresh_hearts(points)
+		_refresh_hearts(points, max_points)
 
 
 func _on_respawn_countdown(owner_id: int, seconds_remaining: int) -> void:

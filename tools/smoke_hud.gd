@@ -43,11 +43,17 @@ func _process(delta: float) -> bool:
 				_time = 0.0
 		1:  # estados iniciais + eventos do jogador
 			var hearts: Node = _hud.find_child("Hearts", true, false)
-			if hearts.get_child_count() != 16:
-				return _fail("esperava 16 quadrantes de vida, vieram %d" % hearts.get_child_count())
+			if hearts.get_child_count() != 20:
+				return _fail("esperava 20 quadrantes de vida (16 + coração extra), vieram %d" % hearts.get_child_count())
+			var visible_count := 0
+			for quadrant in hearts.get_children():
+				if (quadrant as CanvasItem).visible:
+					visible_count += 1
+			if visible_count != 16:
+				return _fail("sem Vida Extra só 16 quadrantes aparecem (%d)" % visible_count)
 			var screen := _hud.get_viewport().get_visible_rect()
 			for quadrant in hearts.get_children():
-				if not screen.encloses((quadrant as Control).get_global_rect()):
+				if not screen.encloses((quadrant as Control).get_global_rect()):   # vale também para os escondidos
 					return _fail("coração fora da tela: %s (tela %s)" % [(quadrant as Control).get_global_rect(), screen])
 			_bus.match_clock_changed.emit(125)
 			if _text("ClockLabel") != "2:05":
@@ -64,6 +70,19 @@ func _process(delta: float) -> bool:
 					lit += 1
 			if lit != 10:
 				return _fail("corações acesos: %d (esperava 10)" % lit)
+			_bus.health_changed.emit(1, 18, 20)   # Vida Extra (SYS-005): o 5º coração aparece
+			visible_count = 0
+			for quadrant in hearts.get_children():
+				if (quadrant as CanvasItem).visible:
+					visible_count += 1
+			if visible_count != 20:
+				return _fail("com Vida Extra os 20 quadrantes aparecem (%d)" % visible_count)
+			_bus.health_changed.emit(1, 10, 16)
+			_bus.bonus_activated.emit(2, "VELOCIDADE", 8.0)   # outro dono: ignorado
+			_bus.bonus_activated.emit(1, "VELOCIDADE", 8.0)
+			var bonus_label := _hud.find_child("Bonus", true, false) as Label
+			if bonus_label == null or not bonus_label.visible or not bonus_label.text.begins_with("VELOCIDADE"):
+				return _fail("coluna de bônus deveria mostrar VELOCIDADE")
 			_bus.respawn_countdown.emit(1, 3)
 			_bus.respawn_countdown.emit(2, 1)   # outro dono: ignorado
 			if _text("CountdownLabel") != "3":

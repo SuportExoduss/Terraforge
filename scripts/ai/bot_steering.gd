@@ -11,6 +11,7 @@ extends Node
 @export var hunt_range := 35.0              # distância em que um rastro inimigo desperta a caça
 @export var steering_gain := 3.4            # por radiano de erro (0,06 por grau no Unity)
 @export var decision_interval := 0.5        # sem isso o bot trocaria de alvo 60x/s (frenesi)
+@export var bonus_range := 40.0             # distância em que um cristal de bônus desperta a cobiça (SYS-005)
 
 var _runner: PlanetRunner
 var _civilization: Civilization
@@ -21,6 +22,8 @@ var _exposure := 0.0
 var _decision_clock := 0.0
 var _hunting := false
 var _hunt_point := Vector3.ZERO
+var _seeking_bonus := false
+var _bonus_point := Vector3.ZERO
 var _wobble_seed := randf() * TAU
 
 
@@ -47,6 +50,7 @@ func get_steer() -> float:
 	if _decision_clock >= decision_interval:
 		_decision_clock = 0.0
 		_hunting = _find_enemy_trail_point()
+		_seeking_bonus = _find_bonus_point()
 	if _hunting:
 		return _steer_towards(_hunt_point)
 
@@ -54,6 +58,10 @@ func get_steer() -> float:
 	if _returning_home or _exposure >= max_exposure_seconds:
 		_returning_home = true
 		return _steer_towards(_home())
+
+	# Instinto 2b — COBIÇA: cristal de bônus por perto (e sem risco) vale o desvio.
+	if _seeking_bonus:
+		return _steer_towards(_bonus_point)
 
 	# Instinto 3 — EXPANSÃO: persegue um alvo em terra livre; chegou perto, volta para consolidar.
 	if not _has_sortie_target:
@@ -99,6 +107,18 @@ func _find_enemy_trail_point() -> bool:
 				best = d
 				_hunt_point = points[i]
 				found = true
+	return found
+
+
+func _find_bonus_point() -> bool:
+	var best := bonus_range * bonus_range
+	var found := false
+	for pickup in get_tree().get_nodes_in_group("bonus_pickups"):
+		var d := (pickup as Node3D).global_position.distance_squared_to(_runner.global_position)
+		if d < best:
+			best = d
+			_bonus_point = (pickup as Node3D).global_position
+			found = true
 	return found
 
 

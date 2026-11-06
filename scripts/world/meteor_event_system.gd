@@ -129,6 +129,7 @@ func _impact() -> void:
 	_place_flat(_scar, mid_radius * 2.0)
 	_state = State.SCAR
 	_clock = 0.0
+	EventBus.bonus_drop_requested.emit(_impact_point, randi_range(1, 3))   # RECOMPENSA do evento (DD-106, SYS-005)
 	print("[World] IMPACTO do meteoro! Cratera aberta (DD-108).")
 
 
