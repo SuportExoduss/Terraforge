@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/home_base.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/runner.tscn" id="5"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/minimap.tscn" id="7"]
 
 [node name="Match" type="Node"]
 
@@ -21,3 +22,8 @@ script = ExtResource("3")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6")
+
+[node name="Minimap" parent="Hud" instance=ExtResource("7")]
+
+[node name="MinimapCamera" parent="Hud/Minimap/SubViewport" index="0"]
+target_path = NodePath("../../../../Main/Runner")

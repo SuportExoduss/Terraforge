@@ -86,11 +86,9 @@ func _build_hearts(parent: Control) -> void:
 	_hearts.name = "Hearts"
 	_hearts.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var heart_width := QUADRANT * 2.0 + GAP
-	var total_width := HEARTS * heart_width + (HEARTS - 1) * HEART_GAP
 	parent.add_child(_hearts)
-	_hearts.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_hearts.offset_left = -total_width - 16.0   # ancorado à direita: 16 px da borda (position seria relativa ao canto esquerdo)
-	_hearts.offset_top = 20.0
+	_hearts.offset_left = 16.0   # canto superior esquerdo, sob o domínio (o canto direito é do minimapa, DD-104)
+	_hearts.offset_top = 48.0
 	for heart in HEARTS:
 		for quadrant in SEGMENTS_PER_HEART:
 			var segment := ColorRect.new()

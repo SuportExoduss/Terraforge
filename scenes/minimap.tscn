@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/minimap_view.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/gameplay/minimap_camera.gd" id="2"]
+
+; Ambiente próprio da câmera: fundo "claro" (transparente no SubViewport) + a mesma luz ambiente de main.tscn.
+[sub_resource type="Environment" id="env"]
+ambient_light_source = 2
+ambient_light_color = Color(0.7, 0.75, 0.85, 1)
+ambient_light_energy = 0.6
+
+[node name="Minimap" type="TextureRect"]
+mouse_filter = 0
+expand_mode = 1
+stretch_mode = 0
+script = ExtResource("1")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+transparent_bg = true
+gui_disable_input = true
+size = Vector2i(400, 400)
+render_target_update_mode = 1
+
+[node name="MinimapCamera" type="Camera3D" parent="SubViewport"]
+environment = SubResource("env")
+fov = 30.0
+near = 50.0
+far = 1500.0
+script = ExtResource("2")
