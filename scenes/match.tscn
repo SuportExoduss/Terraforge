@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://scripts/ui/results_panel.gd" id="10"]
 [ext_resource type="Script" path="res://scripts/world/bonus_system.gd" id="11"]
 [ext_resource type="Script" path="res://scripts/world/defender_system.gd" id="12"]
+[ext_resource type="Script" path="res://scripts/world/obstacle_system.gd" id="13"]
 
 [node name="Match" type="Node"]
 
@@ -34,6 +35,9 @@ script = ExtResource("11")
 
 [node name="Defenders" type="Node3D" parent="."]
 script = ExtResource("12")
+
+[node name="Obstacles" type="Node" parent="."]
+script = ExtResource("13")
 
 [node name="Hud" type="CanvasLayer" parent="."]
 script = ExtResource("6")

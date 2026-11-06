@@ -17,6 +17,11 @@ const DEAD_TINT := Color(0.38, 0.36, 0.34)
 # Por categoria E01..E12 (iguais ao EnvironmentSlotSystem do Unity): peso do sorteio e altura padrão.
 const WEIGHTS: Array[float] = [0.20, 0.24, 0.18, 0.05, 0.10, 0.05, 0.05, 0.03, 0.03, 0.03, 0.03, 0.01]
 const HEIGHTS: Array[float] = [4.0, 2.2, 1.1, 4.5, 1.2, 1.6, 3.5, 6.5, 1.4, 2.0, 1.5, 11.0]
+# SYS-007 / OBSTÁCULOS: categorias SÓLIDAS (raio de colisão; 0 = atravessável): E01 vegetação alta, E04 rocha grande,
+# E08 estrutura grande, E12 landmark. Dois slots ficam a >= MIN_SLOT_DISTANCE (5,0) um do outro, então raios que
+# somam <= 3,0 deixam sempre um corredor de >= 2,0: "nunca bloquear completamente uma rota".
+const SOLID_RADIUS: Array[float] = [0.8, 0.0, 0.0, 1.4, 0.0, 0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 1.5]
+const LEAVE_SECONDS := 0.5               # DD-035: o obstáculo antigo encolhe antes de dar lugar ao novo
 const HIDDEN := Transform3D(Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO), Vector3.ZERO)
 
 @export var slot_seed: int = 20260705   # a semente da partida (multiplayer: vem do servidor)
@@ -45,6 +50,8 @@ var _base_radius := PackedFloat32Array() # raio do terreno SEM a camada do bioma
 var _key := PackedInt32Array()           # grupo em que o slot está hoje (-1 = vazio)
 var _age := PackedFloat32Array()
 var _growing: Array[int] = []
+var _leaving: Array[Dictionary] = []     # {slot, key, from, age}: saindo (encolhendo) por troca de dono
+var _suppressed := {}                    # slot -> segundos restantes sem aparecer (evento destruiu o obstáculo)
 var _groups := {}                        # chave -> SlotGroup (ou null: tema sem modelo ali)
 var _dead := {}                          # id da civilização eliminada -> true
 var _cursor := 0
@@ -69,6 +76,33 @@ func revealed_count(owner_id: int, dead: bool) -> int:
 	return n
 
 
+## SYS-007: quanto `point` (um corredor de raio `body_radius`) invade os obstáculos sólidos hoje revelados.
+## Devolve o deslocamento que o tira de dentro (ZERO = livre). Slot escondido/destruído não conta.
+func push_out(point: Vector3, body_radius: float) -> Vector3:
+	var planet := Services.planet
+	if planet == null:
+		return Vector3.ZERO
+	var height := (point - planet.center).length()
+	var total := Vector3.ZERO
+	for i in _dirs.size():
+		var reach := SOLID_RADIUS[_category[i]]
+		if _key[i] < 0 or reach <= 0.0:
+			continue
+		var diff := point - (planet.center + _dirs[i] * height)
+		var d := diff.length()
+		if d < reach + body_radius:
+			total += (diff / d if d > 0.01 else Vector3.RIGHT) * (reach + body_radius - d)
+	return total
+
+
+## SYS-007 + eventos: os obstáculos num raio somem por `seconds` e depois voltam (crescendo, como em DD-117).
+func suppress_around(center: Vector3, radius: float, seconds: float) -> void:
+	var planet := Services.planet
+	for i in _dirs.size():
+		if SOLID_RADIUS[_category[i]] > 0.0 				and (planet.center + _dirs[i] * (center - planet.center).length()).distance_to(center) <= radius:
+			_suppressed[i] = seconds
+
+
 func _process(delta: float) -> void:
 	var planet := Services.planet
 	var map := Services.territory
@@ -79,6 +113,10 @@ func _process(delta: float) -> void:
 		_refresh(_cursor, planet, map)
 		_cursor = (_cursor + 1) % _dirs.size()
 	_grow(delta, planet)
+	for i in _suppressed.keys():
+		_suppressed[i] -= delta
+		if _suppressed[i] <= 0.0:
+			_suppressed.erase(i)
 
 
 func _generate(radius: float) -> void:
@@ -130,6 +168,9 @@ func _refresh(i: int, planet: Planet, map: Object) -> void:
 	_hide(i)
 	if key < 0:
 		return
+	for n in range(_leaving.size() - 1, -1, -1):   # voltou a ser do mesmo dono enquanto saía: fica
+		if _leaving[n]["slot"] == i and _leaving[n]["key"] == key:
+			_leaving.remove_at(n)
 	_key[i] = key
 	_age[i] = 0.0
 	if _base_radius[i] == 0.0:
@@ -141,7 +182,7 @@ func _refresh(i: int, planet: Planet, map: Object) -> void:
 
 # Chave do grupo que este slot deve mostrar para este dono (-1 = nada). Chave = (dono * 12 + categoria) * 2 + morto.
 func _wanted_key(i: int, owner_id: int) -> int:
-	if owner_id == 0:
+	if owner_id == 0 or _suppressed.has(i):
 		return -1
 	var theme := Services.themes.theme_of(owner_id)
 	if theme == null or _roll[i] > theme.density_of(_category[i]):
@@ -153,16 +194,25 @@ func _wanted_key(i: int, owner_id: int) -> int:
 	return key if _groups[key] != null else -1
 
 
+# O slot deixa de mostrar o que mostrava: o modelo antigo ENCOLHE (LEAVE_SECONDS) e só então some.
 func _hide(i: int) -> void:
 	var k := _key[i]
 	if k < 0:
 		return
-	for part: SlotPart in (_groups[k] as SlotGroup).parts:
-		part.multimesh.set_instance_transform(_ordinal[i], HIDDEN)
+	_leaving.append({"slot": i, "key": k, "from": minf(1.0, _age[i] / GROW_SECONDS), "age": 0.0})
 	_key[i] = -1
 
 
 func _grow(delta: float, planet: Planet) -> void:
+	for n in range(_leaving.size() - 1, -1, -1):
+		var e := _leaving[n]
+		e["age"] += delta
+		if e["age"] >= LEAVE_SECONDS:
+			for part: SlotPart in (_groups[e["key"]] as SlotGroup).parts:
+				part.multimesh.set_instance_transform(_ordinal[e["slot"]], HIDDEN)
+			_leaving.remove_at(n)
+		else:
+			_put_key(e["slot"], e["key"], planet, e["from"] * (1.0 - e["age"] / LEAVE_SECONDS))
 	for n in range(_growing.size() - 1, -1, -1):
 		var i := _growing[n]
 		if _key[i] < 0:
@@ -176,7 +226,11 @@ func _grow(delta: float, planet: Planet) -> void:
 
 # Põe o slot no chão (terreno + camada do bioma, DD-121), em pé, girado, com `grow` de 0 a 1 (DD-117).
 func _put(i: int, planet: Planet, grow: float) -> void:
-	var group := _groups[_key[i]] as SlotGroup
+	_put_key(i, _key[i], planet, grow)
+
+
+func _put_key(i: int, key: int, planet: Planet, grow: float) -> void:
+	var group := _groups[key] as SlotGroup
 	var up := _dirs[i]
 	var elevation: float = planet.painter.get_elevation_at(up) if planet.painter != null else 0.0
 	var scale_now := HEIGHTS[_category[i]] / group.model_height * _jitter[i] * smoothstep(0.0, 1.0, grow)
