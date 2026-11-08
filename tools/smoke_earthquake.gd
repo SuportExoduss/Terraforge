@@ -27,7 +27,8 @@ func _initialize() -> void:
 	_match = load("res://scenes/match.tscn").instantiate()
 	_match.get_node("MatchSetup").skip_ceremony = true
 	_match.get_node("MatchSetup").bot_count = 0
-	_quake = _match.get_node("Earthquake")
+	_match.get_node("Bonuses").free()   # cristais caem junto do corredor parado: Vida Extra/Escudo sorteado falsearia a vida
+	_quake =_match.get_node("Earthquake")
 	_quake.min_seconds_between = 1.0
 	_quake.max_seconds_between = 1.0
 	_quake.quiet_after_start_seconds = 0.5

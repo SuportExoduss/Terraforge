@@ -34,7 +34,7 @@ func _run() -> void:
 	await bus.match_started
 	await process_frame
 	var panel: Control = _match.get_node("Results/Panel")
-	var text: RichTextLabel = _match.get_node("Results/Panel/Ranking")
+	var text: RichTextLabel = _match.get_node("Results/Panel/Box/Ranking")
 	if not _check(not panel.visible, "painel não deveria aparecer durante a partida"): return
 	if not _check(_match.get_node("Hud/Minimap").visible, "minimapa deveria estar visível durante a partida"): return
 

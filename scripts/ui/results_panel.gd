@@ -3,7 +3,8 @@ extends CanvasLayer
 ## Tela de resultados (R1): acompanha o domínio de TODAS as civilizações só ouvindo o EventBus e, no fim da
 ## partida, mostra o ranking — sobreviventes pelo domínio final, depois os ELIMINADOS pelo AUGE que atingiram.
 ## O painel não engole toques: o planeta continua girável pela câmera de contemplação por trás dele.
-## ponytail: texto puro, sem pódio 3D nem botão "jogar de novo"; entram com o menu/lobby.
+## Dois botões fecham o fluxo do cap. 04 (Resultados → Menu): JOGAR DE NOVO recarrega a partida, MENU volta ao início.
+## ponytail: texto puro, sem pódio 3D.
 
 var _latest := {}       # id -> domínio atual (fração)
 var _peak := {}         # id -> maior domínio já visto
@@ -28,6 +29,12 @@ func _ready() -> void:
 	_panel.add_theme_stylebox_override("panel", style)
 	add_child(_panel)
 
+	var box := VBoxContainer.new()
+	box.name = "Box"
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 14)
+	_panel.add_child(box)
+
 	_text = RichTextLabel.new()
 	_text.name = "Ranking"
 	_text.bbcode_enabled = true
@@ -37,11 +44,29 @@ func _ready() -> void:
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text.add_theme_font_size_override("normal_font_size", 22)
 	_text.add_theme_font_size_override("bold_font_size", 22)
-	_panel.add_child(_text)
+	box.add_child(_text)
+
+	var buttons := HBoxContainer.new()
+	buttons.name = "Buttons"
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	buttons.add_theme_constant_override("separation", 12)
+	box.add_child(buttons)
+	_add_button(buttons, "PlayAgain", "JOGAR DE NOVO", func(): get_tree().reload_current_scene())
+	_add_button(buttons, "Menu", "MENU", func(): get_tree().change_scene_to_file(MainMenu.MENU_SCENE))
 
 	EventBus.territory_score_changed.connect(_on_score)
 	EventBus.civilization_eliminated.connect(func(owner_id: int): _eliminated[owner_id] = true)
 	EventBus.match_ended.connect(_on_match_ended)
+
+
+func _add_button(parent: Control, button_name: String, label: String, action: Callable) -> void:
+	var button := Button.new()
+	button.name = button_name
+	button.text = label
+	button.custom_minimum_size = Vector2(170.0, 48.0)   # alvo de toque confortável
+	button.pressed.connect(action)
+	parent.add_child(button)
 
 
 func _on_score(owner_id: int, owned_fraction: float) -> void:
