@@ -2,7 +2,7 @@ class_name PlanetRunner
 extends Node3D
 ## Movimento contínuo sobre a superfície do planeta (o jogador nunca para de correr). A direção vem
 ## do nó filho "Steering" (teclado/toque do jogador ou cérebro de bot); a gravidade aponta sempre
-## para o centro. Convenção: +Z do corredor = frente (os GLBs do Tripo olham para +Z); a origem do
+## para o centro. Convenção: +Z do corredor = frente (o GLB do cowboy olha para +X: _fit_model o gira); a origem do
 ## nó é o CENTRO do corpo, os pés ficam height_offset abaixo.
 
 @export var move_speed: float = 12.0
@@ -128,10 +128,11 @@ func _fit_model() -> void:
 		return
 	var s := model_height / box.size.y
 	_model.scale = Vector3.ONE * s
-	# O glTF importado olha para -Z; o corredor anda para +Z: gira 180° (o centro X/Z também inverte).
-	_model.rotation.y = PI
-	var center_xz := box.get_center() * s
-	_model.position = Vector3(center_xz.x, -height_offset - box.position.y * s, center_xz.z)
+	# MEDIDO (tools/inspect_runner.gd): o CowboyRunner.glb olha para +X (dedos, ombros e inclinação da cabeça);
+	# o corredor anda para +Z. Girar +X até +Z = -90° em Y. Depois recentra X/Z pelo centro já girado.
+	_model.rotation.y = -PI / 2.0
+	var center := _model.basis * box.get_center()
+	_model.position = Vector3(-center.x, -height_offset - box.position.y * s, -center.z)
 
 
 func _start_animation() -> void:

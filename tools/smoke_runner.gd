@@ -32,6 +32,20 @@ func _process(delta: float) -> bool:
 		if not (_planet.surface_ready and moved > 5.0 and r > 90.0 and r < 115.0):
 			print("FALHOU: corredor não anda ou não está colado")
 			quit(1)
+		# O boneco corre DE FRENTE: dedos dos pés (pé→dedo) e ombros (cima × (direito−esquerdo)) apontam para `forward`.
+		var skel: Skeleton3D = _runner.get_node("Model").find_children("*", "Skeleton3D", true, false)[0]
+		var to_world := skel.global_transform
+		var toes := Vector3.ZERO
+		for side in ["L", "R"]:
+			toes += to_world.basis * (skel.get_bone_global_pose(skel.find_bone(side + "_ToeBase")).origin - skel.get_bone_global_pose(skel.find_bone(side + "_Foot")).origin)
+		var up_dir := (_runner.global_position - _planet.global_position).normalized()
+		var arms: Vector3 = to_world.basis * (skel.get_bone_global_pose(skel.find_bone("R_Upperarm")).origin - skel.get_bone_global_pose(skel.find_bone("L_Upperarm")).origin)
+		var facing_toes := toes.normalized().dot(_runner.forward)
+		var facing_arms := up_dir.cross(arms).normalized().dot(_runner.forward)
+		print("boneco de frente: dedos·frente=%.2f  ombros·frente=%.2f (esperado > 0.8)" % [facing_toes, facing_arms])
+		if not (facing_toes > 0.8 and facing_arms > 0.8):
+			print("FALHOU: o boneco não está virado para a direção de corrida (de lado?)")
+			quit(1)
 		_steer_start = _time
 		_fwd0 = _runner.forward
 		Input.action_press("ui_right")

@@ -21,6 +21,7 @@ const ANCHOR_CHECK_INTERVAL := 0.25     # vigia da retaguarda (DD-123): barata, 
 @export_range(0.0, 3.0) var post_shadow_size: float = 1.4        # fração da largura do poste
 @export_range(0.0, 1.0) var post_shadow_opacity: float = 0.3
 @export var prewarm_segments: int = 64              # quantos postes (e elos) nascem antes do GO
+@export var grow_segments: int = 32                 # rastro maior que o estoque: o bolso cresce neste passo (a cerca nunca para)
 
 var points: Array[Vector3] = []
 
@@ -141,11 +142,12 @@ func _up_at(point: Vector3) -> Vector3:
 
 
 # Planta um poste no ponto, em pé na superfície e virado para a direção da corrida.
-# Reciclado de um bolso (nunca instanciado em jogo).
+# Reciclado de um bolso (só cresce se o rastro passar do estoque).
 func _place_post(at: Vector3, direction: Vector3) -> void:
-	# A lista lógica segue completa; estoque visual esgotado não pode causar instanciação tardia.
 	if _active_posts >= _posts.size():
-		return
+		if post_model == null:
+			return
+		_add_segments(grow_segments)
 	var post := _posts[_active_posts]
 	_active_posts += 1
 
@@ -163,7 +165,9 @@ func _place_post(at: Vector3, direction: Vector3) -> void:
 # então a cerca fecha em retas e em curvas, seja qual for a distância real entre eles.
 func _place_link(from: Vector3, to: Vector3) -> void:
 	if _active_links >= _links.size():
-		return
+		if link_model == null:
+			return
+		_add_segments(grow_segments)
 	var lift := link_height * post_scale
 	var a := from + _up_at(from) * lift
 	var b := to + _up_at(to) * lift
@@ -179,19 +183,24 @@ func _place_link(from: Vector3, to: Vector3) -> void:
 	link.visible = true
 
 
-# Todo o estoque visual nasce antes do GO: a primeira grande incursão não instancia nada.
+# O estoque inicial nasce antes do GO: incursões normais não instanciam nada. Só um rastro MUITO longo
+# (mais que prewarm_segments postes) cresce o bolso em lotes pequenos — melhor um engasgo mínimo que a cerca sumir.
 func _prewarm_segments() -> void:
 	# top_level: as cercas vivem no mundo, não andam junto com o corredor.
 	_container = Node3D.new()
 	_container.name = "TrailSegments_%s" % get_parent().name
 	_container.top_level = true
 	add_child(_container)
-	for i in prewarm_segments:
+	_add_segments(prewarm_segments)
+
+
+func _add_segments(count: int) -> void:
+	for i in count:
 		if post_model != null:
 			var post := post_model.instantiate() as Node3D
 			_container.add_child(post)
 			if post_shadow:
-				if i == 0:
+				if _shadow_mesh == null:
 					_build_shadow_resources(post)
 				_attach_shadow(post)
 			post.visible = false
