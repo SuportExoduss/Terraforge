@@ -128,8 +128,9 @@ func _rewards_text() -> String:
 	var lines: PackedStringArray = ["[center][b]RECOMPENSAS[/b][/center]",
 			"+%d XP   +%d moedas" % [last["xp"], last["coins"]],
 			"Nível %d" % last["level"] + ("  — SUBIU DE NÍVEL!" if last["level"] > last["level_before"] else "")]
-	return "
-".join(lines)
+	for id: String in last.get("new_achievements", []):
+		lines.append("CONQUISTA: [b]%s[/b]" % Achievements.title_of(id))
+	return "\n".join(lines)
 
 
 func _name(owner_id: int) -> String:

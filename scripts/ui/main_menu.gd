@@ -34,7 +34,7 @@ func _ready() -> void:
 	Profile.load_data()
 	var profile := Label.new()
 	profile.name = "Profile"
-	profile.text = "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"]]
+	profile.text = "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
 	profile.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	profile.add_theme_font_size_override("font_size", 20)
 	box.add_child(profile)

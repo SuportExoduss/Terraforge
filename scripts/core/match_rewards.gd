@@ -2,6 +2,7 @@ class_name MatchRewards
 extends Node
 ## Recompensas (cap. 03, parte 11; DD-038): na apuração (TALLY) transforma o desempenho do jogador em XP e moedas
 ## e grava no perfil salvo. Só lê o placar da partida (Services.stats) — nada aqui é comprável (sem pay-to-win).
+## Também concede as conquistas (Achievements) cumpridas nesta partida.
 ## ponytail: o GDMD não fixa valores, então são constantes provisórias para balancear depois; sem passe de batalha.
 
 const XP_PARTICIPATION := 50
@@ -66,5 +67,14 @@ func _grant() -> void:
 	data["loops"] += loops
 	data["cuts"] += cuts
 	data["kills"] += kills
+
+	# Conquistas: o que o snapshot cumpre menos o que o perfil já tem (guarda o instante em que saiu)
+	var snapshot := {"loops": loops, "converted": taken, "cuts": cuts, "kills": kills, "percent": percent,
+			"alive": 1 if alive else 0, "won": 1 if place == 1 else 0, "matches": data["matches"]}
+	var known: Dictionary = data["achievements"]
+	var fresh := Achievements.earned(snapshot).filter(func(id: String) -> bool: return not known.has(id))
+	for id: String in fresh:
+		known[id] = Time.get_unix_time_from_system()
 	Profile.save()
-	last = {"xp": xp, "coins": coins, "level_before": level_before, "level": Profile.level(), "place": place, "percent": percent}
+	last = {"xp": xp, "coins": coins, "level_before": level_before, "level": Profile.level(), "place": place,
+			"percent": percent, "new_achievements": fresh}

@@ -39,7 +39,7 @@ func _run() -> void:
 	var menu := current_scene
 	if not _check(menu.name == "Menu" and menu.get_node("Box/Play").text == "JOGAR" and menu.get_node("Box/Quit").text == "SAIR", "menu com JOGAR e SAIR"): return
 	if not _check(menu.get_node("Box/Title").text == "TERRAFORGE", "título"): return
-	if not _check(menu.get_node("Box/Profile").text.begins_with("Nível "), "linha de perfil (nível/XP/moedas)"): return
+	if not _check(menu.get_node("Box/Profile").text.begins_with("Nível ") and menu.get_node("Box/Profile").text.contains("conquistas "), "linha de perfil (nível/XP/moedas/conquistas)"): return
 
 	# 1. JOGAR leva à partida; os botões dos resultados ainda não aparecem
 	menu.get_node("Box/Play").pressed.emit()
