@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://scripts/world/giant_worm_event.gd" id="19"]
 [ext_resource type="Script" path="res://scripts/core/match_stats.gd" id="20"]
 [ext_resource type="Script" path="res://scripts/core/match_flow.gd" id="21"]
+[ext_resource type="Script" path="res://scripts/core/match_replay.gd" id="22"]
 
 [node name="Match" type="Node"]
 
@@ -36,6 +37,9 @@ script = ExtResource("20")
 
 [node name="MatchFlow" type="Node" parent="."]
 script = ExtResource("21")
+
+[node name="MatchReplay" type="Node" parent="."]
+script = ExtResource("22")
 
 [node name="MatchTimer" type="Node" parent="."]
 script = ExtResource("3")

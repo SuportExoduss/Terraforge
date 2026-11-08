@@ -12,7 +12,7 @@ enum State { LOADING, SPAWN, COUNTDOWN, PLAYING, EVENT_ACTIVE, TIME_UP, TALLY, R
 
 @export var time_up_seconds := 4.0     # STATE-009: todos param e a câmera sobe para o planeta
 @export var tally_seconds := 2.0       # STATE-010: apuração
-@export var replay_seconds := 0.0      # STATE-011: replay cinematográfico (Passo 21)
+@export var replay_seconds := 12.0     # STATE-011: replay cinematográfico (MatchReplay repinta o planeta neste tempo)
 @export var pace := 1.0                # multiplica as pausas do pós-jogo; 0 = instantâneo (testes)
 
 var state := State.LOADING

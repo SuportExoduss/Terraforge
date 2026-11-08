@@ -100,8 +100,21 @@ func _height_of(owner_id: int) -> float:
 
 
 func _on_cells_claimed(owner_id: int, cells: PackedVector3Array, spacing: float) -> void:
+	enqueue(owner_id, cells, spacing)
+
+
+## Entra na fila de pintura (o replay repinta o planeta por aqui, na mesma ordem em que a partida o pintou).
+func enqueue(owner_id: int, cells: PackedVector3Array, spacing: float) -> void:
 	if not cells.is_empty():
 		_queue.append([owner_id, cells, spacing, 0])
+
+
+## Apaga o território pintado e a fila (começo do replay). Não mexe em quem já morreu (_dead).
+func clear() -> void:
+	_queue.clear()
+	_own.fill(Color(0, 0, 0, 0))
+	_ids.fill(Color(0, 0, 0, 1))
+	_upload_images()
 
 
 ## Pinta até `budget` células do bloco e devolve quantas pintou.
