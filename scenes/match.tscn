@@ -22,6 +22,7 @@
 [ext_resource type="Script" path="res://scripts/core/match_stats.gd" id="20"]
 [ext_resource type="Script" path="res://scripts/core/match_flow.gd" id="21"]
 [ext_resource type="Script" path="res://scripts/core/match_replay.gd" id="22"]
+[ext_resource type="Script" path="res://scripts/core/match_rewards.gd" id="23"]
 
 [node name="Match" type="Node"]
 
@@ -40,6 +41,9 @@ script = ExtResource("21")
 
 [node name="MatchReplay" type="Node" parent="."]
 script = ExtResource("22")
+
+[node name="MatchRewards" type="Node" parent="."]
+script = ExtResource("23")
 
 [node name="MatchTimer" type="Node" parent="."]
 script = ExtResource("3")

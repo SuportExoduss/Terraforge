@@ -1,6 +1,6 @@
 class_name MainMenu
 extends Control
-## Menu inicial (cap. 04: Menu → partida → Resultados → Menu): título, JOGAR e SAIR.
+## Menu inicial (cap. 04: Menu → partida → Resultados → Menu): título, perfil salvo (nível, XP, moedas), JOGAR e SAIR.
 ## ponytail: sem lobby, matchmaking nem opções — a partida usa os padrões do MatchSetup (3 adversários); entram com o multiplayer.
 
 const MENU_SCENE := "res://scenes/menu.tscn"
@@ -30,6 +30,14 @@ func _ready() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 56)
 	box.add_child(title)
+
+	Profile.load_data()
+	var profile := Label.new()
+	profile.name = "Profile"
+	profile.text = "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"]]
+	profile.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	profile.add_theme_font_size_override("font_size", 20)
+	box.add_child(profile)
 
 	var play := _add_button(box, "Play", "JOGAR", func(): get_tree().change_scene_to_file(MATCH_SCENE))
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())

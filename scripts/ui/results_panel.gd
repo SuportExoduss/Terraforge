@@ -6,12 +6,10 @@ extends CanvasLayer
 ## Dois botões fecham o fluxo do cap. 04 (Resultados → Menu): JOGAR DE NOVO recarrega a partida, MENU volta ao início.
 ## ponytail: texto puro, sem pódio 3D.
 
-var _latest := {}       # id -> domínio atual (fração)
-var _peak := {}         # id -> maior domínio já visto
-var _eliminated := {}   # id -> true
 var _panel: PanelContainer
 var _text: RichTextLabel
 var _stats: RichTextLabel   # "SUAS ESTATÍSTICAS" (apuração, MatchStats)
+var _rewards: RichTextLabel # "RECOMPENSAS" (XP, moedas, nível, conquistas: MatchRewards)
 
 
 func _ready() -> void:
@@ -53,6 +51,10 @@ func _ready() -> void:
 	_stats.add_theme_font_size_override("bold_font_size", 17)
 	box.add_child(_stats)
 
+	_rewards = _stats.duplicate()
+	_rewards.name = "Rewards"
+	box.add_child(_rewards)
+
 	var buttons := HBoxContainer.new()
 	buttons.name = "Buttons"
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -62,8 +64,6 @@ func _ready() -> void:
 	_add_button(buttons, "PlayAgain", "JOGAR DE NOVO", func(): get_tree().reload_current_scene())
 	_add_button(buttons, "Menu", "MENU", _go_menu)
 
-	EventBus.territory_score_changed.connect(_on_score)
-	EventBus.civilization_eliminated.connect(func(owner_id: int): _eliminated[owner_id] = true)
 	EventBus.match_state_changed.connect(_on_state)
 
 
@@ -82,33 +82,26 @@ func _add_button(parent: Control, button_name: String, label: String, action: Ca
 	parent.add_child(button)
 
 
-func _on_score(owner_id: int, owned_fraction: float) -> void:
-	_latest[owner_id] = owned_fraction
-	_peak[owner_id] = maxf(_peak.get(owner_id, 0.0), owned_fraction)
-
-
 # TALLY = a apuração; RESULTS = a tela (cap. 04: o painel só aparece depois da contagem e do replay).
 func _on_state(state: int) -> void:
 	if state == MatchFlow.State.TALLY:
 		_tally()
 	elif state == MatchFlow.State.RESULTS:
+		_rewards.text = _rewards_text()   # a concessão já aconteceu na apuração
 		_panel.visible = true
 
 
 func _tally() -> void:
-	var alive: Array = _latest.keys().filter(func(id: int) -> bool: return not _eliminated.has(id))
-	alive.sort_custom(func(a: int, b: int) -> bool: return _latest[a] > _latest[b])
-	var fallen: Array = _eliminated.keys()
-	fallen.sort_custom(func(a: int, b: int) -> bool: return _peak.get(a, 0.0) > _peak.get(b, 0.0))
-
+	var stats := Services.stats
 	var lines: PackedStringArray = ["[center][b]RESULTADO FINAL[/b][/center]", ""]
-	var place := 1
-	for id: int in alive:
-		lines.append("%dº  %s — %s" % [place, _name(id), _percent(_latest[id])])
-		place += 1
-	for id: int in fallen:
-		lines.append("%dº  %s — ELIMINADO (máx %s)" % [place, _name(id), _percent(_peak.get(id, 0.0))])
-		place += 1
+	if stats != null:
+		var place := 1
+		for id: int in stats.ranking():
+			if stats.is_eliminated(id):
+				lines.append("%dº  %s — ELIMINADO (máx %s)" % [place, _name(id), _percent(stats.peak(id))])
+			else:
+				lines.append("%dº  %s — %s" % [place, _name(id), _percent(stats.dominance(id))])
+			place += 1
 	_text.text = "\n".join(lines)
 	_stats.text = _stats_text()
 
@@ -125,6 +118,18 @@ func _stats_text() -> String:
 		"Rastros cortados: %d" % stats.get_stat(me, "cuts"),
 		"Eliminações: %d" % stats.get_stat(me, "kills"),
 	])
+
+
+func _rewards_text() -> String:
+	var rewards := Services.rewards
+	if rewards == null or rewards.last.is_empty():
+		return ""
+	var last: Dictionary = rewards.last
+	var lines: PackedStringArray = ["[center][b]RECOMPENSAS[/b][/center]",
+			"+%d XP   +%d moedas" % [last["xp"], last["coins"]],
+			"Nível %d" % last["level"] + ("  — SUBIU DE NÍVEL!" if last["level"] > last["level_before"] else "")]
+	return "
+".join(lines)
 
 
 func _name(owner_id: int) -> String:
