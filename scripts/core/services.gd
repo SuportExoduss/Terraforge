@@ -7,6 +7,8 @@ var territory: Object = null       # duck-typed: is_owned_by(id, pos), get_rando
 var themes: PlanetThemeRegistry = null   # fichas de bioma por civilização (cor do solo, piso, altura)
 var trails: Array = []             # rastros cortáveis (owner_id, points, cut(attacker_id))
 var home_bases: Dictionary = {}    # id -> {position: Vector3, radius: float}
+var flow: Object = null            # máquina de estados da partida (MatchFlow): state, go(estado)
+var stats: Object = null           # apuração da partida (MatchStats): get_stat(id, chave)
 
 
 func register_trail(trail: Object) -> void:

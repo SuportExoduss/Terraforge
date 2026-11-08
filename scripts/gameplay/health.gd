@@ -82,11 +82,13 @@ func grant_shield(seconds: float) -> void:
 	shield_left = maxf(shield_left, seconds)
 
 
-func _on_trail_cut(victim_id: int, _attacker_id: int) -> void:
+func _on_trail_cut(victim_id: int, attacker_id: int) -> void:
 	if victim_id != _civilization.id or _eliminated:
 		return
 	take_damage(cut_damage_points)
-	if not _eliminated:
+	if _eliminated:
+		EventBus.civilization_killed.emit(victim_id, attacker_id)   # a apuração credita a eliminação a quem cortou
+	else:
 		return_to_force_field()
 
 

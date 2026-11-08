@@ -22,6 +22,7 @@ var _owners := PackedByteArray()
 var _counts := PackedInt32Array()          # células por dono
 var _dispossessed := PackedByteArray()     # donos que perderam célula na conquista em curso
 var _claim_buffer := PackedVector3Array()  # posições das células conquistadas na operação em curso
+var _taken := 0                            # destas, quantas eram de outro dono (conversão)
 
 # Vizinhança fixa da grade em formato CSR: vizinhos da célula c = _nb_data[_nb_start[c] .. _nb_start[c+1]).
 var _nb_start := PackedInt32Array()
@@ -337,6 +338,7 @@ func _flood(start_cell: int, match_owner: int, invert: bool) -> int:
 
 func _begin_claim() -> void:
 	_claim_buffer = PackedVector3Array()
+	_taken = 0
 	_dispossessed.fill(0)
 
 
@@ -347,6 +349,7 @@ func _claim_cell(owner_id: int, cell: int) -> void:
 	if previous != NO_OWNER:
 		_counts[previous] -= 1
 		_dispossessed[previous] = 1
+		_taken += 1
 	_owners[cell] = owner_id
 	_counts[owner_id] += 1
 	_claim_buffer.append(_cell_position(cell))
@@ -360,12 +363,14 @@ func _publish_claims(owner_id: int) -> void:
 	for loser in range(1, MAX_OWNERS):
 		if _dispossessed[loser] != 0:
 			scores.append([loser, float(_counts[loser]) / cell_count])
-	_outbox.append([owner_id, _claim_buffer, scores])
+	_outbox.append([owner_id, _claim_buffer, scores, _taken])
 
 
 func _flush_outbox() -> void:
 	for note in _outbox:
 		EventBus.territory_cells_claimed.emit(note[0], note[1], cell_spacing)
+		if note[3] > 0:
+			EventBus.territory_cells_converted.emit(note[0], float(note[3]) / cell_count)
 		for score in note[2]:
 			EventBus.territory_score_changed.emit(score[0], score[1])
 	_outbox.clear()

@@ -46,6 +46,7 @@ func _run() -> void:
 	await process_frame
 	if not _check(not panel.visible, "painel não deveria aparecer antes do fim"): return
 
+	_match.get_node("MatchFlow").pace = 0.0   # pós-jogo instantâneo
 	bus.match_ended.emit()
 	await process_frame
 	if not _check(panel.visible, "painel deveria aparecer no fim"): return

@@ -18,6 +18,7 @@ func _run(out: String) -> void:
 		bus.territory_score_changed.emit(entry[0], entry[1])
 	bus.civilization_eliminated.emit(3)
 	bus.civilization_eliminated.emit(4)
+	root.get_node("Services").flow.pace = 0.0
 	bus.match_ended.emit()
 	await create_timer(6.0).timeout
 	print("foto erro=", root.get_texture().get_image().save_png(out + "/resultados.png"))

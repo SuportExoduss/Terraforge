@@ -59,10 +59,12 @@ func _process(delta: float) -> void:
 			if remaining <= 0.0:
 				state = State.ACTIVE
 				clock = 0.0
+				EventBus.global_event_active_changed.emit(true)
 				_begin_active()
 		State.ACTIVE:
 			clock += delta
 			if _tick_active(delta):
+				EventBus.global_event_active_changed.emit(false)
 				state = State.SCAR
 				clock = 0.0
 				_begin_scar()
@@ -81,6 +83,8 @@ func _on_match_started() -> void:
 
 
 func _on_match_ended() -> void:
+	if state == State.ACTIVE:
+		EventBus.global_event_active_changed.emit(false)
 	_hide()
 	state = State.WAITING_MATCH
 

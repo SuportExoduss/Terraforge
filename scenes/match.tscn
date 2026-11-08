@@ -19,6 +19,8 @@
 [ext_resource type="Script" path="res://scripts/world/acid_rain_event.gd" id="17"]
 [ext_resource type="Script" path="res://scripts/world/earthquake_event.gd" id="18"]
 [ext_resource type="Script" path="res://scripts/world/giant_worm_event.gd" id="19"]
+[ext_resource type="Script" path="res://scripts/core/match_stats.gd" id="20"]
+[ext_resource type="Script" path="res://scripts/core/match_flow.gd" id="21"]
 
 [node name="Match" type="Node"]
 
@@ -28,6 +30,12 @@
 script = ExtResource("2")
 home_scene = ExtResource("4")
 runner_scene = ExtResource("5")
+
+[node name="MatchStats" type="Node" parent="."]
+script = ExtResource("20")
+
+[node name="MatchFlow" type="Node" parent="."]
+script = ExtResource("21")
 
 [node name="MatchTimer" type="Node" parent="."]
 script = ExtResource("3")

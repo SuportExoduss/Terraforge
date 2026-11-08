@@ -11,6 +11,7 @@ var _peak := {}         # id -> maior domínio já visto
 var _eliminated := {}   # id -> true
 var _panel: PanelContainer
 var _text: RichTextLabel
+var _stats: RichTextLabel   # "SUAS ESTATÍSTICAS" (apuração, MatchStats)
 
 
 func _ready() -> void:
@@ -46,6 +47,12 @@ func _ready() -> void:
 	_text.add_theme_font_size_override("bold_font_size", 22)
 	box.add_child(_text)
 
+	_stats = _text.duplicate()   # mesmo estilo, fonte menor
+	_stats.name = "Stats"
+	_stats.add_theme_font_size_override("normal_font_size", 17)
+	_stats.add_theme_font_size_override("bold_font_size", 17)
+	box.add_child(_stats)
+
 	var buttons := HBoxContainer.new()
 	buttons.name = "Buttons"
 	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -53,11 +60,17 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("separation", 12)
 	box.add_child(buttons)
 	_add_button(buttons, "PlayAgain", "JOGAR DE NOVO", func(): get_tree().reload_current_scene())
-	_add_button(buttons, "Menu", "MENU", func(): get_tree().change_scene_to_file(MainMenu.MENU_SCENE))
+	_add_button(buttons, "Menu", "MENU", _go_menu)
 
 	EventBus.territory_score_changed.connect(_on_score)
 	EventBus.civilization_eliminated.connect(func(owner_id: int): _eliminated[owner_id] = true)
-	EventBus.match_ended.connect(_on_match_ended)
+	EventBus.match_state_changed.connect(_on_state)
+
+
+func _go_menu() -> void:
+	if Services.flow != null:
+		Services.flow.go(MatchFlow.State.MENU)   # STATE-013
+	get_tree().change_scene_to_file(MainMenu.MENU_SCENE)
 
 
 func _add_button(parent: Control, button_name: String, label: String, action: Callable) -> void:
@@ -74,7 +87,15 @@ func _on_score(owner_id: int, owned_fraction: float) -> void:
 	_peak[owner_id] = maxf(_peak.get(owner_id, 0.0), owned_fraction)
 
 
-func _on_match_ended() -> void:
+# TALLY = a apuração; RESULTS = a tela (cap. 04: o painel só aparece depois da contagem e do replay).
+func _on_state(state: int) -> void:
+	if state == MatchFlow.State.TALLY:
+		_tally()
+	elif state == MatchFlow.State.RESULTS:
+		_panel.visible = true
+
+
+func _tally() -> void:
 	var alive: Array = _latest.keys().filter(func(id: int) -> bool: return not _eliminated.has(id))
 	alive.sort_custom(func(a: int, b: int) -> bool: return _latest[a] > _latest[b])
 	var fallen: Array = _eliminated.keys()
@@ -89,7 +110,21 @@ func _on_match_ended() -> void:
 		lines.append("%dº  %s — ELIMINADO (máx %s)" % [place, _name(id), _percent(_peak.get(id, 0.0))])
 		place += 1
 	_text.text = "\n".join(lines)
-	_panel.visible = true
+	_stats.text = _stats_text()
+
+
+func _stats_text() -> String:
+	var stats := Services.stats
+	if stats == null:
+		return ""
+	var me := Civilization.PLAYER_ID
+	return "\n".join([
+		"[center][b]SUAS ESTATÍSTICAS[/b][/center]",
+		"Áreas conquistadas: %d" % stats.get_stat(me, "loops"),
+		"Território tomado de rivais: %s" % _percent(stats.get_stat(me, "converted")),
+		"Rastros cortados: %d" % stats.get_stat(me, "cuts"),
+		"Eliminações: %d" % stats.get_stat(me, "kills"),
+	])
 
 
 func _name(owner_id: int) -> String:

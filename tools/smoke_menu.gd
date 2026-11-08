@@ -50,6 +50,7 @@ func _run() -> void:
 	if not _check(not panel.visible and not again.is_visible_in_tree(), "botões escondidos durante a partida"): return
 
 	# 2. No fim da partida os botões aparecem
+	root.get_node("Services").flow.pace = 0.0   # pós-jogo instantâneo
 	root.get_node("EventBus").match_ended.emit()
 	await process_frame
 	if not _check(again.is_visible_in_tree() and again.text == "JOGAR DE NOVO" and first.get_node("Results/Panel/Box/Buttons/Menu").is_visible_in_tree(), "botões no fim da partida"): return
@@ -63,6 +64,7 @@ func _run() -> void:
 	if not _check(root.get_node("Services").planet != null and second.get_node_or_null("Main/HomeBase4") != null and second.get_node_or_null("Main/Runner4") != null, "planeta, bases e corredores na partida nova"): return
 
 	# 4. MENU volta ao início
+	root.get_node("Services").flow.pace = 0.0   # pós-jogo instantâneo
 	root.get_node("EventBus").match_ended.emit()
 	await process_frame
 	second.get_node("Results/Panel/Box/Buttons/Menu").pressed.emit()
