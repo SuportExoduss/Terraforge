@@ -26,3 +26,4 @@ Status:
 - Passo 35 ✔ (Otimização: PerfMeter F3 + oclusor esférico inscrito no planeta + oclusão ligada; smoke_perf; HUD: temporizador do _flash vira filho do rótulo; regressão 44/44)
 - Passo 36 ✔ (EventLog em anel + UpdateOrder por fases (Entrada→...→Renderização); smoke_event_log; regressão 45/45)
 - Passo 37 ✔ (Rede: detector de dessincronia por hash de territórios por tick (DD-133) + RemoteInterpolator dos jogadores remotos; smoke_netsync; regressão 46/46)
+- Passo 38 ✔ (Rede: sala/lobby (MatchLobby STATE-001..003) com matchmaking por tempo/lotação completando com bots + servidor dedicado `--server` (DedicatedServer, DD-134); smoke_lobby; regressão 47/47)

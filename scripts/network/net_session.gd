@@ -13,11 +13,13 @@ signal snapshot_received(snapshot: Dictionary)     # cliente: estado real da par
 signal reconnected(state: Dictionary)              # cliente: voltei à partida com o estado completo
 signal reconnect_failed(reason: String)            # cliente: desisti (janela esgotada ou o servidor recusou a sessão)
 signal resynced_with_server(state: Dictionary)     # cliente: o servidor reenviou o estado oficial (dessincronização)
+signal lobby_updated(info: Dictionary)             # cliente: a sala mudou {phase, humans, capacity, seconds_left} (DD-134)
 
 const SNAPSHOT_HZ := 20.0
 const DIGEST_EVERY := 10   # snapshots entre dois relatos de hash do cliente (~0,5 s)
 
 var match_server: MatchServer = null   # só no servidor
+var lobby: MatchLobby = null           # só no servidor com sala (DD-134): quem chega espera nela; null = entra direto na partida
 var predictor: RunnerPredictor = null  # só no cliente: o corredor do próprio jogador, previsto (nasce no 1º snapshot)
 var interpolator: RemoteInterpolator = null   # só no cliente: os OUTROS corredores, suavizados (nasce no 1º snapshot)
 ## Cliente: hash do MEU mapa de territórios como estava no último snapshot recebido. Vazio = o detector de
@@ -53,6 +55,22 @@ func host(port: int, max_clients := 5) -> Error:
 	add_child(match_server)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	return OK
+
+
+## Servidor: passa a receber os jogadores novos numa sala em vez de entregar corredor na hora.
+func use_lobby(room: MatchLobby) -> void:
+	lobby = room
+	room.changed.connect(_broadcast_lobby)
+
+
+## Servidor: entrega um corredor livre ao jogador (a sala fechou e a partida existe). Quem caiu enquanto esperava fica de fora.
+func admit(peer_id: int) -> void:
+	var civ := match_server.free_civilization()
+	if not multiplayer.get_peers().has(peer_id) or civ == 0 or not match_server.join(peer_id, civ):
+		match_server.net_log.add(0, "partida_cheia", "aviso", "peer %d recusado" % peer_id)
+		_kick(peer_id)
+		return
+	welcome.rpc_id(peer_id, civ, match_server.token_of(civ), match_server.reconnect_window)
 
 
 func connect_to(address: String, port: int) -> Error:
@@ -182,7 +200,19 @@ func _kick(peer_id: int) -> void:
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
+	if lobby != null:
+		lobby.remove(peer_id)
 	match_server.peer_left(peer_id)
+
+
+func _broadcast_lobby() -> void:
+	for peer_id: int in lobby.peers:
+		lobby_changed.rpc_id(peer_id, lobby.phase, lobby.peers.size(), lobby.capacity, lobby.seconds_left())
+
+
+@rpc("authority", "call_remote", "reliable")
+func lobby_changed(phase: int, humans: int, capacity: int, seconds_left: float) -> void:
+	lobby_updated.emit({"phase": phase, "humans": humans, "capacity": capacity, "seconds_left": seconds_left})
 
 
 # Servidor: a 1ª mensagem de quem conecta. Variant, não String: o que chega da rede nunca é confiável.
@@ -191,16 +221,15 @@ func hello(token: Variant) -> void:
 	if match_server == null:
 		return
 	var peer_id := multiplayer.get_remote_sender_id()
-	if match_server.has_peer(peer_id):
+	if match_server.has_peer(peer_id) or (lobby != null and lobby.peers.has(peer_id)):
 		match_server.net_log.add(0, "hello_repetido", "aviso", "peer %d ignorado" % peer_id)
 		return
 	if typeof(token) == TYPE_STRING and token == "":   # jogador novo
-		var civ := match_server.free_civilization()
-		if civ == 0 or not match_server.join(peer_id, civ):
-			match_server.net_log.add(0, "partida_cheia", "aviso", "peer %d recusado" % peer_id)
+		if lobby == null:
+			admit(peer_id)
+		elif not lobby.add(peer_id):   # sala fechada ou cheia: o corredor só sai para quem entrou antes do fechamento
+			match_server.net_log.add(0, "lobby_fechado", "aviso", "peer %d recusado" % peer_id)
 			_kick(peer_id)
-			return
-		welcome.rpc_id(peer_id, civ, match_server.token_of(civ), match_server.reconnect_window)
 		return
 	var result := match_server.resume(peer_id, token)
 	if not result.ok:

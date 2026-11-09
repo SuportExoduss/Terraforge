@@ -8,6 +8,12 @@ const MATCH_SCENE := "res://scenes/match.tscn"
 
 
 func _ready() -> void:
+	var args := OS.get_cmdline_args() + OS.get_cmdline_user_args()   # `--server` vale antes ou depois do `--`
+	if DedicatedServer.requested(args):   # servidor dedicado (DD-134): sem menu, o processo vira a sala
+		var server := DedicatedServer.new()
+		server.configure(args)
+		get_tree().root.add_child.call_deferred(server)
+		return
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var background := ColorRect.new()
 	background.color = Color(0.03, 0.05, 0.12)
