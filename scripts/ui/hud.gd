@@ -190,4 +190,12 @@ func _on_event_warning(event_name: String, seconds_remaining: int) -> void:
 # Mostra o texto e o apaga depois, a menos que algo novo já o tenha trocado.
 func _flash(label: Label, text: String, seconds: float) -> void:
 	label.text = text
-	get_tree().create_timer(seconds).timeout.connect(func(): if label.text == text: label.text = "")
+	# O temporizador é filho do rótulo: se a partida for liberada antes de ele disparar, morre junto (sem callback pendurado).
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.timeout.connect(func():
+		if label.text == text:
+			label.text = ""
+		timer.queue_free())
+	label.add_child(timer)
+	timer.start(seconds)

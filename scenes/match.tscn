@@ -27,6 +27,7 @@
 [ext_resource type="Script" path="res://scripts/audio/music_director.gd" id="25"]
 [ext_resource type="Script" path="res://scripts/world/day_night_cycle.gd" id="26"]
 [ext_resource type="Script" path="res://scripts/world/weather_manager.gd" id="27"]
+[ext_resource type="Script" path="res://scripts/core/perf_meter.gd" id="28"]
 
 [node name="Match" type="Node"]
 
@@ -105,3 +106,6 @@ target_path = NodePath("../../../../Main/Runner")
 
 [node name="Results" type="CanvasLayer" parent="."]
 script = ExtResource("10")
+
+[node name="Perf" type="Node" parent="."]
+script = ExtResource("28")
