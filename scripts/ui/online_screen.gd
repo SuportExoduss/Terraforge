@@ -2,10 +2,12 @@ class_name OnlineScreen
 extends MenuScreen
 ## Tela ONLINE (Passo 46; cap. 04 lobby, DD-134): entra na sala de um servidor dedicado (`godot -- --server --port=N`) e mostra
 ## o estado dela — jogadores/capacidade e o tempo que falta para a partida abrir. Mesmo cliente do NetSession dos testes.
-## ponytail: só ENTRAR (quem hospeda é o servidor dedicado); o fim da sala não leva à partida online ainda; endereço e porta
+## ponytail: só ENTRAR (quem hospeda é o servidor dedicado); a partida é só o quadro 2D do OnlineBoard; endereço e porta
 ## não ficam salvos.
 
 var net: NetSession = null   # só existe enquanto estou conectado ou conectando
+var board: OnlineBoard = null   # a partida (Passo 47), depois que a sala fecha e recebo a civilização
+var _box: VBoxContainer
 var address: LineEdit
 var port: LineEdit
 var join: Button
@@ -20,6 +22,7 @@ func _init() -> void:
 
 
 func build(parent: VBoxContainer) -> void:
+	_box = parent
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	parent.add_child(row)
@@ -81,7 +84,13 @@ func _toggle() -> void:
 		_info_at = Time.get_ticks_msec())
 	net.welcome_received.connect(func(civ: int) -> void:
 		_civ = civ
-		status.text = "Partida começando: você é a civilização %d." % civ)
+		status.text = "Partida online: você é a civilização %d. Vire com ← →." % civ
+		address.get_parent().visible = false   # sobra altura para o quadro
+		status.custom_minimum_size.y = 32.0
+		board = OnlineBoard.new()
+		board.net = net
+		board.custom_minimum_size = Vector2(0.0, 250.0)
+		_box.add_child(board))
 	net.disconnected.connect(func() -> void:
 		status.text = "Sem conexão com a sala (servidor fora do ar, sala cheia ou já fechada)."
 		_leave.call_deferred())   # fora do sinal: quem o emitiu ainda está usando a conexão
@@ -100,6 +109,11 @@ func _leave() -> void:
 	net.close()
 	net.queue_free()
 	net = null
+	if board != null:
+		board.queue_free()
+		board = null
+		address.get_parent().visible = true
+		status.custom_minimum_size.y = 100.0
 	_info = {}
 	join.text = "ENTRAR NA SALA"
 
