@@ -16,3 +16,4 @@ Status:
 - Passo 40 ✔ (Primeiro clique: câmera do menu mergulha no planeta enquanto a partida carrega em segundo plano; DD-007; smoke_approach; regressão 49/49)
 - Passo 41 ✔ (Civilizações: galeria no menu com as 6 do GDMD, só as com arte são escolhíveis, escolha no perfil e valendo na partida via PlanetThemeRegistry; smoke_civilizations; regressão 50/50)
 - Passo 42 ✔ (Perfil: tela PERFIL no menu com nível, barra de XP, totais e conquistas feitas/pendentes; smoke_profile_screen; regressão 51/51)
+- Passo 43 ✔ (Loja cosmética: cores de cerca compradas com moedas do perfil, só aparência; smoke_shop; regressão 51/52 + replay OK isolado 3x — flaky sob carga)

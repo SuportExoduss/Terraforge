@@ -47,7 +47,7 @@ func _ready() -> void:
 	Settings.apply_all()   # volumes e qualidade salvos valem desde o menu
 	var profile := Label.new()
 	profile.name = "Profile"
-	profile.text = "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
+	profile.text = _profile_text()
 	profile.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	profile.add_theme_font_size_override("font_size", 20)
 	box.add_child(profile)
@@ -60,6 +60,7 @@ func _ready() -> void:
 	box.add_child(dock)
 	_add_dock(dock, "Profile", "PERFIL", ProfileScreen)
 	_add_dock(dock, "Civilizations", "CIVILIZAÇÕES", CivilizationsScreen)
+	_add_dock(dock, "Shop", "LOJA", ShopScreen)
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
 	play.grab_focus()   # teclado / controle
@@ -97,6 +98,10 @@ func _open_settings() -> void:
 	add_child(panel)
 
 
+func _profile_text() -> String:
+	return "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
+
+
 func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:
 	var button := _add_button(dock, button_name, label, func(): _open_screen(screen_class.new(), button_name))
 	button.custom_minimum_size = Vector2(150.0, 44.0)
@@ -111,6 +116,7 @@ func _open_screen(screen: MenuScreen, return_to: String) -> void:
 	screen.closed.connect(func():
 		screen.queue_free()
 		box.process_mode = Node.PROCESS_MODE_INHERIT
+		get_node("Box/Profile").text = _profile_text()   # a loja pode ter gastado moedas
 		get_node("Box/Dock/" + return_to).grab_focus())
 	add_child(screen)
 

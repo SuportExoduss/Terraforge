@@ -51,6 +51,7 @@ var _grace := 0.0
 var _shadow_mesh: CylinderMesh
 var _shadow_material: StandardMaterial3D
 var _shadow_offset := Vector3.ZERO
+var _tint_material: StandardMaterial3D   # cor da cerca comprada na loja (Passo 43); null = cerca original
 
 
 func _ready() -> void:
@@ -227,6 +228,7 @@ func _add_segments(count: int) -> void:
 	for i in count:
 		if post_model != null:
 			var post := post_model.instantiate() as Node3D
+			_tint(post)
 			_container.add_child(post)
 			if post_shadow:
 				if _shadow_mesh == null:
@@ -236,9 +238,29 @@ func _add_segments(count: int) -> void:
 			_posts.append(post)
 		if link_model != null:
 			var link := link_model.instantiate() as Node3D
+			_tint(link)
 			_container.add_child(link)
 			link.visible = false
 			_links.append(link)
+
+
+# Cosmético da loja: a cerca do jogador recebe a cor equipada por cima do modelo. Só aparência, nada de jogo.
+# ponytail: só a cerca do jogador local (civilização 1); a dos outros jogadores da rede não leva a cor deles.
+func _tint(model: Node3D) -> void:
+	if _civilization.id != Civilization.PLAYER_ID:
+		return
+	var color := Cosmetics.equipped_tint()
+	if color.a <= 0.0:
+		return
+	if _tint_material == null:
+		_tint_material = StandardMaterial3D.new()
+		_tint_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_tint_material.albedo_color = color
+	var meshes := model.find_children("*", "MeshInstance3D", true, false)
+	if model is MeshInstance3D:
+		meshes.append(model)
+	for mesh: MeshInstance3D in meshes:
+		mesh.material_overlay = _tint_material
 
 
 # A sombrinha é medida pelo PRÓPRIO modelo: tamanho pela largura real, posição pelo centro da base.
