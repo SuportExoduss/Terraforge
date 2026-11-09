@@ -1,0 +1,38 @@
+class_name Settings
+extends RefCounted
+## Configurações do jogador (UI-006, DD-132): volume de efeitos, volume de música e qualidade gráfica. Ficam no Profile
+## (sobrevivem ao fechar o jogo) e são aplicadas na hora: volumes nos barramentos do AudioDirector, qualidade na
+## resolução 3D e no antisserrilhado da janela principal.
+## ponytail: só o que já existe para ajustar; controles, idioma e acessibilidade entram quando houver o que escolher.
+
+const DEFAULTS := {"sfx": 1.0, "music": 0.8, "quality": 2}
+const QUALITY_NAMES := ["BAIXA", "MÉDIA", "ALTA"]
+const QUALITY_SCALE := [0.7, 0.85, 1.0]                                                       # resolução 3D relativa
+const QUALITY_MSAA := [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X]
+
+
+static func get_value(key: String) -> Variant:
+	var saved: Dictionary = Profile.data.get("settings", {})
+	return saved.get(key, DEFAULTS[key])
+
+
+## Muda um ajuste e aplica na hora; `save = false` enquanto o jogador arrasta um controle (salva ao soltar).
+static func set_value(key: String, value: Variant, save := true) -> void:
+	if not DEFAULTS.has(key):
+		return
+	var saved: Dictionary = Profile.data.get("settings", {})
+	saved[key] = clampf(value, 0.0, 1.0) if key != "quality" else clampi(int(value), 0, QUALITY_NAMES.size() - 1)
+	Profile.data["settings"] = saved
+	apply_all()
+	if save:
+		Profile.save()
+
+
+static func apply_all() -> void:
+	AudioDirector.ensure_buses()
+	AudioDirector.set_volume(AudioDirector.SFX_BUS, get_value("sfx"))
+	AudioDirector.set_volume(AudioDirector.MUSIC_BUS, get_value("music"))
+	var window := (Engine.get_main_loop() as SceneTree).root
+	var level := clampi(int(get_value("quality")), 0, QUALITY_NAMES.size() - 1)
+	window.scaling_3d_scale = QUALITY_SCALE[level]
+	window.msaa_3d = QUALITY_MSAA[level]

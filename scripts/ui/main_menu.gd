@@ -1,7 +1,7 @@
 class_name MainMenu
 extends Control
-## Menu inicial (cap. 04: Menu → partida → Resultados → Menu): título, perfil salvo (nível, XP, moedas), JOGAR e SAIR.
-## ponytail: sem lobby, matchmaking nem opções — a partida usa os padrões do MatchSetup (3 adversários); entram com o multiplayer.
+## Menu inicial (cap. 04: Menu → partida → Resultados → Menu): título, perfil salvo (nível, XP, moedas), JOGAR, CONFIGURAÇÕES (UI-006) e SAIR.
+## ponytail: sem lobby nem matchmaking — a partida usa os padrões do MatchSetup (3 adversários); entram com o multiplayer.
 
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
@@ -32,6 +32,7 @@ func _ready() -> void:
 	box.add_child(title)
 
 	Profile.load_data()
+	Settings.apply_all()   # volumes e qualidade salvos valem desde o menu
 	var profile := Label.new()
 	profile.name = "Profile"
 	profile.text = "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
@@ -40,8 +41,18 @@ func _ready() -> void:
 	box.add_child(profile)
 
 	var play := _add_button(box, "Play", "JOGAR", func(): get_tree().change_scene_to_file(MATCH_SCENE))
+	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
 	play.grab_focus()   # teclado / controle
+
+
+func _open_settings() -> void:
+	var panel := SettingsPanel.new()
+	panel.name = "SettingsPanel"
+	panel.closed.connect(func():
+		panel.queue_free()
+		get_node("Box/Settings").grab_focus())
+	add_child(panel)
 
 
 func _add_button(parent: Control, button_name: String, label: String, action: Callable) -> Button:
