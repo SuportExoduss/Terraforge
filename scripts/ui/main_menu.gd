@@ -45,6 +45,9 @@ func _ready() -> void:
 
 	Profile.load_data()
 	Settings.apply_all()   # volumes e qualidade salvos valem desde o menu
+	var music := MenuMusic.new()   # trilha suave; entra mais um instrumento a cada tela aberta
+	music.name = "Music"
+	add_child(music)
 	var profile := Label.new()
 	profile.name = "Profile"
 	profile.text = _profile_text()
@@ -73,6 +76,7 @@ func _play() -> void:
 	if _launching:
 		return
 	_launching = true
+	get_node("Music").fade_out(maxf(approach_seconds, 0.2))
 	if approach_seconds <= 0.0:
 		get_tree().change_scene_to_file(MATCH_SCENE)
 		return
@@ -91,6 +95,7 @@ func _play() -> void:
 
 
 func _open_settings() -> void:
+	get_node("Music").deepen()
 	var panel := SettingsPanel.new()
 	panel.name = "SettingsPanel"
 	panel.closed.connect(func():
@@ -111,6 +116,7 @@ func _add_dock(dock: Control, button_name: String, label: String, screen_class: 
 
 ## Abre uma tela do menu por cima; o corpo do menu fica parado (sem foco nem cliques) até ela fechar.
 func _open_screen(screen: MenuScreen, return_to: String) -> void:
+	get_node("Music").deepen()
 	var box: Control = get_node("Box")
 	box.process_mode = Node.PROCESS_MODE_DISABLED
 	screen.name = "Screen"
