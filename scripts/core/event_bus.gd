@@ -22,6 +22,7 @@ signal respawn_countdown(owner_id: int, seconds_remaining: int)
 signal territory_cells_claimed(owner_id: int, cell_positions: PackedVector3Array, cell_spacing: float)
 signal territory_cells_converted(conqueror_id: int, planet_fraction: float)   # parte do planeta tomada de OUTRAS civilizações
 signal territory_loop_closed(owner_id: int, trail_points: PackedVector3Array)
+signal territory_loop_claimed(owner_id: int, new_cells: int)   # circuito já resolvido pelo mapa: quantas células mudaram de dono (poucas = circuito "vazio")
 signal territory_score_changed(owner_id: int, owned_fraction: float)
 signal trail_anchor_lost(owner_id: int)
 signal trail_cut(victim_id: int, attacker_id: int)

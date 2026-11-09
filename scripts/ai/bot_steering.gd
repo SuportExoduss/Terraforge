@@ -25,6 +25,8 @@ var _hunt_point := Vector3.ZERO
 var _seeking_bonus := false
 var _bonus_point := Vector3.ZERO
 var _wobble_seed := randf() * TAU
+## DD-127: personalidade. 0,6 = tímido (saídas curtas, volta cedo, caça perto) … 1,6 = ousado. Sem isso bots iguais empatam em ~16,7%.
+var ambition := randf_range(0.6, 1.6)
 
 
 func _ready() -> void:
@@ -55,7 +57,7 @@ func get_steer() -> float:
 		return _steer_towards(_hunt_point)
 
 	# Instinto 2 — RISCO: exposto demais? Aborta e fecha o circuito.
-	if _returning_home or _exposure >= max_exposure_seconds:
+	if _returning_home or _exposure >= max_exposure_seconds * ambition:
 		_returning_home = true
 		return _steer_towards(_home())
 
@@ -86,7 +88,7 @@ func _pick_sortie_target() -> Vector3:
 	var fallback := position + _runner.forward * min_sortie_distance
 	for attempt in 6:
 		var direction := _runner.forward.rotated(up, deg_to_rad(randf_range(-80.0, 80.0)))
-		var candidate := position + direction * randf_range(min_sortie_distance, max_sortie_distance)
+		var candidate := position + direction * randf_range(min_sortie_distance, max_sortie_distance) * ambition
 		var candidate_up := (candidate - planet.center).normalized()
 		candidate = planet.center + candidate_up * planet.get_surface_radius(candidate_up)
 		if not Services.territory.is_owned_by(_civilization.id, candidate):
@@ -95,7 +97,7 @@ func _pick_sortie_target() -> Vector3:
 
 
 func _find_enemy_trail_point() -> bool:
-	var best := hunt_range * hunt_range
+	var best := hunt_range * hunt_range * ambition * ambition
 	var found := false
 	for trail in Services.trails:
 		if trail.owner_id == _civilization.id:

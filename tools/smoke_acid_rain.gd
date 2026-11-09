@@ -35,6 +35,7 @@ func _initialize() -> void:
 	_rain.rain_seconds = 6.0
 	_rain.rain_radius = 40.0
 	_rain.drift_speed = 0.0
+	load("res://scripts/world/global_event.gd").gate_gap_seconds = 0.2   # DD-128: folga curta, o teste repete ciclos
 	root.add_child(_match)
 	_runner = _match.get_node("Main/Runner")
 	_runner.move_speed = 0.0   # parado: quem sofre é o corredor, não o mapa

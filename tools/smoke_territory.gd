@@ -20,6 +20,8 @@ var _loop_time := -1.0
 var _worst_ms := 0.0
 var _path_sum := Vector3.ZERO
 var _path_n := 0
+var _cap_dir := Vector3.ZERO     # centro do território antes do circuito
+var _wave: PackedVector3Array = PackedVector3Array()   # o 1º anúncio do circuito, na ordem em que o painter pinta
 
 
 func _initialize() -> void:
@@ -38,7 +40,9 @@ func _initialize() -> void:
 	bus.territory_cells_claimed.connect(func(owner, cells, _spacing):
 		if owner == 1:
 			_claims += 1
-			_claimed_cells += cells.size())
+			_claimed_cells += cells.size()
+			if _claims == 1 and _loop_time >= 0.0:
+				_wave = cells)
 
 
 func _process(delta: float) -> bool:
@@ -47,6 +51,10 @@ func _process(delta: float) -> bool:
 			return false
 		_started = true
 		_initial_cells = _map._counts[1]
+		for c in _map.cell_count:
+			if _map._owners[c] == 1:
+				_cap_dir += _map._dirs[c]
+		_cap_dir = _cap_dir.normalized()
 		_time = 0.0
 		return false
 	_time += delta
@@ -91,6 +99,18 @@ func _verify() -> bool:
 	if _claims < 1 or _claimed_cells < 50: ok = _no("a conquista não foi anunciada")
 	if cells < _initial_cells + 50: ok = _no("o território não cresceu")
 	if not _map.is_owned_by(1, center): ok = _no("o miolo do circuito não é do jogador")
+	# DD-127: a dominação avança em ONDA — o 1º quarto das células fica mais perto do território antigo que o último
+	var q := _wave.size() / 4
+	if q < 5:
+		ok = _no("anúncio pequeno demais para medir a onda (%d células)" % _wave.size())
+	else:
+		var near := 0.0
+		var far := 0.0
+		for i in q:
+			near += (_wave[i] - _map._center_cache).normalized().dot(_cap_dir)
+			far += (_wave[_wave.size() - 1 - i] - _map._center_cache).normalized().dot(_cap_dir)
+		print("onda: proximidade média do território antigo 1º quarto=%.3f último quarto=%.3f" % [near / q, far / q])
+		if near <= far: ok = _no("a onda não vai do território antigo para a borda nova")
 	if _map.owned_fraction(1) <= float(_initial_cells) / _map.cell_count: ok = _no("placar não subiu")
 	print("OK" if ok else "FALHOU")
 	quit(0 if ok else 1)

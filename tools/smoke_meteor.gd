@@ -23,6 +23,7 @@ func _initialize() -> void:
 	_meteors.warning_seconds = 2.0
 	_meteors.rock_fall_seconds = 1.0
 	_meteors.scar_seconds = 2.0
+	load("res://scripts/world/global_event.gd").gate_gap_seconds = 0.2   # DD-128: folga curta, o teste repete ciclos
 	root.add_child(_match)
 	_bus = root.get_node("EventBus")
 	_bus.global_event_warning.connect(func(n, s): _warnings.append([n, s]))
@@ -73,7 +74,7 @@ func _run() -> void:
 
 	# 2. Aviso: contagem + sombra crescendo
 	var shadow: Node3D = _meteors.get_node("Shadow")
-	var rock: Node3D = _meteors.get_node("Rock")
+	var rock: Node3D = _meteors.get_node("RockAnchor/Rock")
 	var scar: Node3D = _meteors.get_node("Scar")
 	await _bus.global_event_warning
 	await process_frame
@@ -86,6 +87,11 @@ func _run() -> void:
 	var rock_box := ModelUtils.local_aabb(rock)
 	var rock_size := maxf(rock_box.size.x, maxf(rock_box.size.y, rock_box.size.z)) * rock.scale.x
 	if not _check(absf(rock_size - 8.0) < 0.5, "rocha com ~8 u de diâmetro (%.2f)" % rock_size): return
+	# Posição/direção: o CENTRO visual da rocha fica na vertical do ponto de impacto (não torto, não deslocado).
+	if not _check(rock_box.get_center().length() < 0.01, "pivô no centro do modelo (%s)" % rock_box.get_center()): return
+	var fall_dir: Vector3 = (rock.global_position - planet.center).normalized()
+	var line_error: float = rad_to_deg(fall_dir.angle_to(_meteors._impact_direction))
+	if not _check(line_error < 0.1, "rocha fora da linha do impacto (%.3f°)" % line_error): return
 
 	# 3. Impacto
 	await _bus.radial_damage

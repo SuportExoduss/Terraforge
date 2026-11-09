@@ -34,31 +34,48 @@ var _impact_direction := Vector3.UP
 var _impact_point := Vector3.ZERO
 var _shadow: MeshInstance3D
 var _scar: MeshInstance3D
-var _rock: Node3D
+var _rock: Node3D          # "Rock": gira e tem a escala; o modelo dentro dele é deslocado para o centro ficar na origem
+var _rock_anchor: Node3D   # só posição e direção (o "cima" do chão no ponto de impacto); nunca gira
+var _tail: MeshInstance3D
+var _rock_scale := 1.0
 
 
 func _ready() -> void:
 	_shadow = _make_disc("Shadow", Color(0.05, 0.05, 0.08))
 	_scar = _make_disc("Scar", Color(0.12, 0.07, 0.04))
 	if model != null:
-		_rock = model.instantiate() as Node3D
+		_rock_anchor = Node3D.new()
+		_rock_anchor.name = "RockAnchor"
+		add_child(_rock_anchor)
+		_rock = Node3D.new()
 		_rock.name = "Rock"
 		_rock.visible = false
-		add_child(_rock)
-		var box := ModelUtils.local_aabb(_rock)
-		_rock.scale = Vector3.ONE * (rock_diameter / maxf(0.001, maxf(box.size.x, maxf(box.size.y, box.size.z))))
+		_rock_anchor.add_child(_rock)
+		var rock_model := model.instantiate() as Node3D
+		_rock.add_child(rock_model)
+		var box := ModelUtils.local_aabb(rock_model)
+		rock_model.position = -box.get_center()   # o centro VISUAL do modelo passa a ser a origem do pivô
+		_rock_scale = rock_diameter / maxf(0.001, maxf(box.size.x, maxf(box.size.y, box.size.z)))
+		_rock.scale = Vector3.ONE * _rock_scale
+		_tail = _make_disc("Tail", Color(1.0, 0.55, 0.15, 0.7))   # cauda de fogo: mostra de onde a rocha vem
+		((_tail.mesh as CylinderMesh).material as BaseMaterial3D).transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	EventBus.match_started.connect(_on_match_started)
 	EventBus.match_ended.connect(_on_match_ended)
 	EventBus.match_clock_changed.connect(func(seconds: int): _seconds_remaining = seconds)
 
 
 func _process(delta: float) -> void:
+	GlobalEvent.gate_tick(delta)
 	match _state:
 		State.COOLDOWN:
 			_clock += delta
 			# DD-106: o impacto precisa caber antes dos 25 s finais — sem tempo hábil, os céus se calam.
-			if _clock >= _cooldown_target and _seconds_remaining > quiet_before_end_seconds + warning_seconds:
-				_begin_warning()
+			# DD-128: e o portão dos eventos globais precisa estar aberto (um por vez).
+			if _clock >= _cooldown_target:
+				if not GlobalEvent.gate_open():
+					_cooldown_target = _clock + randf_range(0.0, 8.0)   # DD-128: fila sorteada
+				elif _seconds_remaining > quiet_before_end_seconds + warning_seconds:
+					_begin_warning()
 		State.WARNING:
 			_update_warning(delta)
 		State.SCAR:
@@ -66,15 +83,16 @@ func _process(delta: float) -> void:
 
 
 func _on_match_started() -> void:
+	GlobalEvent.gate_reset()
 	_begin_cooldown()
 	_cooldown_target = maxf(_cooldown_target, quiet_after_start_seconds)   # DD-106: paz inicial
 
 
 func _on_match_ended() -> void:
+	GlobalEvent.gate_reset()
 	_shadow.visible = false
 	_scar.visible = false
-	if _rock != null:
-		_rock.visible = false
+	_hide_rock()
 	_state = State.WAITING_MATCH
 
 
@@ -93,6 +111,7 @@ func _begin_warning() -> void:
 	_impact_direction = Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized()   # uniforme na esfera
 	_impact_point = planet.center + _impact_direction * planet.get_surface_radius(_impact_direction)
 	_place_flat(_shadow, 2.0)
+	GlobalEvent.gate_enter()
 	_state = State.WARNING
 	_clock = 0.0
 	_last_announced = -1
@@ -110,12 +129,9 @@ func _update_warning(delta: float) -> void:
 		_last_announced = whole
 		EventBus.global_event_warning.emit(EVENT_NAME, whole)
 
-	# A rocha só aparece no finalzinho, despencando do céu.
+	# A rocha só aparece no finalzinho, despencando do céu pela linha reta que liga o céu ao ponto de impacto.
 	if _rock != null and remaining <= rock_fall_seconds:
-		_rock.visible = true
-		var fall := clampf(1.0 - remaining / rock_fall_seconds, 0.0, 1.0)
-		_rock.global_position = _impact_point + _impact_direction * lerpf(rock_altitude, rock_diameter * 0.3, fall)
-		_rock.rotate(Vector3.ONE.normalized(), deg_to_rad(rock_tumble_degrees) * delta)   # tombo
+		_place_rock(clampf(1.0 - remaining / rock_fall_seconds, 0.0, 1.0))
 	if remaining <= 0.0:
 		_impact()
 
@@ -124,9 +140,9 @@ func _update_warning(delta: float) -> void:
 func _impact() -> void:
 	EventBus.radial_damage.emit(_impact_point, inner_radius, 4, true, mid_radius, 2, outer_radius, 1)
 	_shadow.visible = false
-	if _rock != null:
-		_rock.visible = false
+	_hide_rock()
 	_place_flat(_scar, mid_radius * 2.0)
+	GlobalEvent.gate_leave()
 	_state = State.SCAR
 	_clock = 0.0
 	EventBus.bonus_drop_requested.emit(_impact_point, randi_range(1, 3))   # RECOMPENSA do evento (DD-106, SYS-005)
@@ -142,6 +158,29 @@ func _update_scar(delta: float) -> void:
 	if life <= 0.0:
 		_scar.visible = false
 		_begin_cooldown()
+
+
+func _hide_rock() -> void:
+	if _rock != null:
+		_rock.visible = false
+		_tail.visible = false
+
+
+# fall 0 = no céu, 1 = no chão. A rocha SEMPRE nasce no alto da vertical do ponto de impacto (o "cima" do chão ali),
+# cai em linha reta e gira no lugar; a cauda aponta de volta para o céu. Nada herda estado de uma queda anterior.
+func _place_rock(fall: float) -> void:
+	var up := _impact_direction
+	var right := up.cross(Vector3.FORWARD if absf(up.y) > 0.99 else Vector3.UP).normalized()
+	var ground := Basis(right, up, right.cross(up))
+	var center := _impact_point + up * lerpf(rock_altitude, rock_diameter * 0.3, fall)
+	var grow := clampf(fall / 0.15, 0.0, 1.0)   # surge crescendo no alto, sem "pipocar"
+	_rock_anchor.global_transform = Transform3D(ground, center)
+	_rock.basis = Basis(Vector3.ONE.normalized(), deg_to_rad(rock_tumble_degrees) * fall * rock_fall_seconds) 			* Basis.from_scale(Vector3.ONE * _rock_scale * grow)
+	var tail_length := rock_diameter * 3.0 * grow
+	_tail.global_transform = Transform3D(ground, center + up * (tail_length * 0.5))
+	_tail.scale = Vector3(rock_diameter * 0.6 * grow, tail_length, rock_diameter * 0.6 * grow)
+	_rock.visible = true
+	_tail.visible = true
 
 
 func _make_disc(disc_name: String, color: Color) -> MeshInstance3D:

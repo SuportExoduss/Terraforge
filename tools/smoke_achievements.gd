@@ -63,8 +63,8 @@ func _run() -> void:
 	await process_frame
 	var services: Node = root.get_node("Services")
 	var profile = load("res://scripts/core/profile.gd")
-	_bus.territory_loop_closed.emit(1, PackedVector3Array())
-	_bus.territory_loop_closed.emit(1, PackedVector3Array())
+	_bus.territory_loop_claimed.emit(1, 40)
+	_bus.territory_loop_claimed.emit(1, 40)
 	_bus.territory_score_changed.emit(1, 0.55)
 	_bus.territory_score_changed.emit(2, 0.20)
 	_match.get_node("MatchFlow").pace = 0.0

@@ -43,6 +43,7 @@ func _initialize() -> void:
 	_worm.burst_seconds = 0.3
 	_worm.dive_seconds = 0.3
 	_worm.gap_seconds = 0.3
+	load("res://scripts/world/global_event.gd").gate_gap_seconds = 0.2   # DD-128: folga curta, o teste repete ciclos
 	root.add_child(_match)
 	_runner = _match.get_node("Main/Runner")
 	_runner.move_speed = 0.0   # parado: quem sofre é o corredor

@@ -59,8 +59,7 @@ func _run() -> void:
 	if not _check(services.rewards != null, "Services.rewards registrado pela partida"): return
 
 	# Desempenho: 2 áreas, 1 corte, território tomado de verdade, jogador em 1º com 55% (civilização 2 com 20%)
-	_bus.territory_loop_closed.emit(1, PackedVector3Array())
-	_bus.territory_loop_closed.emit(1, PackedVector3Array())
+	_bus.territory_loop_claimed.emit(1, 40)   # a 2ª área vem do claim_loop_interior abaixo (o mapa também anuncia)
 	var far_dir := Vector3(0.3, -0.9, 0.3).normalized()
 	services.territory.claim_cap(2, far_dir, 0.5)
 	services.territory.claim_loop_interior(1, _ring(far_dir, 0.2, 40))

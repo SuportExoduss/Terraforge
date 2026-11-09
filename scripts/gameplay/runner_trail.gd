@@ -7,6 +7,10 @@ extends Node
 
 const MIN_POINTS_FOR_LOOP := 3          # um circuito precisa de ao menos um triângulo
 const ANCHOR_CHECK_INTERVAL := 0.25     # vigia da retaguarda (DD-123): barata, não roda todo frame
+const SELF_TOUCH_RADIUS := 1.0          # encostar no PRÓPRIO rastro fecha o circuito (DD-127): distância até o segmento
+const SELF_TOUCH_SKIP := 8              # a cauda recém-gravada (últimos pontos) não conta como "encostar em si"
+const SELF_TOUCH_INTERVAL := 0.05
+const CLOSE_GRACE := 0.5                # depois de fechar, a posse leva um instante a chegar: nada de gravar rastro novo
 
 # A cerca é POSTE + ELO (DD-125): um poste em cada ponto do rastro, um elo esticado entre cada par.
 # O elo é um modelo de 1 unidade de comprimento ao longo de +Z, esticado até a distância real dos postes.
@@ -42,6 +46,8 @@ var _has_last_inside := false
 var _anchor := Vector3.ZERO
 var _has_anchor := false
 var _anchor_clock := 0.0
+var _touch_clock := 0.0
+var _grace := 0.0
 var _shadow_mesh: CylinderMesh
 var _shadow_material: StandardMaterial3D
 var _shadow_offset := Vector3.ZERO
@@ -85,6 +91,7 @@ func _process(delta: float) -> void:
 	var territory := Services.territory
 	var position := _runner.global_position
 	var inside: bool = territory != null and territory.is_owned_by(_civilization.id, position)
+	_grace = maxf(_grace - delta, 0.0)
 
 	if inside:
 		if not _was_inside and points.size() >= MIN_POINTS_FOR_LOOP:
@@ -94,11 +101,33 @@ func _process(delta: float) -> void:
 			_clear()
 		_last_inside_position = position
 		_has_last_inside = true
-	else:
-		_record_point_if_far_enough(_foot_point(planet, position))
-		_check_anchor(territory, delta)
+	elif _grace <= 0.0:
+		var foot := _foot_point(planet, position)
+		if not _close_on_self_touch(foot, delta):
+			_record_point_if_far_enough(foot)
+			_check_anchor(territory, delta)
 
 	_was_inside = inside
+
+
+# DD-127: encostou no próprio rastro = o circuito fecha NA HORA (o anel vai do ponto tocado até aqui).
+# O resto do rastro (o "rabo" até o território) some junto. Devolve true quando fechou.
+func _close_on_self_touch(foot: Vector3, delta: float) -> bool:
+	_touch_clock += delta
+	if _touch_clock < SELF_TOUCH_INTERVAL or points.size() < SELF_TOUCH_SKIP + 2:
+		return false
+	_touch_clock = 0.0
+	for i in points.size() - SELF_TOUCH_SKIP - 1:
+		var closest := Geometry3D.get_closest_point_to_segment(foot, points[i], points[i + 1])
+		if closest.distance_to(foot) > SELF_TOUCH_RADIUS:
+			continue
+		var ring := PackedVector3Array(points.slice(i + 1))
+		ring.append(foot)
+		EventBus.territory_loop_closed.emit(_civilization.id, ring)
+		_clear()
+		_grace = CLOSE_GRACE
+		return true
+	return false
 
 
 # DD-123: a vigia da retaguarda. Se o chão de onde a expedição SAIU for tomado, a conexão morreu:

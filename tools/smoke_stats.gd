@@ -53,10 +53,11 @@ func _run() -> void:
 	if not _check(stats != null, "Services.stats registrado pela partida"): return
 	if not _check(stats.get_stat(1, "loops") == 0.0 and stats.get_stat(7, "kills") == 0.0, "tudo começa zerado"): return
 
-	# 1. Circuito fechado = área conquistada (sinal do rastro)
-	_bus.territory_loop_closed.emit(1, PackedVector3Array())
-	_bus.territory_loop_closed.emit(1, PackedVector3Array())
-	if not _check(stats.get_stat(1, "loops") == 2.0 and stats.get_stat(2, "loops") == 0.0, "2 circuitos do jogador"): return
+	# 1. Circuito que rendeu área (sinal do mapa) = área conquistada; circuito "vazio" (< 12 células) não conta (item 2)
+	_bus.territory_loop_claimed.emit(1, 40)
+	_bus.territory_loop_claimed.emit(1, 12)
+	_bus.territory_loop_claimed.emit(1, 5)
+	if not _check(stats.get_stat(1, "loops") == 2.0 and stats.get_stat(2, "loops") == 0.0, "2 circuitos cheios contam, o de 5 células não"): return
 
 	# 2. Território tomado: civilização 2 ganha uma calota longe; o jogador cerca parte dela (conversão real)
 	var far_dir := Vector3(0.3, -0.9, 0.3).normalized()
@@ -69,8 +70,8 @@ func _run() -> void:
 	if not _check(lost > 0.005, "a civilização 2 perdeu terreno (%.4f)" % lost): return
 	var taken: float = stats.get_stat(1, "converted")
 	if not _check(absf(taken - lost) < 0.0005, "território tomado %.4f = perdido %.4f" % [taken, lost]): return
-	# o circuito foi chamado direto (sem o sinal do rastro): não mexe na contagem de áreas
-	if not _check(stats.get_stat(1, "loops") == 2.0, "claim direto não conta área"): return
+	# o circuito real (resolvido pelo mapa, com muitas células) também conta como área
+	if not _check(stats.get_stat(1, "loops") == 3.0, "circuito real do mapa conta área (%d)" % stats.get_stat(1, "loops")): return
 
 	# 3. Corte de rastro conta para quem cortou
 	_bus.trail_cut.emit(2, 1)
@@ -87,12 +88,20 @@ func _run() -> void:
 	if not _check(health.points == 0, "o corte eliminou o jogador (%d pts)" % health.points): return
 	if not _check(stats.get_stat(2, "kills") == 1.0 and stats.get_stat(1, "kills") == 0.0, "o assassino ganha a eliminação"): return
 
+	# 4b. Empate no domínio (item 11): mais áreas > mais cortes > menor id
+	for fake in [22, 21, 20, 23]:
+		_bus.territory_score_changed.emit(fake, 0.3)
+	_bus.territory_loop_claimed.emit(23, 40)
+	_bus.trail_cut.emit(0, 22)
+	var order: Array = stats.ranking().filter(func(id: int) -> bool: return id >= 20)
+	if not _check(order == [23, 22, 20, 21], "desempate: áreas (23), cortes (22), menor id (20, 21) — veio %s" % [order]): return
+
 	# 5. Resultados mostram as estatísticas do jogador
 	_match.get_node("MatchFlow").pace = 0.0   # pós-jogo instantâneo
 	_bus.match_ended.emit()
 	await process_frame
 	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Stats").get_parsed_text()
-	if not _check(text.contains("SUAS ESTATÍSTICAS") and text.contains("Áreas conquistadas: 2") and text.contains("Rastros cortados: 2") and text.contains("Eliminações: 0"), "painel de estatísticas:\n" + text): return
+	if not _check(text.contains("SUAS ESTATÍSTICAS") and text.contains("Áreas conquistadas: 3") and text.contains("Rastros cortados: 2") and text.contains("Eliminações: 0"), "painel de estatísticas:\n" + text): return
 	if not _check(text.contains("Território tomado de rivais: ") and not text.contains("rivais: 0,0%"), "território tomado no painel:\n" + text): return
 	print("OK")
 	quit(0)

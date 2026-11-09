@@ -7,3 +7,7 @@ export_presets.cfg.bak
 .smoke_*.txt
 tools/_shots/
 build/
+
+# logs locais de playtest/smokes
+.playtest_*
+.smokes_*

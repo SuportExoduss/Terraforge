@@ -21,7 +21,8 @@ var _dirs := PackedVector3Array()
 var _owners := PackedByteArray()
 var _counts := PackedInt32Array()          # células por dono
 var _dispossessed := PackedByteArray()     # donos que perderam célula na conquista em curso
-var _claim_buffer := PackedVector3Array()  # posições das células conquistadas na operação em curso
+var _claim_cells := PackedInt32Array()     # células conquistadas na operação em curso (índices)
+var _wave_hint := Vector3.ZERO             # de onde a onda sai quando não há território colado (direção, ou zero)
 var _taken := 0                            # destas, quantas eram de outro dono (conversão)
 
 # Vizinhança fixa da grade em formato CSR: vizinhos da célula c = _nb_data[_nb_start[c] .. _nb_start[c+1]).
@@ -37,6 +38,8 @@ var _bucket_data := PackedInt32Array()
 # Fila e marcação reaproveitadas por todos os flood-fills (cada célula entra na fila no máximo uma vez).
 var _queue := PackedInt32Array()
 var _mark := PackedByteArray()
+var _wave := PackedByteArray()             # 0 = não é nova; 1 = nova, ainda na espera; 2 = nova, já na fila (item 10)
+var _wave_queue := PackedInt32Array()      # fila própria: _queue pode estar em uso pelo selamento de bolsões
 
 var _center_cache := Vector3.ZERO   # o planeta não se move; a thread de trabalho não toca na árvore de cenas
 
@@ -153,6 +156,7 @@ func claim_cap(owner_id: int, cap_direction: Vector3, cap_angle: float) -> void:
 		return
 	_wait_idle()
 	_begin_claim()
+	_wave_hint = cap_direction.normalized()
 	var near := PackedInt32Array()
 	_collect_within(cap_direction, cap_angle * _radius, near)
 	for cell in near:
@@ -207,6 +211,7 @@ func _loop_work(owner_id: int, trail_points: PackedVector3Array, bases: Dictiona
 	var near := PackedInt32Array()
 	var centroid_sum := Vector3.ZERO
 	var point_count := trail_points.size()
+	_wave_hint = (trail_points[point_count - 1] - center).normalized()   # laço sem vizinhança: a onda nasce onde fechou
 	for i in point_count:
 		var from := trail_points[i]
 		var to := trail_points[(i + 1) % point_count]
@@ -245,9 +250,9 @@ func _loop_work(owner_id: int, trail_points: PackedVector3Array, bases: Dictiona
 	# DD-102: fragmentos inimigos que perderam a conexão com a própria base são amputados.
 	_convert_disconnected_enemy_regions(owner_id, bases)
 
-	var claimed := _claim_buffer.size()
+	var claimed := _claim_cells.size()
 	var took_enemy := _dispossessed.count(1) > 0
-	_publish_claims(owner_id)
+	_publish_claims(owner_id, true)
 	print("[World] Civilização %d anexou %d células%s" % [
 			owner_id, claimed, " (convertendo território inimigo!)." if took_enemy else "."])
 
@@ -333,7 +338,7 @@ func _seal_enclosed_free_pockets() -> void:
 		_begin_claim()
 		for q in range(starts[r], starts[r + 1]):
 			_claim_cell(best_owner, _queue[q])
-		var sealed := _claim_buffer.size()
+		var sealed := _claim_cells.size()
 		_publish_claims(best_owner)
 		print("[World] Bolsão cercado de %d células selado para a civilização %d." % [sealed, best_owner])
 
@@ -359,7 +364,8 @@ func _flood(start_cell: int, match_owner: int, invert: bool) -> int:
 
 
 func _begin_claim() -> void:
-	_claim_buffer = PackedVector3Array()
+	_claim_cells = PackedInt32Array()
+	_wave_hint = Vector3.ZERO
 	_taken = 0
 	_dispossessed.fill(0)
 
@@ -374,23 +380,78 @@ func _claim_cell(owner_id: int, cell: int) -> void:
 		_taken += 1
 	_owners[cell] = owner_id
 	_counts[owner_id] += 1
-	_claim_buffer.append(_cell_position(cell))
+	_claim_cells.append(cell)
+
+
+# Item 10 (DD-127): as células novas saem em ONDA — camadas a partir do que o dono já tinha (ou, sem vizinhança,
+# de _wave_hint), do mais perto para o mais longe. O painter pinta nessa ordem: a dominação avança do território
+# antigo para a borda nova, como a água subindo. Ilhas desconexas (amputação) entram depois, uma a uma.
+func _wave_order(owner_id: int) -> PackedVector3Array:
+	var order := PackedVector3Array()
+	var total := _claim_cells.size()
+	order.resize(total)
+	for c in _claim_cells:
+		_wave[c] = 1
+	var head := 0
+	var tail := 0
+	for c in _claim_cells:   # sementes: nova e colada num vizinho que já era do dono (_wave 0 = não é nova)
+		for k in range(_nb_start[c], _nb_start[c + 1]):
+			var nb := _nb_data[k]
+			if _wave[nb] == 0 and _owners[nb] == owner_id:
+				_wave[c] = 2
+				_wave_queue[tail] = c
+				tail += 1
+				break
+	var next_island := 0
+	var out := 0
+	while out < total:
+		if head == tail:   # fila vazia: nova ilha (sem vizinhança, a primeira nasce junto de _wave_hint)
+			var seed := -1
+			if out == 0 and _wave_hint != Vector3.ZERO:
+				var best := -2.0
+				for c in _claim_cells:
+					var d := _dirs[c].dot(_wave_hint)
+					if d > best:
+						best = d
+						seed = c
+			else:
+				while _wave[_claim_cells[next_island]] != 1:
+					next_island += 1
+				seed = _claim_cells[next_island]
+			_wave[seed] = 2
+			_wave_queue[tail] = seed
+			tail += 1
+		var cell := _wave_queue[head]
+		head += 1
+		order[out] = _cell_position(cell)
+		out += 1
+		for k in range(_nb_start[cell], _nb_start[cell + 1]):
+			var nb := _nb_data[k]
+			if _wave[nb] == 1:
+				_wave[nb] = 2
+				_wave_queue[tail] = nb
+				tail += 1
+	for c in _claim_cells:
+		_wave[c] = 0
+	return order
 
 
 # Empilha o anúncio (posições + placares de quem ganhou e de quem perdeu) para a thread principal.
-func _publish_claims(owner_id: int) -> void:
-	if _claim_buffer.is_empty():
+func _publish_claims(owner_id: int, from_loop := false) -> void:
+	if _claim_cells.is_empty():
 		return
 	var scores: Array = [[owner_id, float(_counts[owner_id]) / cell_count]]
 	for loser in range(1, MAX_OWNERS):
 		if _dispossessed[loser] != 0:
 			scores.append([loser, float(_counts[loser]) / cell_count])
-	_outbox.append([owner_id, _claim_buffer, scores, _taken])
+	_outbox.append([owner_id, _wave_order(owner_id), scores, _taken, from_loop])
 
 
 func _flush_outbox() -> void:
 	for note in _outbox:
 		EventBus.territory_cells_claimed.emit(note[0], note[1], cell_spacing)
+		if note[4]:
+			EventBus.territory_loop_claimed.emit(note[0], note[1].size())
 		if note[3] > 0:
 			EventBus.territory_cells_converted.emit(note[0], float(note[3]) / cell_count)
 		for score in note[2]:
@@ -478,6 +539,8 @@ func _ensure_built() -> bool:
 	_owners.resize(cell_count)
 	_mark.resize(cell_count)
 	_queue.resize(cell_count)
+	_wave.resize(cell_count)
+	_wave_queue.resize(cell_count)
 	_counts.resize(MAX_OWNERS)
 	_dispossessed.resize(MAX_OWNERS)
 

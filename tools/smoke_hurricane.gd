@@ -42,6 +42,7 @@ func _initialize() -> void:
 	_storm.start_radius = 30.0   # ciclos 1 e 2: raio fixo e furacão parado
 	_storm.full_radius = 30.0
 	_storm.drift_speed = 0.0
+	load("res://scripts/world/global_event.gd").gate_gap_seconds = 0.2   # DD-128: folga curta para os 3 ciclos caberem
 	root.add_child(_match)
 	_runner = _match.get_node("Main/Runner")
 	_runner.move_speed = 0.0   # parado: quem o move é o furacão

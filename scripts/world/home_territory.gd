@@ -118,8 +118,7 @@ func _land(planet: Planet) -> void:
 	var cap_angle := asin(clampf(dome_radius / planet.radius, 0.0, 1.0))
 	Services.territory.claim_cap(_civilization.id, up, cap_angle)
 	Services.register_home_base(_civilization.id, global_position, dome_radius)
-	_clock = 0.0
-	_last_announced = -1
+	_clock = 0.0   # (sem zerar _last_announced: a contagem da descida segue na espera pousada sem repetir o "2")
 	state = State.LANDED
 	print("[World] Nave da civilização %d pousou; campo se restabelecendo (DD-100)." % _civilization.id)
 

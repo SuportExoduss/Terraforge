@@ -15,6 +15,41 @@ extends Node3D
 
 enum State { WAITING_MATCH, COOLDOWN, WARNING, ACTIVE, SCAR }
 
+# DD-128 — portão único dos 7 eventos (o meteoro também usa): GDMD cap.03 parte 07 "eventos respeitam limite simultâneo".
+# No máximo MAX_SIMULTANEOUS em AVISO/EXECUÇÃO e uma folga depois de cada execução (a cicatriz de um evento pode
+# coexistir com o aviso do próximo). Um evento que esgotou o cooldown mas achou o portão fechado espera a sua vez.
+const MAX_SIMULTANEOUS := 1
+static var gate_gap_seconds := 25.0   # (var para o teste encurtar)
+static var _running := 0
+static var _gap_left := 0.0
+static var _gap_frame := -1
+
+
+static func gate_open() -> bool:
+	return _running < MAX_SIMULTANEOUS and _gap_left <= 0.0
+
+
+static func gate_enter() -> void:
+	_running += 1
+
+
+static func gate_leave() -> void:
+	_running = maxi(0, _running - 1)
+	_gap_left = gate_gap_seconds
+
+
+static func gate_reset() -> void:
+	_running = 0
+	_gap_left = 0.0
+
+
+## Todo evento chama a cada quadro; só a primeira chamada do quadro desconta a folga (são vários relógios, um tempo só).
+static func gate_tick(delta: float) -> void:
+	var frame := Engine.get_process_frames()
+	if frame != _gap_frame:
+		_gap_frame = frame
+		_gap_left = maxf(0.0, _gap_left - delta)
+
 var state := State.WAITING_MATCH
 var clock := 0.0
 var _cooldown_target := 0.0
@@ -43,11 +78,15 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	gate_tick(delta)
 	match state:
 		State.COOLDOWN:
 			clock += delta
-			if clock >= _cooldown_target and _seconds_remaining > quiet_before_end_seconds + warning_seconds + _active_seconds():
-				_start_warning()
+			if clock >= _cooldown_target:
+				if not gate_open():
+					_cooldown_target = clock + randf_range(0.0, 8.0)   # DD-128: fila sorteada (senão vence sempre o 1º da árvore)
+				elif _seconds_remaining > quiet_before_end_seconds + warning_seconds + _active_seconds():
+					_start_warning()
 		State.WARNING:
 			clock += delta
 			var remaining := warning_seconds - clock
@@ -65,6 +104,7 @@ func _process(delta: float) -> void:
 			clock += delta
 			if _tick_active(delta):
 				EventBus.global_event_active_changed.emit(false)
+				gate_leave()
 				state = State.SCAR
 				clock = 0.0
 				_begin_scar()
@@ -78,11 +118,13 @@ func _process(delta: float) -> void:
 
 
 func _on_match_started() -> void:
+	gate_reset()
 	_begin_cooldown()
 	_cooldown_target = maxf(_cooldown_target, quiet_after_start_seconds)   # DD-106: paz inicial
 
 
 func _on_match_ended() -> void:
+	gate_reset()
 	if state == State.ACTIVE:
 		EventBus.global_event_active_changed.emit(false)
 	_hide()
@@ -99,6 +141,7 @@ func _start_warning() -> void:
 	if Services.planet == null or not _begin_warning():
 		_begin_cooldown()
 		return
+	gate_enter()
 	state = State.WARNING
 	clock = 0.0
 	_last_announced = -1
