@@ -58,6 +58,7 @@ func _ready() -> void:
 	dock.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	dock.add_theme_constant_override("separation", 8)
 	box.add_child(dock)
+	_add_dock(dock, "Profile", "PERFIL", ProfileScreen)
 	_add_dock(dock, "Civilizations", "CIVILIZAÇÕES", CivilizationsScreen)
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
