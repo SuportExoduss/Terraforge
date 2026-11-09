@@ -33,6 +33,16 @@ func is_active_in_field() -> bool:
 	return _enabled and _match_started and not _aboard_ship and not _eliminated and not _recalling
 
 
+## Troca o motorista em campo (o servidor entrega o corredor a um jogador remoto). O antigo é descartado.
+func use_steering(driver: Node) -> void:
+	if _steering != null:
+		_steering.name = "Steering_old"
+		_steering.queue_free()
+	driver.name = "Steering"
+	add_child(driver)
+	_steering = driver
+
+
 func _ready() -> void:
 	_steering = get_node_or_null("Steering")
 	if _steering == null:
