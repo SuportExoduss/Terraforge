@@ -46,6 +46,13 @@ func _process(delta: float) -> bool:
 		if not (facing_toes > 0.8 and facing_arms > 0.8):
 			print("FALHOU: o boneco não está virado para a direção de corrida (de lado?)")
 			quit(1)
+		# O boneco NÃO cresce com a cerca: altura no mundo = model_height (2.0), com qualquer escala de pai.
+		var model: Node3D = _runner.get_node("Model")
+		var height: float = model.global_transform.basis.get_scale().y * load("res://scripts/core/model_utils.gd").local_aabb(model).size.y
+		print("altura do boneco no mundo=%.2f (esperado %.2f)" % [height, _runner.model_height])
+		if absf(height - _runner.model_height) > 0.01:
+			print("FALHOU: o boneco mudou de tamanho")
+			quit(1)
 		_steer_start = _time
 		_fwd0 = _runner.forward
 		Input.action_press("ui_right")
