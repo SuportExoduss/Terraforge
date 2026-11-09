@@ -1,11 +1,11 @@
 extends SceneTree
-## Fotografa o menu com o dock e as telas dele (Civilizações, Perfil, Loja) — exige janela, sem --headless.
+## Fotografa o menu com o dock e as telas dele (Civilizações, Perfil, Loja, Online) — exige janela, sem --headless.
 ## Uso: godot_console --path . --resolution 960x540 -s res://tools/shot_screens.gd -- <pasta de saída>
 
 var _out := ""
 var _frame := 0
 var _menu: Node
-var _names := ["Civilizations", "Profile", "Shop"]
+var _names := ["Civilizations", "Profile", "Shop", "Online"]
 
 
 func _initialize() -> void:
