@@ -30,6 +30,7 @@
 [ext_resource type="Script" path="res://scripts/core/perf_meter.gd" id="28"]
 [ext_resource type="Script" path="res://scripts/core/event_log.gd" id="29"]
 [ext_resource type="Script" path="res://scripts/core/update_order.gd" id="30"]
+[ext_resource type="Script" path="res://scripts/world/first_conquest_burst.gd" id="31"]
 
 [node name="Match" type="Node"]
 
@@ -97,6 +98,9 @@ script = ExtResource("11")
 
 [node name="Defenders" type="Node3D" parent="."]
 script = ExtResource("12")
+
+[node name="FirstConquest" type="Node3D" parent="."]
+script = ExtResource("31")
 
 [node name="Obstacles" type="Node" parent="."]
 script = ExtResource("13")
