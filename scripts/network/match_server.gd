@@ -13,8 +13,12 @@ var resync_interval := 1.0          # s mínimos entre dois pedidos de estado of
 var checkpoint_path := ""           # vazio = sem salvamento automático
 var checkpoint_interval := 10.0     # s entre checkpoints automáticos
 var checkpoints_saved := 0
+var digests_checked := 0            # relatos de hash dos clientes que o servidor conseguiu conferir
+
+const DIGEST_KEEP := 60   # snapshots lembrados (~3 s a 20 Hz): cobre a latência de quem relata
 
 var _checkpoint_clock := 0.0
+var _digests: Dictionary = {}     # tick do snapshot -> hash do mapa de territórios naquele instante (DD-133)
 var _peers: Dictionary = {}       # peer_id -> sessão {civ, seq, steering, token, connected, wait, expired}
 var _eliminated: Dictionary = {}  # civ_id -> true (quem o servidor viu cair; comandos dele são ignorados)
 
@@ -131,6 +135,40 @@ func resync(peer_id: int) -> Dictionary:
 	return {"ok": true, "state": full_state(peer_id)}
 
 
+## Hash do mapa de territórios agora: o "carimbo" que servidor e cliente comparam para saber se veem a mesma partida.
+func digest_now() -> int:
+	return hash(Services.territory.owners_snapshot()) if Services.territory != null else 0
+
+
+## O carimbo que o servidor tinha no snapshot `tick` (null = tick que ele nunca viu ou já esqueceu).
+func digest_at(tick: int) -> Variant:
+	return _digests.get(tick)
+
+
+## Detector de dessincronização (DD-133): o cliente relata "no snapshot `tick` o meu mapa tinha este hash". Se não
+## bate com o que o servidor tinha NAQUELE tick, os mapas divergiram e o estado oficial é reenviado (mesmo limite de
+## frequência do pedido manual). Comparar no mesmo tick é o que torna o teste justo com latência: a conquista que ainda
+## está a caminho não conta como erro. Tick esquecido não se confere. Devolve {diverged, ok, state?}.
+func verify_digest(peer_id: int, tick: Variant, digest: Variant) -> Dictionary:
+	var session: Dictionary = _peers.get(peer_id, {})
+	if session.is_empty():
+		net_log.add(0, "peer_desconhecido", "aviso", "relato do peer %d descartado" % peer_id)
+		return {"diverged": false, "ok": false}
+	if typeof(tick) != TYPE_INT or typeof(digest) != TYPE_INT:
+		net_log.add(session.civ, "relato_invalido", "aviso", "relato de hash descartado")
+		return {"diverged": false, "ok": false}
+	var expected: Variant = _digests.get(tick)
+	if expected == null:
+		return {"diverged": false, "ok": true}
+	digests_checked += 1
+	if expected == digest:
+		return {"diverged": false, "ok": true}
+	net_log.add(session.civ, "divergencia_detectada", "aviso", "hash do tick %d não confere" % tick)
+	var result := resync(peer_id)
+	result["diverged"] = true
+	return result
+
+
 ## Queda do servidor (cap. 04 parte 05): grava o estado oficial com checksum.
 func save_checkpoint(path: String) -> Error:
 	var err := MatchCheckpoint.write(official_state(), path)
@@ -210,6 +248,10 @@ func handle_command(peer_id: int, msg: Variant) -> bool:
 
 ## Foto do estado REAL da partida: é o que os clientes desenham e com o que se reconciliam.
 func snapshot() -> Dictionary:
+	if not _digests.has(tick):   # um carimbo por tick, não por jogador
+		_digests[tick] = digest_now()
+		if _digests.size() > DIGEST_KEEP:
+			_digests.erase(_digests.keys()[0])
 	var players: Array = []
 	for node in get_tree().get_nodes_in_group("runners"):
 		var runner := node as PlanetRunner

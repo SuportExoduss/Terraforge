@@ -15,9 +15,14 @@ signal reconnect_failed(reason: String)            # cliente: desisti (janela es
 signal resynced_with_server(state: Dictionary)     # cliente: o servidor reenviou o estado oficial (dessincronização)
 
 const SNAPSHOT_HZ := 20.0
+const DIGEST_EVERY := 10   # snapshots entre dois relatos de hash do cliente (~0,5 s)
 
 var match_server: MatchServer = null   # só no servidor
 var predictor: RunnerPredictor = null  # só no cliente: o corredor do próprio jogador, previsto (nasce no 1º snapshot)
+var interpolator: RemoteInterpolator = null   # só no cliente: os OUTROS corredores, suavizados (nasce no 1º snapshot)
+## Cliente: hash do MEU mapa de territórios como estava no último snapshot recebido. Vazio = o detector de
+## dessincronia fica desligado (o cliente ainda não tem mapa próprio para conferir).
+var local_digest := Callable()
 var my_civ := 0
 var last_snapshot: Dictionary = {}
 var last_full_state: Dictionary = {}   # cliente: o que o servidor mandou na última volta
@@ -26,6 +31,8 @@ var reconnect_window := 20.0           # cliente: segundos de tentativa; o valor
 var reconnect_interval := 1.0          # cliente: pausa entre tentativas
 
 var _seq := 0
+var _net_time := 0.0        # relógio local do transporte: base da interpolação dos remotos
+var _digest_count := 0
 var _snapshot_clock := 0.0
 var _address := ""
 var _port := 0
@@ -86,7 +93,13 @@ func request_resync() -> void:
 		resync_request.rpc_id(1)
 
 
+## Cliente: onde desenhar o corredor remoto `civ_id` agora ({pos, fwd}); {} se ainda não chegou nada dele.
+func remote_pose(civ_id: int) -> Dictionary:
+	return interpolator.sample(civ_id, _net_time) if interpolator != null else {}
+
+
 func _process(delta: float) -> void:
+	_net_time += delta
 	if predictor != null:
 		predictor.update_visual(delta)
 	if _reconnecting:
@@ -251,7 +264,22 @@ func resynced(state: Dictionary) -> void:
 func deliver(snapshot: Dictionary) -> void:
 	last_snapshot = snapshot
 	_reconcile(snapshot)
+	_feed_remotes(snapshot)
+	_digest_count += 1
+	if local_digest.is_valid() and _digest_count % DIGEST_EVERY == 0:
+		digest_report.rpc_id(1, snapshot.tick, local_digest.call())
 	snapshot_received.emit(snapshot)
+
+
+# Servidor: o cliente relata o hash do mapa dele num tick. Divergiu => o estado oficial volta pelo mesmo caminho do
+# pedido manual (e com o mesmo limite de frequência). Variant: o que chega da rede nunca é confiável.
+@rpc("any_peer", "call_remote", "reliable")
+func digest_report(tick: Variant, digest: Variant) -> void:
+	if match_server == null:
+		return
+	var result := match_server.verify_digest(multiplayer.get_remote_sender_id(), tick, digest)
+	if result.has("state"):
+		resynced.rpc_id(multiplayer.get_remote_sender_id(), result.state)
 
 
 func _adopt(state: Dictionary) -> void:
@@ -261,7 +289,20 @@ func _adopt(state: Dictionary) -> void:
 	last_full_state = state
 	last_snapshot = state
 	predictor = null   # recomeça do estado oficial
+	interpolator = null
 	_reconcile(state)
+	_feed_remotes(state)
+
+
+# Os corredores dos outros entram no suavizador; o meu é previsto, não interpolado.
+func _feed_remotes(snapshot: Dictionary) -> void:
+	if Services.planet == null:
+		return
+	if interpolator == null:
+		interpolator = RemoteInterpolator.new(Services.planet)
+	for p: Dictionary in snapshot.players:
+		if p.id != my_civ:
+			interpolator.push(p.id, _net_time, p.pos, p.fwd)
 
 
 # O estado oficial do meu corredor corrige a predição (nunca o contrário).

@@ -25,3 +25,4 @@ Status:
 - Passo 34 ✔ (Configurações: volumes SFX/música e qualidade no Profile, tela no menu; smoke_settings; regressão 43/43)
 - Passo 35 ✔ (Otimização: PerfMeter F3 + oclusor esférico inscrito no planeta + oclusão ligada; smoke_perf; HUD: temporizador do _flash vira filho do rótulo; regressão 44/44)
 - Passo 36 ✔ (EventLog em anel + UpdateOrder por fases (Entrada→...→Renderização); smoke_event_log; regressão 45/45)
+- Passo 37 ✔ (Rede: detector de dessincronia por hash de territórios por tick (DD-133) + RemoteInterpolator dos jogadores remotos; smoke_netsync; regressão 46/46)
