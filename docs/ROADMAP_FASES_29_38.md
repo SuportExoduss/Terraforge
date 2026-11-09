@@ -24,3 +24,4 @@ Status:
 - Passo 33 ✔ (minimapa estratégico: zoom, marcas de evento/rumo, bônus; smoke_minimap_strategy; regressão 42/42)
 - Passo 34 ✔ (Configurações: volumes SFX/música e qualidade no Profile, tela no menu; smoke_settings; regressão 43/43)
 - Passo 35 ✔ (Otimização: PerfMeter F3 + oclusor esférico inscrito no planeta + oclusão ligada; smoke_perf; HUD: temporizador do _flash vira filho do rótulo; regressão 44/44)
+- Passo 36 ✔ (EventLog em anel + UpdateOrder por fases (Entrada→...→Renderização); smoke_event_log; regressão 45/45)
