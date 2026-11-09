@@ -19,3 +19,4 @@ Regra: 1 commit por passo, smoke novo + regressão verde antes de cada commit; n
 Status:
 - Passo 29 ✔ (AudioDirector, smoke_audio; regressão 38/38)
 - Passo 30 ✔ (MusicDirector: música em 2 camadas + ambiente por civilização líder; smoke_music; regressão 39/39)
+- Passo 31 ✔ (DayNightCycle: Sol e ambiente seguem o relógio, pisos de luz; smoke_daynight; regressão 41/41)
