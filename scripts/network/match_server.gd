@@ -34,6 +34,29 @@ func join(peer_id: int, civilization_id: int) -> bool:
 	return true
 
 
+## Primeira civilização com corredor em campo e sem jogador remoto (0 = partida cheia).
+func free_civilization() -> int:
+	var ids: Array = get_tree().get_nodes_in_group("runners").map(func(r: Node) -> int: return r.get_node("Civilization").id)
+	ids.sort()
+	for id: int in ids:
+		if peer_of(id) == 0 and not _eliminated.has(id):
+			return id
+	return 0
+
+
+func has_peer(peer_id: int) -> bool:
+	return _peers.has(peer_id)
+
+
+## A conexão do jogador caiu: o corredor segue em frente (sem volante) e o fato fica registrado.
+func peer_left(peer_id: int) -> void:
+	var session: Dictionary = _peers.get(peer_id, {})
+	if session.is_empty():
+		return
+	session.steering.steer = 0.0
+	net_log.add(session.civ, "peer_desconectado", "aviso", "corredor segue reto")
+
+
 func peer_of(civilization_id: int) -> int:
 	for peer_id: int in _peers:
 		if _peers[peer_id].civ == civilization_id:
