@@ -92,7 +92,7 @@ func _run() -> void:
 	if not _check(int(d["loops"]) == 2 and int(d["cuts"]) == 1 and int(d["kills"]) == 0, "totais do perfil: %s" % d): return
 
 	# Tela de resultados mostra a recompensa
-	var text: String = _match.get_node("Results/Panel/Box/Rewards").get_parsed_text()
+	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("RECOMPENSAS") and text.contains("+%d XP" % xp_expected) and text.contains("+%d moedas" % coins_expected), "painel de recompensas:\n" + text): return
 	if not _check(text.contains("Nível %d" % last["level"]), "nível no painel:\n" + text): return
 

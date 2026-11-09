@@ -40,6 +40,11 @@ func _run() -> void:
 	if not _check(menu.name == "Menu" and menu.get_node("Box/Play").text == "JOGAR" and menu.get_node("Box/Quit").text == "SAIR", "menu com JOGAR e SAIR"): return
 	if not _check(menu.get_node("Box/Title").text == "TERRAFORGE", "título"): return
 	if not _check(menu.get_node("Box/Profile").text.begins_with("Nível ") and menu.get_node("Box/Profile").text.contains("conquistas "), "linha de perfil (nível/XP/moedas/conquistas)"): return
+	# Geometria (bug: com set_anchors_preset o menu ficava no canto da tela, sem fundo): fundo cobre a tela e a caixa fica no centro
+	await process_frame
+	var screen: Vector2 = menu.get_viewport_rect().size
+	var box_center: Vector2 = menu.get_node("Box").get_global_rect().get_center()
+	if not _check(menu.get_child(0).size == screen and box_center.distance_to(screen * 0.5) < 2.0, "menu deve cobrir a tela e ficar centralizado (fundo %s, centro %s, tela %s)" % [menu.get_child(0).size, box_center, screen]): return
 
 	# 1. JOGAR leva à partida; os botões dos resultados ainda não aparecem
 	menu.get_node("Box/Play").pressed.emit()

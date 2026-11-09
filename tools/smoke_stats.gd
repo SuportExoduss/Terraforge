@@ -91,7 +91,7 @@ func _run() -> void:
 	_match.get_node("MatchFlow").pace = 0.0   # pós-jogo instantâneo
 	_bus.match_ended.emit()
 	await process_frame
-	var text: String = _match.get_node("Results/Panel/Box/Stats").get_parsed_text()
+	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Stats").get_parsed_text()
 	if not _check(text.contains("SUAS ESTATÍSTICAS") and text.contains("Áreas conquistadas: 2") and text.contains("Rastros cortados: 2") and text.contains("Eliminações: 0"), "painel de estatísticas:\n" + text): return
 	if not _check(text.contains("Território tomado de rivais: ") and not text.contains("rivais: 0,0%"), "território tomado no painel:\n" + text): return
 	print("OK")

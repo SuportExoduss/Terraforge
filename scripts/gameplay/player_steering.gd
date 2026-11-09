@@ -2,7 +2,7 @@ class_name PlayerSteering
 extends Node
 ## O motorista humano. Direção por PONTEIRO (toque no celular vira mouse via emulação; mouse no PC):
 ## tocar cria um analógico flutuante sob o dedo; arrastar para os lados curva a corrida.
-## Teclado (A/D, setas) vale como alternativa. Posições em pixels do viewport virtual (540x960).
+## Teclado (A/D, setas) vale como alternativa. Posições em pixels do viewport virtual (960x540, celular deitado).
 
 @export var joystick_radius_pixels: float = 60.0
 @export var joystick_dead_zone: float = 0.08

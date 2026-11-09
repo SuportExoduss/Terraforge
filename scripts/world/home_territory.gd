@@ -104,7 +104,7 @@ func _progress(duration: float) -> float:
 func _place(direction: Vector3, altitude: float) -> void:
 	var planet := Services.planet
 	global_position = planet.center + direction * (planet.get_surface_radius(direction) + altitude)
-	var forward := (-global_transform.basis.z).slide(direction)
+	var forward := global_transform.basis.z.slide(direction)   # looking_at(..., true) grava a frente em +Z: ler -Z invertia a nave a cada quadro
 	if forward.length_squared() < 0.001:
 		forward = Vector3.FORWARD.slide(direction)
 	if forward.length_squared() < 0.001:

@@ -19,7 +19,7 @@ func _ready() -> void:
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_panel.offset_top = 90.0
+	_panel.offset_top = 24.0   # celular deitado: só 540 px de altura
 	_panel.custom_minimum_size.x = 320.0
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.04, 0.06, 0.13, 0.85)
@@ -34,6 +34,17 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 14)
 	_panel.add_child(box)
 
+	# Duas colunas (celular deitado, 960x540): ranking à esquerda; estatísticas e recompensas à direita.
+	var columns := HBoxContainer.new()
+	columns.name = "Columns"
+	columns.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	columns.add_theme_constant_override("separation", 32)
+	box.add_child(columns)
+	var side := VBoxContainer.new()
+	side.name = "Side"
+	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side.add_theme_constant_override("separation", 10)
+
 	_text = RichTextLabel.new()
 	_text.name = "Ranking"
 	_text.bbcode_enabled = true
@@ -43,17 +54,18 @@ func _ready() -> void:
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text.add_theme_font_size_override("normal_font_size", 22)
 	_text.add_theme_font_size_override("bold_font_size", 22)
-	box.add_child(_text)
+	columns.add_child(_text)
+	columns.add_child(side)
 
 	_stats = _text.duplicate()   # mesmo estilo, fonte menor
 	_stats.name = "Stats"
 	_stats.add_theme_font_size_override("normal_font_size", 17)
 	_stats.add_theme_font_size_override("bold_font_size", 17)
-	box.add_child(_stats)
+	side.add_child(_stats)
 
 	_rewards = _stats.duplicate()
 	_rewards.name = "Rewards"
-	box.add_child(_rewards)
+	side.add_child(_rewards)
 
 	var buttons := HBoxContainer.new()
 	buttons.name = "Buttons"

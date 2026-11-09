@@ -15,7 +15,7 @@ const ANCHOR_CHECK_INTERVAL := 0.25     # vigia da retaguarda (DD-123): barata, 
 @export var point_spacing: float = 1.5
 @export var surface_offset: float = 0.15            # levanta o rastro do chão (anti z-fighting)
 @export var post_rotation_offset_degrees := Vector3.ZERO
-@export var post_scale: float = 1.0
+@export var post_scale: float = 1.25              # tamanho da cerca (poste + elo); 1.25 = 25% maior que o modelo original
 @export var link_height: float = 0.16               # altura do elo no poste (unidades do modelo; anda com post_scale)
 @export var post_shadow := true
 @export_range(0.0, 3.0) var post_shadow_size: float = 1.4        # fração da largura do poste
@@ -178,7 +178,7 @@ func _place_link(from: Vector3, to: Vector3) -> void:
 	var link := _links[_active_links]
 	_active_links += 1
 	var basis := Basis.looking_at((b - a) / length, _up_at(middle), true) \
-			* Basis.from_scale(Vector3(1.0, 1.0, length))   # à direita: estica o eixo LOCAL +Z
+			* Basis.from_scale(Vector3(post_scale, post_scale, length))   # à direita: estica o eixo LOCAL +Z; a espessura anda com o poste
 	link.global_transform = Transform3D(basis, middle)
 	link.visible = true
 

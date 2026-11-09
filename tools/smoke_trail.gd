@@ -52,6 +52,11 @@ func _process(delta: float) -> bool:
 				print("fase0: pontos=%d postes=%d elos=%d" % [_trail.points.size(), posts, links])
 				if _trail.points.size() < 3 or posts != _trail.points.size() or links != posts - 1:
 					return _finish_fail("rastro não gravou/plantou postes e elos (um poste por ponto, um elo entre cada par)")
+				# Cerca 25% maior (pedido do André, 2026-11-08): poste E espessura do elo em 1,25 do modelo original.
+				var post_scale: Vector3 = _trail._posts[0].global_transform.basis.get_scale()
+				var link_scale: Vector3 = _trail._links[0].global_transform.basis.get_scale()
+				if not is_equal_approx(post_scale.x, 1.25) or not is_equal_approx(link_scale.x, 1.25) or not is_equal_approx(link_scale.y, 1.25):
+					return _finish_fail("cerca deve ser 25%% maior (poste %s, elo %s)" % [post_scale, link_scale])
 				_fake.owned_all = true   # "voltou" ao território
 				_phase = 1
 		1:  # um frame depois: circuito fechado e rastro limpo

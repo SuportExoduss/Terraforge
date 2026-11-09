@@ -75,7 +75,7 @@ func _run() -> void:
 	if not _check(_sorted(fresh) == expected, "conquistas novas: %s (esperado %s)" % [_sorted(fresh), expected]): return
 	profile.load_data()
 	if not _check(_sorted(profile.data["achievements"].keys()) == expected, "perfil salvo: %s" % [profile.data["achievements"].keys()]): return
-	var text: String = _match.get_node("Results/Panel/Box/Rewards").get_parsed_text()
+	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("CONQUISTA: Primeira Conquista") and text.contains("CONQUISTA: Dominador"), "painel:\n" + text): return
 
 	# 3. Segunda partida (mesma cena, concessão repetida): nada duplica; o perfil conta 2 partidas

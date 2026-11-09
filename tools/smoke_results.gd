@@ -34,7 +34,7 @@ func _run() -> void:
 	await bus.match_started
 	await process_frame
 	var panel: Control = _match.get_node("Results/Panel")
-	var text: RichTextLabel = _match.get_node("Results/Panel/Box/Ranking")
+	var text: RichTextLabel = _match.get_node("Results/Panel/Box/Columns/Ranking")
 	if not _check(not panel.visible, "painel não deveria aparecer durante a partida"): return
 	if not _check(_match.get_node("Hud/Minimap").visible, "minimapa deveria estar visível durante a partida"): return
 
@@ -55,5 +55,12 @@ func _run() -> void:
 	var want := ["RESULTADO FINAL", "", "1º  Civilização 2 — 40,0%", "2º  VOCÊ — 12,5%", "3º  Civilização 5 — 3,0%",
 			"4º  Civilização 3 — ELIMINADO (máx 30,0%)", "5º  Civilização 4 — ELIMINADO (máx 5,0%)"]
 	if not _check(Array(lines) == want, "ranking:\n%s" % "\n".join(lines)): return
+	# Celular deitado (960x540): o painel inteiro (ranking, estatísticas, recompensas, botões) cabe na tela
+	await process_frame
+	var screen := Vector2(root.content_scale_size)   # (o headless tem janela de 64x64, então vale o tamanho de projeto)
+	var rect := panel.get_global_rect()
+	print("painel %s em tela %s" % [rect, screen])
+	if not _check(screen == Vector2(960.0, 540.0), "tela de projeto deveria ser 960x540 (paisagem), é %s" % screen): return
+	if not _check(rect.position.y >= 0.0 and rect.end.y <= screen.y, "painel estoura a altura da tela: %s" % rect): return
 	print("OK")
 	quit(0)
