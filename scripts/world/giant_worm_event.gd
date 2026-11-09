@@ -190,3 +190,7 @@ func _place_hole(i: int, s: float) -> void:
 func _place_worm(direction: Vector3, height: float) -> void:
 	_worm.global_transform = Transform3D(ground_basis(direction), ground_point(direction) + direction * height)
 	_worm.visible = true
+
+
+func _focus_direction() -> Vector3:
+	return _target[jump] if state == State.ACTIVE else NO_TARGET   # no aviso os saltos ainda não têm alvo

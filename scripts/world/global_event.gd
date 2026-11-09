@@ -68,9 +68,12 @@ func _tick_active(_delta: float) -> bool: return true    # true = a execução t
 func _begin_scar() -> void: pass                         # deixa a cicatriz e a recompensa (DD-106/108)
 func _tick_scar(_life: float) -> void: pass              # life 1 → 0
 func _hide() -> void: pass                               # esconde tudo (fim da cicatriz ou da partida)
+func _focus_direction() -> Vector3: return Vector3.ZERO  # onde o evento está agora (direção do centro do planeta); ZERO = sem local
+func _focus_heading() -> Vector3: return Vector3.ZERO    # para onde anda (tangente ao chão); ZERO = parado
 
 
 func _ready() -> void:
+	add_to_group("minimap_events")
 	_setup()
 	EventBus.match_started.connect(_on_match_started)
 	EventBus.match_ended.connect(_on_match_ended)
@@ -115,6 +118,16 @@ func _process(delta: float) -> void:
 			if life <= 0.0:
 				_hide()
 				_begin_cooldown()
+
+
+## Onde o evento está, para o minimapa (MP-003/005): vazio fora de aviso/execução ou sem local definido.
+func minimap_focus() -> Dictionary:
+	if state != State.WARNING and state != State.ACTIVE:
+		return {}
+	var spot := _focus_direction()
+	if spot == Vector3.ZERO:
+		return {}
+	return {"direction": spot.normalized(), "heading": _focus_heading()}
 
 
 func _on_match_started() -> void:

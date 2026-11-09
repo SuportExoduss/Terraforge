@@ -263,3 +263,7 @@ func _hurt(runner: PlanetRunner, points: int) -> void:
 	if health != null:
 		health.take_damage(points)
 
+
+
+func _focus_direction() -> Vector3:
+	return _crack_dir[0]   # ponytail: o minimapa marca só a 1ª rachadura (as outras ficam perto dela)

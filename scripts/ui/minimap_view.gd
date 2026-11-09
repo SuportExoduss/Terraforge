@@ -11,6 +11,7 @@ const EXPANDED_SIZE := 420.0
 const MARGIN := 12.0
 const EXPANDED_ALPHA := 0.75
 const TAP_MAX_MSEC := 300
+const ZOOM_STEP := 1.25   # por clique de roda
 
 var _expanded := false
 var _dragged := false
@@ -33,6 +34,10 @@ func _gui_input(event: InputEvent) -> void:
 			TouchSteering.set_ui_pointer_held(false)
 			if not _dragged and Time.get_ticks_msec() - _down_msec <= TAP_MAX_MSEC:
 				_toggle()
+	elif event is InputEventMouseButton and event.pressed and _expanded and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		EventBus.minimap_zoomed.emit(ZOOM_STEP if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / ZOOM_STEP)
+	elif event is InputEventMagnifyGesture and _expanded:
+		EventBus.minimap_zoomed.emit(event.factor)
 	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 		_dragged = true
 		if _expanded:

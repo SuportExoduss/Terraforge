@@ -245,3 +245,11 @@ func _glass(color: Color) -> StandardMaterial3D:
 
 func _material(disc: MeshInstance3D) -> StandardMaterial3D:
 	return (disc.mesh as PrimitiveMesh).material as StandardMaterial3D
+
+
+func _focus_direction() -> Vector3:
+	return center_dir
+
+
+func _focus_heading() -> Vector3:
+	return _heading

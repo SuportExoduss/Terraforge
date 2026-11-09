@@ -41,6 +41,7 @@ var _rock_scale := 1.0
 
 
 func _ready() -> void:
+	add_to_group("minimap_events")
 	_shadow = _make_disc("Shadow", Color(0.05, 0.05, 0.08))
 	_scar = _make_disc("Scar", Color(0.12, 0.07, 0.04))
 	if model != null:
@@ -100,6 +101,13 @@ func _begin_cooldown() -> void:
 	_state = State.COOLDOWN
 	_clock = 0.0
 	_cooldown_target = randf_range(min_seconds_between, max_seconds_between)
+
+
+## Onde o meteoro vai cair, para o minimapa (MP-003/005): só durante o aviso.
+func minimap_focus() -> Dictionary:
+	if _state != State.WARNING:
+		return {}
+	return {"direction": _impact_direction, "heading": Vector3.ZERO}
 
 
 # AVISO: sorteia o ponto de impacto e a sombra começa a crescer.

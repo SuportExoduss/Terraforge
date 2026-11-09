@@ -230,3 +230,11 @@ func _place_funnel() -> void:
 		var direction := (center_dir + offset / Services.planet.radius).normalized()
 		_debris[i].global_transform = Transform3D(Basis(direction, a * 2.0), ground_point(direction) + direction * _debris_height[i])
 		_debris[i].scale = Vector3(1.4, 0.7, 1.0)
+
+
+func _focus_direction() -> Vector3:
+	return center_dir
+
+
+func _focus_heading() -> Vector3:
+	return _heading

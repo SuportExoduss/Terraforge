@@ -21,3 +21,4 @@ Status:
 - Passo 30 ✔ (MusicDirector: música em 2 camadas + ambiente por civilização líder; smoke_music; regressão 39/39)
 - Passo 31 ✔ (DayNightCycle: Sol e ambiente seguem o relógio, pisos de luz; smoke_daynight; regressão 41/41)
 - Passo 32 ✔ (WeatherManager: chuva/neblina/tempestade/aurora por semente, evento global sobrepõe; smoke_weather; regressão 41/41)
+- Passo 33 ✔ (minimapa estratégico: zoom, marcas de evento/rumo, bônus; smoke_minimap_strategy; regressão 42/42)

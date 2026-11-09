@@ -204,3 +204,7 @@ func _place_cone(height: float) -> void:
 	_cone.global_transform = Transform3D(ground_basis(_spot), ground_point(_spot) + _spot * (h * 0.5 - 0.5))
 	_cone.scale = Vector3(1.0, h, 1.0)
 	_cone.visible = true
+
+
+func _focus_direction() -> Vector3:
+	return _spot

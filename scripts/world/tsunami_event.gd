@@ -153,3 +153,11 @@ func _place_wave(rise: float) -> void:
 				planet.center + direction * (planet.get_surface_radius(direction) + height * 0.5))
 		segment.scale = Vector3(step * planet.radius * 1.05, height, foam_half * 2.0)
 		segment.visible = true
+
+
+func _focus_direction() -> Vector3:
+	return _front_point(_angle)
+
+
+func _focus_heading() -> Vector3:
+	return _front_tangent(_angle)
