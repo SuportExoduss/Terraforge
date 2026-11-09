@@ -92,8 +92,16 @@ func _toggle() -> void:
 		board.custom_minimum_size = Vector2(0.0, 250.0)
 		_box.add_child(board))
 	net.disconnected.connect(func() -> void:
+		if _civ != 0:   # já na partida: o NetSession tenta voltar sozinho com o token da sessão (cap. 04 parte 04)
+			status.text = "Conexão perdida: tentando voltar à partida…"
+			return
 		status.text = "Sem conexão com a sala (servidor fora do ar, sala cheia ou já fechada)."
 		_leave.call_deferred())   # fora do sinal: quem o emitiu ainda está usando a conexão
+	net.reconnected.connect(func(_state: Dictionary) -> void:
+		status.text = "De volta à partida: você é a civilização %d. Vire com ← →." % _civ)
+	net.reconnect_failed.connect(func(reason: String) -> void:
+		status.text = ("Não foi possível voltar à partida (%s)." if _civ != 0 else "A sala recusou a entrada (%s).") % reason
+		_leave.call_deferred())
 	_civ = 0
 	if net.connect_to(host, int(number)) != OK:
 		_leave()

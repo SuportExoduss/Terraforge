@@ -22,6 +22,11 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## A partida já passou do tempo (apuração, replay, resultados): o servidor decidiu o fim.
+func over() -> bool:
+	return net != null and net.last_snapshot.get("state", -1) >= MatchFlow.State.TIME_UP
+
+
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var shot := net.last_snapshot if net != null else {}
@@ -58,3 +63,5 @@ func _draw() -> void:
 				dom = p.dom
 		draw_string(font, Vector2(size.x - 130, 24 + line * 22), "%dº  Civ %d  %d%%" % [line + 1, id, roundi(dom * 100.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, COLORS[(id - 1) % COLORS.size()])
 		line += 1
+	if over():
+		draw_string(font, Vector2(0.0, size.y - 12.0), "PARTIDA ENCERRADA", HORIZONTAL_ALIGNMENT_CENTER, size.x, 24)

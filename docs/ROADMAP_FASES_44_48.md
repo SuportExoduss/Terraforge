@@ -10,7 +10,7 @@ Regra: 1 commit por passo, smoke novo + regressão verde antes de cada commit; n
 | 45 | Começo calmo | Cap.03 P03 30–45 s, DD-012 | bots cautelosos no começo: a ambição sobe de forma gradual até o pleno em ~45 s (poucos confrontos no 1º minuto) |
 | 46 | Tela ONLINE | Cap.04 lobby (Passo 38) | tela no menu para entrar na sala de um servidor dedicado, com o status do lobby (jogadores/capacidade, tempo) |
 | 47 | Partida online no cliente | Cap.04 lobby, Adendo 06 | quando a sala fecha, a tela ONLINE mostra o quadro da partida (corredores, tempo, ranking) e envia a direção ao servidor |
-| 48 | A definir após o 47 | — | — |
+| 48 | Queda e fim da partida online | Cap.04 parte 04 | o quadro online sobrevive a queda de conexão (reconecta sozinho), mostra o fim da partida e desiste com aviso se o servidor some |
 
 Pendente de decisão do André (não implementado): Cap.03 P03 diz "nenhum evento global antes de 60 s" e "bônus raro só após 45 s",
 mas o DD-106 (Adendo 02, já no código) usa paz de 25 s. Os dois valores se contradizem.
@@ -20,3 +20,4 @@ Status:
 - Passo 45 ✔ (Começo calmo: bots só caçam rastro inimigo depois de 15 s, alcance sobe até o pleno aos 45 s, DD-012; smoke_calm_start; regressão 54/54)
 - Passo 46 ✔ (Tela ONLINE: entra na sala de um servidor dedicado e mostra jogadores/capacidade e o tempo; só ENTRAR, hospedar = servidor dedicado; smoke_online_screen; regressão 55/55)
 - Passo 47 ✔ (Partida online no cliente: ao fechar a sala, a tela ONLINE abre o quadro 2D (OnlineBoard) com corredores, tempo e ranking do snapshot e manda ← →; smoke_online_board; regressão 56/56, replay passou sozinho após falha de carga)
+- Passo 48 ✔ (Queda e fim da partida online: o quadro sobrevive à queda e o NetSession volta sozinho; "PARTIDA ENCERRADA" no fim; sem servidor a tela desiste e devolve o formulário; smoke_online_resume; regressão 57/57)
