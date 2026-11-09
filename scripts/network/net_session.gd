@@ -2,12 +2,16 @@ class_name NetSession
 extends Node
 ## Transporte da partida (Adendo 06): ENet + API de RPC de alto nível do Godot. O MESMO nó vive nos dois lados
 ## (o caminho e os RPCs precisam coincidir): host() o torna o servidor autoritário (MatchServer dentro dele),
-## connect_to() o torna cliente. O cliente manda direção (submit); o servidor devolve boas-vindas e snapshots.
+## connect_to() o torna cliente. O cliente se apresenta (hello), manda direção (submit); o servidor devolve boas-vindas
+## e snapshots. Reconexão (cap. 04 parte 04): quem perde o servidor tenta voltar sozinho com o token da sessão, até a
+## janela que o SERVIDOR definiu; o servidor autentica e devolve o estado completo.
 
 signal connected                                   # cliente: o servidor aceitou a conexão
 signal disconnected                                # cliente: perdeu o servidor ou foi recusado
 signal welcome_received(civilization_id: int)      # cliente: qual civilização é a minha
 signal snapshot_received(snapshot: Dictionary)     # cliente: estado real da partida
+signal reconnected(state: Dictionary)              # cliente: voltei à partida com o estado completo
+signal reconnect_failed(reason: String)            # cliente: desisti (janela esgotada ou o servidor recusou a sessão)
 
 const SNAPSHOT_HZ := 20.0
 
@@ -15,9 +19,20 @@ var match_server: MatchServer = null   # só no servidor
 var predictor: RunnerPredictor = null  # só no cliente: o corredor do próprio jogador, previsto (nasce no 1º snapshot)
 var my_civ := 0
 var last_snapshot: Dictionary = {}
+var last_full_state: Dictionary = {}   # cliente: o que o servidor mandou na última volta
+var session_token := ""                # cliente: prova de que a sessão é minha (o servidor renova a cada volta)
+var reconnect_window := 20.0           # cliente: segundos de tentativa; o valor vem do servidor (welcome)
+var reconnect_interval := 1.0          # cliente: pausa entre tentativas
 
 var _seq := 0
 var _snapshot_clock := 0.0
+var _address := ""
+var _port := 0
+var _closed := false        # fechei de propósito: não há o que reconectar
+var _reconnecting := false
+var _attempting := false    # uma tentativa de conexão está em andamento
+var _elapsed := 0.0
+var _retry_clock := 0.0
 
 
 func host(port: int, max_clients := 5) -> Error:
@@ -28,30 +43,34 @@ func host(port: int, max_clients := 5) -> Error:
 	multiplayer.multiplayer_peer = peer
 	match_server = MatchServer.new()
 	add_child(match_server)
-	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	return OK
 
 
 func connect_to(address: String, port: int) -> Error:
-	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(address, port)
-	if err != OK:
-		return err
-	multiplayer.multiplayer_peer = peer
-	multiplayer.connected_to_server.connect(func(): connected.emit())
-	multiplayer.server_disconnected.connect(func(): disconnected.emit())
-	multiplayer.connection_failed.connect(func(): disconnected.emit())
-	return OK
+	_address = address
+	_port = port
+	_closed = false
+	return _open()
 
 
 func close() -> void:
+	_closed = true
+	_reconnecting = false
 	multiplayer.multiplayer_peer = null
 
 
+func is_online() -> bool:
+	var peer := multiplayer.multiplayer_peer
+	return peer != null and peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED
+
+
 ## Cliente: pede ao servidor para virar e já prevê o quadro localmente (DD-044). `dt` = duração do quadro de tela.
-## Devolve o número do comando (a predição guarda o que o servidor ainda não confirmou).
+## Devolve o número do comando (a predição guarda o que o servidor ainda não confirmou). Fora do ar: não faz nada
+## (o corredor segue reto no servidor até a volta).
 func send_steer(value: float, dt: float) -> int:
+	if not is_online():
+		return _seq
 	_seq += 1
 	submit.rpc_id(1, {"type": "steer", "seq": _seq, "steer": value})
 	if predictor != null:
@@ -62,28 +81,112 @@ func send_steer(value: float, dt: float) -> int:
 func _process(delta: float) -> void:
 	if predictor != null:
 		predictor.update_visual(delta)
-	if match_server == null:
+	if _reconnecting:
+		_try_reconnect(delta)
+	if match_server == null or multiplayer.multiplayer_peer == null:
 		return
 	_snapshot_clock += delta
 	if _snapshot_clock < 1.0 / SNAPSHOT_HZ:
 		return
 	_snapshot_clock = 0.0
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
 	for peer_id in multiplayer.get_peers():
-		if match_server.has_peer(peer_id):
+		var link := enet.get_peer(peer_id)   # quem já está fechando a conexão não recebe mais nada
+		if match_server.has_peer(peer_id) and link != null and link.get_state() == ENetPacketPeer.STATE_CONNECTED:
 			deliver.rpc_id(peer_id, match_server.snapshot_for(peer_id))
 
 
-func _on_peer_connected(peer_id: int) -> void:
-	var civ := match_server.free_civilization()
-	if civ == 0 or not match_server.join(peer_id, civ):
-		match_server.net_log.add(0, "partida_cheia", "aviso", "peer %d recusado" % peer_id)
-		multiplayer.multiplayer_peer.disconnect_peer(peer_id)
+func _open() -> Error:
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_client(_address, _port)
+	if err != OK:
+		return err
+	multiplayer.multiplayer_peer = peer
+	_attempting = true
+	if not multiplayer.connected_to_server.is_connected(_on_connected):
+		multiplayer.connected_to_server.connect(_on_connected)
+		multiplayer.server_disconnected.connect(_on_lost)
+		multiplayer.connection_failed.connect(_on_failed)
+	return OK
+
+
+func _on_connected() -> void:
+	_attempting = false
+	connected.emit()
+	hello.rpc_id(1, session_token)   # "" = jogador novo; com token = quem quer voltar
+
+
+func _on_lost() -> void:
+	_attempting = false
+	if _reconnecting:
+		return   # uma tentativa de volta foi encerrada: a próxima sai do relógio
+	disconnected.emit()
+	if session_token != "" and not _closed:
+		_reconnecting = true
+		_elapsed = 0.0
+		_retry_clock = 0.0   # DD-047: volta rápido, a 1ª tentativa é já
+
+
+func _on_failed() -> void:
+	_attempting = false
+	if not _reconnecting:
+		disconnected.emit()
+
+
+func _try_reconnect(delta: float) -> void:
+	_elapsed += delta
+	if _elapsed >= reconnect_window:
+		_give_up("janela_esgotada")
 		return
-	welcome.rpc_id(peer_id, civ)
+	if _attempting:
+		return
+	_retry_clock -= delta
+	if _retry_clock <= 0.0:
+		_retry_clock = reconnect_interval
+		_open()
+
+
+func _give_up(reason: String) -> void:
+	_reconnecting = false
+	_attempting = false
+	multiplayer.multiplayer_peer = null
+	reconnect_failed.emit(reason)
+
+
+# Fecha a conexão DEPOIS de entregar o que já está na fila (disconnect_peer descartaria o motivo da recusa).
+func _kick(peer_id: int) -> void:
+	var link := (multiplayer.multiplayer_peer as ENetMultiplayerPeer).get_peer(peer_id)
+	if link != null:
+		link.peer_disconnect_later()
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	match_server.peer_left(peer_id)
+
+
+# Servidor: a 1ª mensagem de quem conecta. Variant, não String: o que chega da rede nunca é confiável.
+@rpc("any_peer", "call_remote", "reliable")
+func hello(token: Variant) -> void:
+	if match_server == null:
+		return
+	var peer_id := multiplayer.get_remote_sender_id()
+	if match_server.has_peer(peer_id):
+		match_server.net_log.add(0, "hello_repetido", "aviso", "peer %d ignorado" % peer_id)
+		return
+	if typeof(token) == TYPE_STRING and token == "":   # jogador novo
+		var civ := match_server.free_civilization()
+		if civ == 0 or not match_server.join(peer_id, civ):
+			match_server.net_log.add(0, "partida_cheia", "aviso", "peer %d recusado" % peer_id)
+			_kick(peer_id)
+			return
+		welcome.rpc_id(peer_id, civ, match_server.token_of(civ), match_server.reconnect_window)
+		return
+	var result := match_server.resume(peer_id, token)
+	if not result.ok:
+		refused.rpc_id(peer_id, result.reason)
+		_kick(peer_id)
+		return
+	resumed.rpc_id(peer_id, result.state)
 
 
 # Variant, não Dictionary: o que chega da rede nunca é confiável, quem valida é o NetProtocol.
@@ -94,9 +197,34 @@ func submit(msg: Variant) -> void:
 
 
 @rpc("authority", "call_remote", "reliable")
-func welcome(civilization_id: int) -> void:
+func welcome(civilization_id: int, token: String, window: float) -> void:
 	my_civ = civilization_id
+	session_token = token
+	reconnect_window = window
 	welcome_received.emit(civilization_id)
+
+
+# O servidor não aceitou a sessão. "sessao_ativa" = a conexão antiga ainda não caiu para ele: tento de novo.
+@rpc("authority", "call_remote", "reliable")
+func refused(reason: String) -> void:
+	if reason == "sessao_ativa" and _reconnecting:
+		return
+	_give_up(reason)
+
+
+# Voltei: o servidor mandou o estado completo (planeta, territórios, relógio, vidas, bônus, posição oficial).
+@rpc("authority", "call_remote", "reliable")
+func resumed(state: Dictionary) -> void:
+	_reconnecting = false
+	my_civ = state.civ
+	session_token = state.token
+	reconnect_window = state.window
+	last_full_state = state
+	last_snapshot = state
+	_seq = 0
+	predictor = null   # recomeça do estado oficial
+	_reconcile(state)
+	reconnected.emit(state)
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")

@@ -91,6 +91,11 @@ func _pump() -> void:
 # Consultas
 # ---------------------------------------------------------------------------------------------
 
+## Cópia do dono de cada célula (o cliente que reconecta recebe o mapa inteiro).
+func owners_snapshot() -> PackedByteArray:
+	return _owners.duplicate()
+
+
 func is_owned_by(civilization_id: int, world_position: Vector3) -> bool:
 	if not _ensure_built():
 		return false

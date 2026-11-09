@@ -54,11 +54,21 @@ func take_damage(amount: int) -> void:
 	if _eliminated or shield_left > 0.0:
 		return
 	points = maxi(0, points - amount)
-	_publish_points()
 	if points <= 0:
-		_eliminated = true   # R1
-		EventBus.civilization_eliminated.emit(_civilization.id)
-		print("[Gameplay] Civilização %d foi ELIMINADA da partida!" % _civilization.id)
+		eliminate()
+	else:
+		_publish_points()
+
+
+## R1: fora da partida. Também usada pelo servidor quando quem caiu não volta a tempo (ignora o escudo).
+func eliminate() -> void:
+	if _eliminated:
+		return
+	points = 0
+	_publish_points()
+	_eliminated = true
+	EventBus.civilization_eliminated.emit(_civilization.id)
+	print("[Gameplay] Civilização %d foi ELIMINADA da partida!" % _civilization.id)
 
 
 func heal(amount: int) -> void:

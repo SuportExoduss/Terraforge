@@ -12,6 +12,7 @@ var _ended := false
 
 
 func _ready() -> void:
+	add_to_group("match_timer")
 	_remaining = duration_seconds
 	EventBus.match_started.connect(func(): _running = true)
 
@@ -28,3 +29,8 @@ func _process(delta: float) -> void:
 		_ended = true
 		EventBus.match_ended.emit()
 		print("[Core] Fim da partida! O planeta fica para contemplação.")
+
+
+## Segundos que faltam (quem nasce no meio da partida, como o servidor ou um cliente que volta, lê direto daqui).
+func seconds_left() -> int:
+	return maxi(0, ceili(_remaining))
