@@ -2,8 +2,8 @@ class_name OnlineScreen
 extends MenuScreen
 ## Tela ONLINE (Passo 46; cap. 04 lobby, DD-134): entra na sala de um servidor dedicado (`godot -- --server --port=N`) e mostra
 ## o estado dela — jogadores/capacidade e o tempo que falta para a partida abrir. Mesmo cliente do NetSession dos testes.
-## ponytail: só ENTRAR (quem hospeda é o servidor dedicado); a partida é só o quadro 2D do OnlineBoard; endereço e porta
-## não ficam salvos.
+## ponytail: só ENTRAR (quem hospeda é o servidor dedicado); a partida é só o quadro 2D do OnlineBoard. O endereço e a porta
+## da última tentativa ficam no perfil (Passo 50); só uma sala lembrada, sem lista.
 
 var net: NetSession = null   # só existe enquanto estou conectado ou conectando
 var board: OnlineBoard = null   # a partida (Passo 47), depois que a sala fecha e recebo a civilização
@@ -27,9 +27,10 @@ func build(parent: VBoxContainer) -> void:
 	row.add_theme_constant_override("separation", 8)
 	parent.add_child(row)
 	row.add_child(make_label("Servidor", 20))
-	address = _field(row, "Address", "127.0.0.1")
+	var saved: Dictionary = Profile.data.get("online", {})
+	address = _field(row, "Address", str(saved.get("address", "127.0.0.1")))
 	address.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	port = _field(row, "Port", str(DedicatedServer.DEFAULT_PORT))
+	port = _field(row, "Port", str(int(saved.get("port", DedicatedServer.DEFAULT_PORT))))   # o JSON devolve número como float
 	port.custom_minimum_size.x = 110.0
 	join = Button.new()
 	join.name = "Join"
@@ -74,6 +75,8 @@ func _toggle() -> void:
 	if host == "":
 		status.text = "Digite o endereço do servidor."
 		return
+	Profile.data["online"] = {"address": host, "port": int(number)}   # lembra a sala (entradas já validadas)
+	Profile.save()
 	# O RPC acha o nó pelo caminho a partir da raiz do multiplayer: a tela é a raiz e o NetSession se chama "Net", como no servidor.
 	get_tree().set_multiplayer(SceneMultiplayer.new(), get_path())
 	net = NetSession.new()

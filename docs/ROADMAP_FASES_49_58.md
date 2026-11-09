@@ -23,3 +23,4 @@ Ordem dos nomes das civilizações (suposição). Cópia de segurança do disco 
 
 Status:
 - Passo 49 ✔ (música do menu: MenuMusic com base suave, camada de pulso entra ao abrir uma tela, some no mergulho; smoke_menu_music; regressão 58/58)
+- Passo 50 ✔ (sala online lembrada: endereço e porta no perfil, tela ONLINE volta preenchida; smoke_online_saved; regressão 59/59)
