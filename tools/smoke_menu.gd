@@ -47,6 +47,7 @@ func _run() -> void:
 	if not _check(menu.get_child(0).size == screen and box_center.distance_to(screen * 0.5) < 2.0, "menu deve cobrir a tela e ficar centralizado (fundo %s, centro %s, tela %s)" % [menu.get_child(0).size, box_center, screen]): return
 
 	# 1. JOGAR leva à partida; os botões dos resultados ainda não aparecem
+	menu.approach_seconds = 0.0   # sem o mergulho (ele tem o smoke_approach)
 	menu.get_node("Box/Play").pressed.emit()
 	await _settle()
 	var first := current_scene

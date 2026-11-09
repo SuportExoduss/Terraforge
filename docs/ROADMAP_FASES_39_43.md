@@ -13,3 +13,4 @@ Regra: 1 commit por passo, smoke novo + regressão verde antes de cada commit; n
 
 Status:
 - Passo 39 ✔ (Abertura viva: PlanetBackdrop no fundo do menu — planeta girando, nuvens, atmosfera, estrelas, aurora e meteoros; DD-006; smoke_backdrop; regressão 48/48)
+- Passo 40 ✔ (Primeiro clique: câmera do menu mergulha no planeta enquanto a partida carrega em segundo plano; DD-007; smoke_approach; regressão 49/49)

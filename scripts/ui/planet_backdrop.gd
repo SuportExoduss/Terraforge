@@ -15,6 +15,9 @@ const METEOR_GAP := Vector2(2.5, 7.0)     # s entre meteoros
 const METEOR_LIFE := 1.1
 const AURORA_GAP := Vector2(9.0, 20.0)    # s entre auroras
 const AURORA_SECONDS := 9.0
+const CAMERA_HOME := Vector3(0.0, 8.5, 45.0)   # vista do menu
+const LOOK_HOME := Vector3(0.0, 8.5, 0.0)
+const CAMERA_DIVE := Vector3(0.0, 0.0, 10.7)   # entre as nuvens (r 10,4) e a atmosfera (r 11,3), olhando o chão
 
 const CLOUD_SHADER := """
 shader_type spatial;
@@ -72,6 +75,7 @@ var aurora: MeshInstance3D
 var meteors_spawned := 0
 var auroras_shown := 0
 var running := true        # falso: o fundo congela (ex.: durante o carregamento)
+var diving := false        # verdadeiro depois de approach(): a câmera está descendo para a partida
 
 var _viewport: SubViewport
 var _stage: Node3D
@@ -103,8 +107,8 @@ func _ready() -> void:
 	camera.name = "Camera"
 	camera.fov = 40.0
 	_stage.add_child(camera)
-	camera.position = Vector3(0.0, 8.5, 45.0)   # planeta baixo na tela: o título e o perfil ficam acima dele
-	camera.look_at(Vector3(0.0, 8.5, 0.0))
+	camera.position = CAMERA_HOME   # planeta baixo na tela: o título e o perfil ficam acima dele
+	camera.look_at(LOOK_HOME)
 	camera.current = true
 
 
@@ -250,6 +254,22 @@ func spawn_meteor() -> void:
 	tween.tween_property(streak, "position", start + velocity * METEOR_LIFE, METEOR_LIFE)
 	tween.parallel().tween_property(streak, "scale", Vector3(0.1, 0.1, 0.1), METEOR_LIFE).set_ease(Tween.EASE_IN)
 	tween.tween_callback(streak.queue_free)
+
+
+## Primeiro clique em JOGAR (DD-007: nunca uma tela estática): a câmera desce até o planeta, atravessa a atmosfera
+## (que brilha) e as nuvens, e a imagem escurece no fim. Termina em `seconds`; a partida carrega por baixo.
+func approach(seconds: float) -> void:
+	diving = true
+	var tween := create_tween()
+	tween.tween_method(_dive, 0.0, 1.0, maxf(seconds, 0.01)).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	await tween.finished
+
+
+func _dive(t: float) -> void:
+	camera.position = CAMERA_HOME.lerp(CAMERA_DIVE, t)
+	camera.look_at(LOOK_HOME.lerp(Vector3.ZERO, t))
+	_atmo_material.set_shader_parameter("boost", 1.0 + 4.0 * t)
+	modulate = Color.WHITE.lerp(Color.BLACK, smoothstep(0.8, 1.0, t))
 
 
 func show_aurora() -> void:

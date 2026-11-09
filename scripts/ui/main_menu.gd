@@ -6,6 +6,9 @@ extends Control
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
+var approach_seconds := 1.8   # duração do mergulho no planeta ao clicar JOGAR
+var _launching := false
+
 
 func _ready() -> void:
 	var args := OS.get_cmdline_args() + OS.get_cmdline_user_args()   # `--server` vale antes ou depois do `--`
@@ -49,10 +52,33 @@ func _ready() -> void:
 	profile.add_theme_font_size_override("font_size", 20)
 	box.add_child(profile)
 
-	var play := _add_button(box, "Play", "JOGAR", func(): get_tree().change_scene_to_file(MATCH_SCENE))
+	var play := _add_button(box, "Play", "JOGAR", _play)
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
 	play.grab_focus()   # teclado / controle
+
+
+## Primeiro clique (DD-007): a interface some, a câmera mergulha no planeta e a partida carrega em segundo plano;
+## a troca de cena só acontece com os dois prontos. `approach_seconds` = 0 vai direto (testes).
+func _play() -> void:
+	if _launching:
+		return
+	_launching = true
+	if approach_seconds <= 0.0:
+		get_tree().change_scene_to_file(MATCH_SCENE)
+		return
+	ResourceLoader.load_threaded_request(MATCH_SCENE)
+	var box: Control = get_node("Box")
+	box.process_mode = Node.PROCESS_MODE_DISABLED   # nenhum botão responde durante a descida
+	create_tween().tween_property(box, "modulate:a", 0.0, minf(0.5, approach_seconds))
+	await get_node("Backdrop").approach(approach_seconds)
+	while ResourceLoader.load_threaded_get_status(MATCH_SCENE) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		await get_tree().process_frame
+	var scene := ResourceLoader.load_threaded_get(MATCH_SCENE) as PackedScene
+	if scene != null:
+		get_tree().change_scene_to_packed(scene)
+	else:
+		get_tree().change_scene_to_file(MATCH_SCENE)   # a carga falhou: tenta do jeito simples (e mostra o erro)
 
 
 func _open_settings() -> void:
