@@ -72,24 +72,16 @@ func _process(delta: float) -> void:
 	if not _match_started or _aboard_ship:
 		return
 
-	# 1. Gira a direção ao redor do "up" local (o volante). Direita = sentido negativo (Godot é destro).
 	var up := (global_position - planet.center).normalized()
 	var steer: float = _recall_steer(up, delta) if _recalling else (_steering.get_steer() if _steering != null else 0.0)
-	forward = forward.rotated(up, -steer * deg_to_rad(turn_speed_degrees) * delta)
-
-	# 2. Avança sempre.
-	var next := global_position + forward * (move_speed * speed_multiplier * freeze_multiplier * slow_multiplier * delta) + push * delta
+	var speed := move_speed * speed_multiplier * freeze_multiplier * slow_multiplier
+	var moved := RunnerMotion.advance(global_position, forward, steer, delta, planet, height_offset, speed, turn_speed_degrees, push)
 	push = push.move_toward(Vector3.ZERO, PUSH_DECAY * delta)
+	forward = moved[1]
 
-	# 3. Recola na superfície REAL (vale ou morro), nunca na esfera matemática.
-	var next_up := (next - planet.center).normalized()
-	next = planet.center + next_up * (planet.get_surface_radius(next_up) + height_offset)
-
-	# 4. A direção precisa continuar tangente (senão acumula erro por frame).
-	forward = (forward - next_up * forward.dot(next_up)).normalized()
-
-	# 5. Pés para o centro, olhar para a frente.
-	global_transform = Transform3D(Basis.looking_at(forward, next_up, true), next)
+	# Pés para o centro, olhar para a frente.
+	var next: Vector3 = moved[0]
+	global_transform = Transform3D(Basis.looking_at(forward, (next - planet.center).normalized(), true), next)
 
 
 # DD-123: no recall o volante aponta para o domo. Termina ao pisar de novo no próprio território

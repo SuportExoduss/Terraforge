@@ -9,6 +9,7 @@ const PORT := 24681
 
 var _match: Node
 var _time := 0.0
+var _dt := 0.016
 var _server: Node
 var _a: Node
 var _b: Node
@@ -25,6 +26,7 @@ func _initialize() -> void:
 
 func _process(delta: float) -> bool:
 	_time += delta
+	_dt = delta
 	if _time > 60.0:
 		print("FALHOU: tempo esgotado")
 		quit(1)
@@ -85,7 +87,7 @@ func _run() -> void:
 	var runner := _runner(1)
 	var fwd_before: Vector3 = runner.forward
 	for i in 20:
-		_a.send_steer(1.0)
+		_a.send_steer(1.0, _dt)
 		await process_frame
 	if not _check(runner.forward.angle_to(fwd_before) > 0.2, "o corredor da civilização 1 deve virar pelo comando de A"): return
 
@@ -93,6 +95,18 @@ func _run() -> void:
 	if not _check(await _until(func(): return _a.last_snapshot.get("ack", -1) >= 20), "A deve receber snapshot com ack >= 20"): return
 	var shot: Dictionary = _a.last_snapshot
 	if not _check(shot.players.size() == 2 and shot.state == 3, "snapshot: 2 civilizações em PLAYING"): return
+
+	# Predição: o corredor previsto no cliente acompanha o real do servidor (círculo de ~4 m, qualquer erro apareceria)
+	if not _check(await _until(func(): return _a.predictor != null and _a.predictor.is_ready()), "A deve criar a predição no 1º snapshot"): return
+	var worst := 0.0
+	for i in 90:
+		_a.send_steer(1.0, _dt)
+		await process_frame
+		if i > 30:
+			worst = maxf(worst, _a.predictor.visual_position().distance_to(runner.global_position))
+	print("[net] pior distância predição x servidor: %.3f m" % worst)
+	if not _check(worst < 2.0, "a predição do cliente acompanha o servidor (pior %.3f m)" % worst): return
+	if not _check(_a.predictor.pending.size() < 30, "o ack do servidor descarta os comandos confirmados (%d pendentes)" % _a.predictor.pending.size()): return
 
 	# Lixo pela rede é recusado no servidor
 	var driver: Node = runner.get_node("Steering")

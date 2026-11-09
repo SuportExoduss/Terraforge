@@ -12,6 +12,7 @@ signal snapshot_received(snapshot: Dictionary)     # cliente: estado real da par
 const SNAPSHOT_HZ := 20.0
 
 var match_server: MatchServer = null   # só no servidor
+var predictor: RunnerPredictor = null  # só no cliente: o corredor do próprio jogador, previsto (nasce no 1º snapshot)
 var my_civ := 0
 var last_snapshot: Dictionary = {}
 
@@ -48,14 +49,19 @@ func close() -> void:
 	multiplayer.multiplayer_peer = null
 
 
-## Cliente: pede ao servidor para virar. Devolve o número do comando (a predição guarda o que ainda não foi confirmado).
-func send_steer(value: float) -> int:
+## Cliente: pede ao servidor para virar e já prevê o quadro localmente (DD-044). `dt` = duração do quadro de tela.
+## Devolve o número do comando (a predição guarda o que o servidor ainda não confirmou).
+func send_steer(value: float, dt: float) -> int:
 	_seq += 1
 	submit.rpc_id(1, {"type": "steer", "seq": _seq, "steer": value})
+	if predictor != null:
+		predictor.predict(_seq, value, dt)
 	return _seq
 
 
 func _process(delta: float) -> void:
+	if predictor != null:
+		predictor.update_visual(delta)
 	if match_server == null:
 		return
 	_snapshot_clock += delta
@@ -96,4 +102,20 @@ func welcome(civilization_id: int) -> void:
 @rpc("authority", "call_remote", "unreliable_ordered")
 func deliver(snapshot: Dictionary) -> void:
 	last_snapshot = snapshot
+	_reconcile(snapshot)
 	snapshot_received.emit(snapshot)
+
+
+# O estado oficial do meu corredor corrige a predição (nunca o contrário).
+func _reconcile(snapshot: Dictionary) -> void:
+	var mine: Array = snapshot.players.filter(func(p: Dictionary) -> bool: return p.id == my_civ)
+	if mine.is_empty() or Services.planet == null:
+		return
+	if predictor == null:
+		predictor = RunnerPredictor.new(Services.planet)
+		predictor.reset(mine[0].pos, mine[0].fwd)
+		return
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if enet != null and enet.get_peer(1) != null:
+		predictor.latency = enet.get_peer(1).get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME) / 2000.0
+	predictor.reconcile(mine[0].pos, mine[0].fwd, snapshot.get("ack", -1))
