@@ -26,6 +26,7 @@
 [ext_resource type="Script" path="res://scripts/audio/audio_director.gd" id="24"]
 [ext_resource type="Script" path="res://scripts/audio/music_director.gd" id="25"]
 [ext_resource type="Script" path="res://scripts/world/day_night_cycle.gd" id="26"]
+[ext_resource type="Script" path="res://scripts/world/weather_manager.gd" id="27"]
 
 [node name="Match" type="Node"]
 
@@ -59,6 +60,9 @@ script = ExtResource("25")
 
 [node name="DayNight" type="Node" parent="."]
 script = ExtResource("26")
+
+[node name="Weather" type="Node" parent="."]
+script = ExtResource("27")
 
 [node name="Meteors" type="Node3D" parent="."]
 script = ExtResource("8")
