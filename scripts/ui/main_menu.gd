@@ -20,6 +20,9 @@ func _ready() -> void:
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
+	var backdrop := PlanetBackdrop.new()   # abertura viva (DD-006): o planeta vem antes da interface
+	backdrop.name = "Backdrop"
+	add_child(backdrop)
 
 	var box := VBoxContainer.new()
 	box.name = "Box"
