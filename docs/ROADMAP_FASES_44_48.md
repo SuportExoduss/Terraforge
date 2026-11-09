@@ -17,3 +17,4 @@ mas o DD-106 (Adendo 02, já no código) usa paz de 25 s. Os dois valores se con
 
 Status:
 - Passo 44 ✔ (Primeira conquista: anel de luz + faíscas na primeira área fechada pelo jogador, DD-013; smoke_first_conquest; regressão 53/53)
+- Passo 45 ✔ (Começo calmo: bots só caçam rastro inimigo depois de 15 s, alcance sobe até o pleno aos 45 s, DD-012; smoke_calm_start; regressão 54/54)

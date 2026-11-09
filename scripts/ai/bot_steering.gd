@@ -28,6 +28,16 @@ var _wobble_seed := randf() * TAU
 ## DD-127: personalidade. 0,6 = tímido (saídas curtas, volta cedo, caça perto) … 1,6 = ousado. Sem isso bots iguais empatam em ~16,7%.
 var ambition := randf_range(0.6, 1.6)
 
+## DD-012 (começo calmo): o 1º minuto prioriza descoberta, não caos. Durante `calm_seconds` o bot não caça rastro inimigo;
+## depois o alcance de caça sobe em linha reta até o pleno aos calm+ramp = 45 s.
+@export var calm_seconds := 15.0
+@export var ramp_seconds := 30.0
+var age := 0.0   # segundos correndo (get_steer só roda enquanto ele corre)
+
+
+func hunt_scale() -> float:
+	return clampf((age - calm_seconds) / ramp_seconds, 0.0, 1.0)
+
 
 func _ready() -> void:
 	_runner = get_parent() as PlanetRunner
@@ -39,6 +49,7 @@ func _ready() -> void:
 ## Chamado pelo corredor a cada quadro em que ele corre.
 func get_steer() -> float:
 	var delta := get_process_delta_time()
+	age += delta
 	var position := _runner.global_position
 	if Services.territory.is_owned_by(_civilization.id, position):
 		_returning_home = false   # em casa: novo plano e de volta ao campo
@@ -97,7 +108,10 @@ func _pick_sortie_target() -> Vector3:
 
 
 func _find_enemy_trail_point() -> bool:
-	var best := hunt_range * hunt_range * ambition * ambition
+	var scale := hunt_scale()
+	if scale <= 0.0:
+		return false
+	var best := hunt_range * hunt_range * ambition * ambition * scale * scale
 	var found := false
 	for trail in Services.trails:
 		if trail.owner_id == _civilization.id:
