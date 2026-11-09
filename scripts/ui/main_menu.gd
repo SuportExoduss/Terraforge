@@ -53,6 +53,12 @@ func _ready() -> void:
 	box.add_child(profile)
 
 	var play := _add_button(box, "Play", "JOGAR", _play)
+	var dock := HBoxContainer.new()   # atalhos das telas do menu
+	dock.name = "Dock"
+	dock.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	dock.add_theme_constant_override("separation", 8)
+	box.add_child(dock)
+	_add_dock(dock, "Civilizations", "CIVILIZAÇÕES", CivilizationsScreen)
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
 	play.grab_focus()   # teclado / controle
@@ -88,6 +94,24 @@ func _open_settings() -> void:
 		panel.queue_free()
 		get_node("Box/Settings").grab_focus())
 	add_child(panel)
+
+
+func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:
+	var button := _add_button(dock, button_name, label, func(): _open_screen(screen_class.new(), button_name))
+	button.custom_minimum_size = Vector2(150.0, 44.0)
+	button.add_theme_font_size_override("font_size", 16)
+
+
+## Abre uma tela do menu por cima; o corpo do menu fica parado (sem foco nem cliques) até ela fechar.
+func _open_screen(screen: MenuScreen, return_to: String) -> void:
+	var box: Control = get_node("Box")
+	box.process_mode = Node.PROCESS_MODE_DISABLED
+	screen.name = "Screen"
+	screen.closed.connect(func():
+		screen.queue_free()
+		box.process_mode = Node.PROCESS_MODE_INHERIT
+		get_node("Box/Dock/" + return_to).grab_focus())
+	add_child(screen)
 
 
 func _add_button(parent: Control, button_name: String, label: String, action: Callable) -> Button:
