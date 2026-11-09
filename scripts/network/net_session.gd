@@ -12,6 +12,7 @@ signal welcome_received(civilization_id: int)      # cliente: qual civilização
 signal snapshot_received(snapshot: Dictionary)     # cliente: estado real da partida
 signal reconnected(state: Dictionary)              # cliente: voltei à partida com o estado completo
 signal reconnect_failed(reason: String)            # cliente: desisti (janela esgotada ou o servidor recusou a sessão)
+signal resynced_with_server(state: Dictionary)     # cliente: o servidor reenviou o estado oficial (dessincronização)
 
 const SNAPSHOT_HZ := 20.0
 
@@ -76,6 +77,13 @@ func send_steer(value: float, dt: float) -> int:
 	if predictor != null:
 		predictor.predict(_seq, value, dt)
 	return _seq
+
+
+## Cliente: "estou dessincronizado" (a tela não bate com o que o servidor diz). O servidor reenvia o estado oficial,
+## no máximo 1 vez por intervalo; o excesso é ignorado.
+func request_resync() -> void:
+	if is_online():
+		resync_request.rpc_id(1)
 
 
 func _process(delta: float) -> void:
@@ -216,15 +224,27 @@ func refused(reason: String) -> void:
 @rpc("authority", "call_remote", "reliable")
 func resumed(state: Dictionary) -> void:
 	_reconnecting = false
-	my_civ = state.civ
-	session_token = state.token
-	reconnect_window = state.window
-	last_full_state = state
-	last_snapshot = state
 	_seq = 0
-	predictor = null   # recomeça do estado oficial
-	_reconcile(state)
+	_adopt(state)
 	reconnected.emit(state)
+
+
+# Servidor: o cliente se diz dessincronizado. Quem decide se atende (e quando) é o MatchServer.
+@rpc("any_peer", "call_remote", "reliable")
+func resync_request() -> void:
+	if match_server == null:
+		return
+	var peer_id := multiplayer.get_remote_sender_id()
+	var result := match_server.resync(peer_id)
+	if result.ok:
+		resynced.rpc_id(peer_id, result.state)
+
+
+# O estado oficial substitui o que o cliente achava (a numeração dos comandos continua: a sessão é a mesma).
+@rpc("authority", "call_remote", "reliable")
+func resynced(state: Dictionary) -> void:
+	_adopt(state)
+	resynced_with_server.emit(state)
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")
@@ -232,6 +252,16 @@ func deliver(snapshot: Dictionary) -> void:
 	last_snapshot = snapshot
 	_reconcile(snapshot)
 	snapshot_received.emit(snapshot)
+
+
+func _adopt(state: Dictionary) -> void:
+	my_civ = state.civ
+	session_token = state.token
+	reconnect_window = state.window
+	last_full_state = state
+	last_snapshot = state
+	predictor = null   # recomeça do estado oficial
+	_reconcile(state)
 
 
 # O estado oficial do meu corredor corrige a predição (nunca o contrário).

@@ -31,6 +31,11 @@ func _process(delta: float) -> void:
 		print("[Core] Fim da partida! O planeta fica para contemplação.")
 
 
+## Recuperação do servidor: volta o relógio ao valor salvo.
+func restore_seconds(seconds: int) -> void:
+	_remaining = float(seconds)
+
+
 ## Segundos que faltam (quem nasce no meio da partida, como o servidor ou um cliente que volta, lê direto daqui).
 func seconds_left() -> int:
 	return maxi(0, ceili(_remaining))

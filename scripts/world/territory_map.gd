@@ -96,6 +96,23 @@ func owners_snapshot() -> PackedByteArray:
 	return _owners.duplicate()
 
 
+## Recuperação do servidor (cap. 04 parte 05): cada célula com dono volta ao dono salvo, pelo mesmo caminho das
+## conquistas (placares e pintura se atualizam). ponytail: só reatribui células COM dono; um servidor recém-reiniciado
+## não tem o que limpar. Quem chama valida o conteúdo (tamanho e donos < MAX_OWNERS).
+func restore_owners(saved: PackedByteArray) -> bool:
+	if not _ensure_built() or saved.size() != cell_count:
+		return false
+	_wait_idle()
+	for owner_id in range(1, MAX_OWNERS):
+		_begin_claim()
+		for cell in cell_count:
+			if saved[cell] == owner_id:
+				_claim_cell(owner_id, cell)
+		_publish_claims(owner_id)
+	_flush_outbox()
+	return true
+
+
 func is_owned_by(civilization_id: int, world_position: Vector3) -> bool:
 	if not _ensure_built():
 		return false

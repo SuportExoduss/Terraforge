@@ -78,6 +78,17 @@ func heal(amount: int) -> void:
 	_publish_points()
 
 
+## Recuperação do servidor: valor ABSOLUTO (restaurar duas vezes não duplica vida nem escudo). Quem chama valida 0..teto.
+func restore(saved_points: int, saved_shield: float) -> void:
+	max_points = maxi(max_points, saved_points)
+	points = saved_points
+	shield_left = saved_shield
+	if points <= 0:
+		eliminate()
+	else:
+		_publish_points()
+
+
 ## SYS-005 Vida Extra: +1 coração cheio, até o teto. A regeneração do campo continua parando nos 16 normais.
 func grant_extra_heart() -> void:
 	if _eliminated:

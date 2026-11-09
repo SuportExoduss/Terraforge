@@ -9,6 +9,12 @@ var net_log := NetLog.new()
 var tick := 0
 var reconnect_window := 20.0   # s que o servidor espera a volta de quem caiu; passou disso, o jogador é ELIMINADO (DD-048: quem manda é o servidor)
 
+var resync_interval := 1.0          # s mínimos entre dois pedidos de estado oficial do mesmo jogador (rajada = ignorada)
+var checkpoint_path := ""           # vazio = sem salvamento automático
+var checkpoint_interval := 10.0     # s entre checkpoints automáticos
+var checkpoints_saved := 0
+
+var _checkpoint_clock := 0.0
 var _peers: Dictionary = {}       # peer_id -> sessão {civ, seq, steering, token, connected, wait, expired}
 var _eliminated: Dictionary = {}  # civ_id -> true (quem o servidor viu cair; comandos dele são ignorados)
 
@@ -23,6 +29,11 @@ func _physics_process(_delta: float) -> void:
 
 # Quem caiu e não voltou dentro da janela perde a partida (a partida NUNCA para por causa dele).
 func _process(delta: float) -> void:
+	if checkpoint_path != "":
+		_checkpoint_clock += delta
+		if _checkpoint_clock >= checkpoint_interval:
+			_checkpoint_clock = 0.0
+			save_checkpoint(checkpoint_path)
 	for session: Dictionary in _peers.values():
 		if session.connected or session.expired:
 			continue
@@ -39,7 +50,7 @@ func join(peer_id: int, civilization_id: int) -> bool:
 		return false
 	var driver := RemoteSteering.new()
 	runner.use_steering(driver)
-	_peers[peer_id] = {"civ": civilization_id, "seq": -1, "steering": driver, "token": _new_token(), "connected": true, "wait": 0.0, "expired": false}
+	_peers[peer_id] = {"civ": civilization_id, "seq": -1, "steering": driver, "token": _new_token(), "connected": true, "wait": 0.0, "expired": false, "resync_at": -1.0e9, "resync_warned": false}
 	return true
 
 
@@ -99,6 +110,62 @@ func resume(peer_id: int, token: Variant) -> Dictionary:
 	session.token = _new_token()     # token usado não vale de novo
 	net_log.add(session.civ, "reconexao_aceita", "info", "voltou após %.1f s" % away)
 	return {"ok": true, "state": full_state(peer_id)}
+
+
+## Dessincronização (cap. 04 parte 05): o cliente pede o estado oficial de novo. O servidor reenvia, no máximo 1 vez por
+## `resync_interval` por jogador; o excesso é ignorado (e registrado uma vez por janela, para a rajada não inundar o registro).
+func resync(peer_id: int) -> Dictionary:
+	var session: Dictionary = _peers.get(peer_id, {})
+	if session.is_empty():
+		net_log.add(0, "peer_desconhecido", "aviso", "resync do peer %d descartado" % peer_id)
+		return {"ok": false, "reason": "peer_desconhecido"}
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - session.resync_at < resync_interval:
+		if not session.resync_warned:
+			session.resync_warned = true
+			net_log.add(session.civ, "resync_excessivo", "aviso", "pedidos em rajada ignorados")
+		return {"ok": false, "reason": "resync_excessivo"}
+	session.resync_at = now
+	session.resync_warned = false
+	net_log.add(session.civ, "dessincronizacao", "info", "estado oficial reenviado")
+	return {"ok": true, "state": full_state(peer_id)}
+
+
+## Queda do servidor (cap. 04 parte 05): grava o estado oficial com checksum.
+func save_checkpoint(path: String) -> Error:
+	var err := MatchCheckpoint.write(official_state(), path)
+	if err == OK:
+		checkpoints_saved += 1
+	else:
+		net_log.add(0, "checkpoint_falhou", "grave", "erro %d ao gravar" % err)
+	return err
+
+
+## Servidor reiniciado: relógio, vidas, escudo, posições e territórios voltam ao salvo. Valida TUDO antes de aplicar
+## qualquer coisa (arquivo ausente, corrompido ou com valores impossíveis é recusado e registrado). Valores absolutos:
+## restaurar de novo não duplica nada. Bônus de velocidade/congelamento NÃO voltam (a duração deles vive no BonusSystem).
+func restore_checkpoint(path: String) -> bool:
+	if not FileAccess.file_exists(path):
+		net_log.add(0, "checkpoint_ausente", "aviso", "nada a restaurar")
+		return false
+	var state := MatchCheckpoint.read(path)
+	if state.is_empty():
+		net_log.add(0, "checkpoint_corrompido", "grave", "checksum não confere: ignorado")
+		return false
+	if not _checkpoint_ok(state):
+		net_log.add(0, "checkpoint_invalido", "grave", "valores impossíveis: ignorado")
+		return false
+	var timer := get_tree().get_first_node_in_group("match_timer") as MatchTimer
+	if timer != null:
+		timer.restore_seconds(state.left)
+	Services.territory.restore_owners(state.territory)
+	for p: Dictionary in state.players:
+		var runner := _runner_of(p.id)
+		runner.global_position = p.pos
+		runner.forward = p.fwd
+		(runner.get_node("Health") as Health).restore(p.hp, state.bonuses[p.id].shield)
+	net_log.add(0, "partida_restaurada", "aviso", "checkpoint com %d jogadores" % state.players.size())
+	return true
 
 
 func token_of(civilization_id: int) -> String:
@@ -172,14 +239,10 @@ func snapshot_for(peer_id: int) -> Dictionary:
 	return shot
 
 
-## Tudo que o cliente precisa para voltar à partida: estado oficial (posições, vidas, relógio, evento ativo = `state`,
-## ranking), o mapa de territórios inteiro e os bônus ativos de cada corredor.
-func full_state(peer_id: int) -> Dictionary:
-	var state := snapshot_for(peer_id)
-	var session: Dictionary = _peers.get(peer_id, {})
-	state["civ"] = session.get("civ", 0)
-	state["token"] = session.get("token", "")
-	state["window"] = reconnect_window
+## O estado oficial inteiro da partida: foto + mapa de territórios + bônus ativos de cada corredor. É a base do que o
+## cliente recebe ao voltar/ressincronizar e do que o checkpoint grava.
+func official_state() -> Dictionary:
+	var state := snapshot()
 	state["territory"] = Services.territory.owners_snapshot() if Services.territory != null else PackedByteArray()
 	var bonuses := {}
 	for node in get_tree().get_nodes_in_group("runners"):
@@ -191,6 +254,44 @@ func full_state(peer_id: int) -> Dictionary:
 		}
 	state["bonuses"] = bonuses
 	return state
+
+
+## Tudo que o cliente precisa para voltar à partida: o estado oficial + quem ele é (civilização, token novo, janela, ack).
+func full_state(peer_id: int) -> Dictionary:
+	var state := official_state()
+	var session: Dictionary = _peers.get(peer_id, {})
+	state["ack"] = session.get("seq", -1)
+	state["civ"] = session.get("civ", 0)
+	state["token"] = session.get("token", "")
+	state["window"] = reconnect_window
+	return state
+
+
+# Confere um checkpoint (que pode ter sido adulterado ou ser de outra partida) antes de aplicar qualquer coisa.
+func _checkpoint_ok(s: Dictionary) -> bool:
+	var owners: Variant = s.get("territory")
+	var players: Variant = s.get("players")
+	var bonuses: Variant = s.get("bonuses")
+	if Services.territory == null or typeof(s.get("left")) != TYPE_INT or s.left < 0:
+		return false
+	if typeof(owners) != TYPE_PACKED_BYTE_ARRAY or owners.size() != Services.territory.cell_count:
+		return false
+	if typeof(players) != TYPE_ARRAY or typeof(bonuses) != TYPE_DICTIONARY:
+		return false
+	for owner_id in owners:
+		if owner_id >= TerritoryMap.MAX_OWNERS:
+			return false
+	for p: Variant in players:
+		if typeof(p) != TYPE_DICTIONARY or typeof(p.get("id")) != TYPE_INT or _runner_of(p.id) == null:
+			return false
+		if typeof(p.get("hp")) != TYPE_INT or p.hp < 0 or p.hp > Health.MAX_POINTS + Health.MAX_EXTRA_POINTS:
+			return false
+		if typeof(p.get("pos")) != TYPE_VECTOR3 or typeof(p.get("fwd")) != TYPE_VECTOR3 or not p.pos.is_finite() or not is_equal_approx(p.fwd.length(), 1.0):
+			return false
+		var bonus: Variant = bonuses.get(p.id)
+		if typeof(bonus) != TYPE_DICTIONARY or typeof(bonus.get("shield")) != TYPE_FLOAT or not is_finite(bonus.shield) or bonus.shield < 0.0:
+			return false
+	return true
 
 
 func _seconds_left() -> int:
