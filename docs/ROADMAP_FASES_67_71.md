@@ -16,3 +16,4 @@ Os `.import` modificados em art/ são do trabalho de arte do André: não entram
 Status:
 - Passo 67 ✔ (relógio no replay: `MatchReplay._show_caption` cria a legenda "REPLAY m:ss" com o instante da partida mostrado e a remove em `_finish`; smoke_replay_clock)
 - Passo 68 ✔ (grandes eventos no replay: `MatchReplay` anota `[relógio, nome]` no 1º aviso de cada evento (contagem que sobe = evento novo) e mostra o nome na legenda por `event_caption_seconds`; clima fica de fora (sem sinal, ponytail); smoke_replay_events)
+- Passo 69 ✔ (pular o replay: `MatchFlow.skip_replay()` zera a espera só no REPLAY; `MatchReplay._unhandled_input` chama com clique, toque, ESPAÇO, ENTER ou ESC (tecla comum e eco não pulam); smoke_replay_skip)

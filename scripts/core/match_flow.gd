@@ -68,6 +68,12 @@ func _pause(of: State) -> float:
 	return 0.0
 
 
+## Passo 69: pula o resto do replay e vai para os resultados (só vale dentro do REPLAY).
+func skip_replay() -> void:
+	if state == State.REPLAY:
+		_wait = 0.0
+
+
 func _on_match_ended() -> void:
 	go(State.TIME_UP)
 	_advance_post()

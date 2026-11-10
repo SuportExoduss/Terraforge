@@ -63,6 +63,18 @@ func _process(delta: float) -> void:
 		_next += 1
 
 
+## Passo 69: clique, toque, ESPAÇO, ENTER ou ESC durante o replay pula para os resultados.
+func _unhandled_input(event: InputEvent) -> void:
+	if not playing or Services.flow == null:
+		return
+	var skip: bool = (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed
+	if event is InputEventKey and event.pressed and not event.echo:
+		skip = event.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE]
+	if skip:
+		get_viewport().set_input_as_handled()
+		Services.flow.skip_replay()
+
+
 # O aviso conta os segundos para baixo; quando a contagem sobe (ou o nome muda), um evento novo foi anunciado.
 func _on_warning(event_name: String, seconds: int) -> void:
 	if _running and (seconds > _last_warning or event_name != _event_name_seen):
