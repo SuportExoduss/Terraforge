@@ -11,6 +11,8 @@ enum State { OPENING_DESCENT, GROUNDED, COUNTDOWN, FLYING, LANDED }
 const OWNERSHIP_CHECK_INTERVAL := 0.5   # vistoria barata e suficiente
 const COUNTDOWN_LEAD_SECONDS := 3.0     # DD-100: contagem na tela = 3 s finais de voo + 2 s de nave pousada
 const MAX_POLE_SIN := 0.8               # pouso nunca nos polos (a mais de ~53° do equador)
+const MIN_BASE_ARC := 0.5               # pouso a pelo menos 0,5 rad (~29°) de qualquer outra base
+const EVENT_SAFE_ARC := 0.4             # e a pelo menos 0,4 rad (~23°) do foco de um evento em aviso/execução
 
 @export var dome_radius: float = 7.5    # Unity: domo com escala 15 -> raio 7,5
 @export var opening_seconds := 5.0      # DD-096: descida de abertura
@@ -159,15 +161,31 @@ func _begin_flight(planet: Planet) -> void:
 	state = State.FLYING
 
 
-# Ponto livre sorteado pelo mapa, fora da faixa dos polos (volta com o último sorteio se não achar).
+# Ponto livre sorteado pelo mapa, "justo" (is_fair_spot); sem achar em 32 tentativas, volta com o último sorteio.
 func _pick_landing_position() -> Vector3:
-	var planet := Services.planet
 	var pick := Vector3.ZERO
 	for attempt in 32:
 		pick = Services.territory.get_random_unowned_position()
-		if absf((pick - planet.center).normalized().y) <= MAX_POLE_SIN:
+		if is_fair_spot(pick):
 			break
 	return pick
+
+
+## Cap.03 P02 CRITÉRIOS DE SPAWN: fora dos polos, longe de outras bases e longe do foco de evento em aviso/execução.
+## "Bloqueado por obstáculo" não entra aqui: o ObstacleSystem já empurra o corredor para fora de qualquer sólido.
+func is_fair_spot(point: Vector3) -> bool:
+	var planet := Services.planet
+	var direction := (point - planet.center).normalized()
+	if absf(direction.y) > MAX_POLE_SIN:
+		return false
+	for base in get_tree().get_nodes_in_group("home_base"):
+		if base != self and direction.angle_to(((base as Node3D).global_position - planet.center).normalized()) < MIN_BASE_ARC:
+			return false
+	for event in get_tree().get_nodes_in_group("minimap_events"):
+		var focus: Dictionary = event.minimap_focus()
+		if not focus.is_empty() and direction.angle_to(focus["direction"]) < EVENT_SAFE_ARC:
+			return false
+	return true
 
 
 func _announce_if_near(seconds_remaining: float) -> void:
