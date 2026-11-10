@@ -31,3 +31,4 @@ Status:
 - Passo 61 ✔ (bots fogem de evento: `BotSteering.EVENT_AVOID_ARC` 0,5 rad, `_danger`/`_fleeing`; fora de casa e perto de evento → volta; surtida/caça/bônus não escolhem pontos dentro da zona; smoke_bot_flee)
 - Passo 62 ✔ (ajustado: perfil fixo por civilização só em `BotSteering.greed`/`greed_for(id)` × `bonus_range`, para não contradizer a ambição aleatória do DD-130; smoke_bot_greed)
 - Passo 63 ✔ (pouso longe de confrontos: `HomeTerritory.RUNNER_SAFE_ARC` 0,3 rad; corredor adversário em campo (`is_active_in_field`) recusa o ponto em `is_fair_spot`; o da própria civilização não conta; smoke_fair_spawn_runner)
+- Passo 64 ✔ (zoom na contemplação: roda do mouse e +/- mexem em `ContemplationCamera._factor` entre `min_factor` 1,8 e `max_factor` 6; sem pinça no toque — ponytail; smoke_contemplation_zoom)

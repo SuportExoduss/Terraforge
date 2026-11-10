@@ -4,7 +4,7 @@ extends Node
 ## partida e desperta no fim — ou quando o jogador é eliminado (R1: assiste como espectador). Afasta a
 ## câmera principal até enquadrar o planeta inteiro e deixa girá-lo arrastando (mouse/toque) ou com
 ## A/D e setas (W/S inclinam); sem comando, a vitrine gira sozinha. Assume a câmera que o RunnerCamera
-## larga ao fim da partida.
+## larga ao fim da partida. Passo 64: roda do mouse e +/- aproximam/afastam (com limites); sem pinça no toque (ponytail).
 
 @export var camera_path: NodePath
 ## Distância final = raio x fator. No retrato o FOV horizontal é o estreito: 3,5 deixa folga nas bordas.
@@ -13,21 +13,42 @@ extends Node
 @export var drag_degrees_per_pixel: float = 0.2
 @export var key_orbit_speed_degrees: float = 60.0
 @export var auto_orbit_speed_degrees: float = 10.0
+@export var min_factor: float = 1.8   # mais perto que isso a câmera entraria nas montanhas
+@export var max_factor: float = 6.0
+@export var zoom_step: float = 1.15   # por clique da roda / por toque de tecla
 
 var _camera: Camera3D
 var _active := false
 var _drag := Vector2.ZERO
+var _factor: float   # distância alvo = raio x _factor; o zoom mexe aqui (começa em distance_factor)
 
 
 func _ready() -> void:
 	_camera = get_node_or_null(camera_path) as Camera3D
+	_factor = distance_factor
 	EventBus.match_ended.connect(func(): _active = true)
 	EventBus.civilization_eliminated.connect(func(owner_id: int): _active = _active or owner_id == Civilization.PLAYER_ID)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _active and event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+	if not _active:
+		return
+	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 		_drag += event.relative
+	elif event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom(1.0 / zoom_step)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom(zoom_step)
+	elif event is InputEventKey and event.pressed:
+		if event.keycode in [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD]:
+			_zoom(1.0 / zoom_step)
+		elif event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+			_zoom(zoom_step)
+
+
+func _zoom(multiplier: float) -> void:
+	_factor = clampf(_factor * multiplier, min_factor, max_factor)
 
 
 func _process(delta: float) -> void:
@@ -53,7 +74,7 @@ func _process(delta: float) -> void:
 
 	# Afastamento suave até a distância de contemplação (exponencial: independe da taxa de quadros).
 	var step := 1.0 - exp(-approach_smoothing * delta)
-	var distance := lerpf(offset.length(), planet.radius * distance_factor, step)
+	var distance := lerpf(offset.length(), planet.radius * _factor, step)
 	offset = offset.normalized() * distance
 
 	_camera.global_position = planet.center + offset
