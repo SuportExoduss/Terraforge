@@ -5,6 +5,8 @@ extends Node
 ## Mesmo contrato do PlayerSteering (get_steer: -1 esquerda .. +1 direita). Nó filho de um PlanetRunner.
 ## O recall (DD-123) é do próprio corredor: quando o chão de origem cai, ele sobrepõe este cérebro.
 
+const EVENT_AVOID_ARC := 0.5   # Cap.05 P05 "Resposta aos eventos": o bot não entra a menos de 0,5 rad (~29°) do foco de um evento em aviso/execução
+
 @export var min_sortie_distance := 20.0
 @export var max_sortie_distance := 45.0
 @export var max_exposure_seconds := 12.0    # tempo máximo exposto antes de abortar e voltar
@@ -25,6 +27,8 @@ var _hunt_point := Vector3.ZERO
 var _seeking_bonus := false
 var _bonus_point := Vector3.ZERO
 var _wobble_seed := randf() * TAU
+var _danger: Array[Vector3] = []   # direções (do centro do planeta) dos eventos em aviso/execução; vazio quase sempre
+var _fleeing := false              # está perto demais de um evento
 ## DD-127: personalidade. 0,6 = tímido (saídas curtas, volta cedo, caça perto) … 1,6 = ousado. Sem isso bots iguais empatam em ~16,7%.
 var ambition := randf_range(0.6, 1.6)
 
@@ -58,7 +62,8 @@ func get_steer() -> float:
 	var delta := get_process_delta_time()
 	age += delta
 	var position := _runner.global_position
-	if Services.territory.is_owned_by(_civilization.id, position):
+	var at_home: bool = Services.territory.is_owned_by(_civilization.id, position)
+	if at_home:
 		_returning_home = false   # em casa: novo plano e de volta ao campo
 		_has_sortie_target = false
 		_exposure = 0.0
@@ -69,8 +74,16 @@ func get_steer() -> float:
 	_decision_clock += delta
 	if _decision_clock >= decision_interval:
 		_decision_clock = 0.0
+		_danger = _danger_directions()
+		_fleeing = _near_danger(position)
+		if _has_sortie_target and _near_danger(_sortie_target):
+			_has_sortie_target = false   # o alvo ficou dentro da zona de um evento: escolhe outro
 		_hunting = _find_enemy_trail_point()
 		_seeking_bonus = _find_bonus_point()
+	# Instinto 0 — PERIGO: evento global por perto e longe de casa: volta já (em casa, só não sai para perto dele).
+	if _fleeing and not at_home:
+		_returning_home = true
+		return _steer_towards(_home())
 	if _hunting:
 		return _steer_towards(_hunt_point)
 
@@ -109,7 +122,7 @@ func _pick_sortie_target() -> Vector3:
 		var candidate := position + direction * randf_range(min_sortie_distance, max_sortie_distance) * ambition
 		var candidate_up := (candidate - planet.center).normalized()
 		candidate = planet.center + candidate_up * planet.get_surface_radius(candidate_up)
-		if not Services.territory.is_owned_by(_civilization.id, candidate):
+		if not Services.territory.is_owned_by(_civilization.id, candidate) and not _near_danger(candidate):
 			return candidate
 	return fallback
 
@@ -126,7 +139,7 @@ func _find_enemy_trail_point() -> bool:
 		var points: Array = trail.points
 		for i in range(0, points.size(), 3):   # 1 a cada 3 pontos: precisão suficiente, custo baixo
 			var d: float = (points[i] as Vector3).distance_squared_to(_runner.global_position)
-			if d < best:
+			if d < best and not _near_danger(points[i]):
 				best = d
 				_hunt_point = points[i]
 				found = true
@@ -138,11 +151,30 @@ func _find_bonus_point() -> bool:
 	var found := false
 	for pickup in get_tree().get_nodes_in_group("bonus_pickups"):
 		var d := (pickup as Node3D).global_position.distance_squared_to(_runner.global_position)
-		if d < best:
+		if d < best and not _near_danger((pickup as Node3D).global_position):
 			best = d
 			_bonus_point = (pickup as Node3D).global_position
 			found = true
 	return found
+
+
+func _danger_directions() -> Array[Vector3]:
+	var found: Array[Vector3] = []
+	for event in get_tree().get_nodes_in_group("minimap_events"):
+		var focus: Dictionary = event.minimap_focus()   # vazio fora de aviso/execução
+		if not focus.is_empty():
+			found.append(focus["direction"])
+	return found
+
+
+func _near_danger(point: Vector3) -> bool:
+	if _danger.is_empty():
+		return false
+	var direction := (point - Services.planet.center).normalized()
+	for spot in _danger:
+		if direction.angle_to(spot) < EVENT_AVOID_ARC:
+			return true
+	return false
 
 
 # Quanto o objetivo está à esquerda/direita do focinho decide o volante (direita = giro negativo no Godot).
