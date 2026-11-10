@@ -2,10 +2,14 @@ class_name OnlineScreen
 extends MenuScreen
 ## Tela ONLINE (Passo 46; cap. 04 lobby, DD-134): entra na sala de um servidor dedicado (`godot -- --server --port=N`) e mostra
 ## o estado dela — jogadores/capacidade e o tempo que falta para a partida abrir. Mesmo cliente do NetSession dos testes.
-## ponytail: só ENTRAR (quem hospeda é o servidor dedicado); a partida é só o quadro 2D do OnlineBoard. O endereço e a porta
-## da última tentativa ficam no perfil (Passo 50); só uma sala lembrada, sem lista.
+## CRIAR SALA (Passo 52) sobe um servidor dedicado neste PC, em processo à parte e sem tela, e entra nele.
+## ponytail: a partida é só o quadro 2D do OnlineBoard. O endereço e a porta da última tentativa ficam no perfil (Passo 50);
+## só uma sala lembrada, sem lista. A sala criada tem 2 vagas e fecha quando eu saio (o processo é encerrado).
 
 var net: NetSession = null   # só existe enquanto estou conectado ou conectando
+var host_button: Button
+var _server_pid := 0   # servidor local aberto por CRIAR SALA (0 = nenhum)
+var _tries := 0        # tentativas de entrar nele enquanto ainda está subindo
 var board: OnlineBoard = null   # a partida (Passo 47), depois que a sala fecha e recebo a civilização
 var _box: VBoxContainer
 var address: LineEdit
@@ -40,6 +44,14 @@ func build(parent: VBoxContainer) -> void:
 	join.add_theme_font_size_override("font_size", 22)
 	join.pressed.connect(_toggle)
 	parent.add_child(join)
+	host_button = Button.new()
+	host_button.name = "Host"
+	host_button.text = "CRIAR SALA (2 VAGAS)"
+	host_button.custom_minimum_size = Vector2(300.0, 44.0)
+	host_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	host_button.add_theme_font_size_override("font_size", 18)
+	host_button.pressed.connect(_host)
+	parent.add_child(host_button)
 	status = make_label("", 20, "Status")
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -63,10 +75,42 @@ func _field(row: HBoxContainer, field_name: String, text: String) -> LineEdit:
 
 
 func _toggle() -> void:
-	if net != null:
+	if net != null or _server_pid != 0:   # conectado, ou esperando a minha sala subir: o botão vira SAIR/CANCELAR
 		_leave()
 		status.text = "Você saiu da sala."
 		return
+	_connect()
+
+
+## Abre um servidor dedicado neste PC (processo à parte, sem tela, 2 vagas) e entra nele; outro PC entra pelo endereço.
+func _host() -> void:
+	var number := port.text.strip_edges()
+	if not number.is_valid_int() or int(number) not in range(1024, 65536):
+		status.text = "Porta inválida (use de 1024 a 65535)."
+		return
+	var args := PackedStringArray(["--headless"])
+	if not OS.has_feature("template"):   # rodando do projeto (não exportado): o processo novo precisa saber onde ele está
+		args.append_array(["--path", ProjectSettings.globalize_path("res://")])
+	args.append_array(["--", "--server", "--port=" + number, "--players=2"])
+	_server_pid = OS.create_process(OS.get_executable_path(), args)
+	if _server_pid < 0:
+		_server_pid = 0
+		status.text = "Não foi possível abrir o servidor neste computador."
+		return
+	address.text = "127.0.0.1"
+	host_button.visible = false
+	join.text = "CANCELAR"
+	_tries = 0
+	status.text = "Abrindo a sala…"
+	get_tree().create_timer(2.0).timeout.connect(_try_connect)   # o processo leva um instante para subir
+
+
+func _try_connect() -> void:
+	if _server_pid != 0 and net == null:   # o jogador não cancelou nesse meio tempo
+		_connect()
+
+
+func _connect() -> void:
 	var number := port.text.strip_edges()
 	if not number.is_valid_int() or int(number) not in range(1024, 65536):
 		status.text = "Porta inválida (use de 1024 a 65535)."
@@ -98,6 +142,16 @@ func _toggle() -> void:
 		if _civ != 0:   # já na partida: o NetSession tenta voltar sozinho com o token da sessão (cap. 04 parte 04)
 			status.text = "Conexão perdida: tentando voltar à partida…"
 			return
+		if _server_pid != 0:   # a minha sala ainda está subindo: tenta de novo (até 6 vezes), a menos que o processo tenha morrido
+			if OS.is_process_running(_server_pid) and _tries < 6:
+				_tries += 1
+				status.text = "Abrindo a sala… (%d)" % _tries
+				_leave.bind(false).call_deferred()
+				get_tree().create_timer(1.0).timeout.connect(_try_connect)
+				return
+			status.text = "A sala não abriu (a porta já está em uso?)."
+			_leave.call_deferred()
+			return
 		status.text = "Sem conexão com a sala (servidor fora do ar, sala cheia ou já fechada)."
 		_leave.call_deferred())   # fora do sinal: quem o emitiu ainda está usando a conexão
 	net.reconnected.connect(func(_state: Dictionary) -> void:
@@ -111,10 +165,22 @@ func _toggle() -> void:
 		status.text = "Endereço inválido."
 		return
 	join.text = "SAIR DA SALA"
+	host_button.visible = false   # já estou numa sala
 	status.text = "Conectando a %s:%s…" % [host, number]
 
 
-func _leave() -> void:
+func _exit_tree() -> void:
+	if _server_pid != 0:
+		OS.kill(_server_pid)   # não deixa servidor órfão se a tela sumir de repente
+
+
+## `stop_server` false = só larga a conexão (a minha sala segue subindo e eu tento entrar de novo).
+func _leave(stop_server := true) -> void:
+	if stop_server and _server_pid != 0:
+		OS.kill(_server_pid)   # a sala que eu criei fecha comigo
+		_server_pid = 0
+		host_button.visible = true
+		join.text = "ENTRAR NA SALA"
 	if net == null:
 		return
 	net.close()
@@ -126,7 +192,8 @@ func _leave() -> void:
 		address.get_parent().visible = true
 		status.custom_minimum_size.y = 100.0
 	_info = {}
-	join.text = "ENTRAR NA SALA"
+	join.text = "CANCELAR" if _server_pid != 0 else "ENTRAR NA SALA"
+	host_button.visible = _server_pid == 0
 
 
 func _process(_delta: float) -> void:
