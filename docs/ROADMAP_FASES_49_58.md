@@ -29,3 +29,4 @@ Status:
 - Passo 53 ✔ (nível de habilidade: rating do perfil começa em 1000, sobe/desce pela colocação (+25/+10/0, -15 do 4º para baixo), gravado na apuração e mostrado em PERFIL; smoke_rating; regressão 62/62)
 - Passo 54 ✔ (bots no nível do jogador: BotSteering.ambition_for(rating) desloca o sorteio de ambição em até ±0,2 (piso 0,5) conforme o rating do perfil, usado pela MatchSetup; smoke_bot_level; regressão 63/63)
 - Passo 55 ✔ (sensibilidade do giro: ajuste "turn" 50%–150% nas configurações, multiplica a direção do jogador)
+- Passo 56 ✔ (reduzir movimento: ajuste "reduce_motion" nas configurações; sem meteoros/auroras no menu e sem clarão de relâmpago). Passos 57 e 58 não feitos (André pediu para parar no 56)

@@ -60,15 +60,15 @@ func _run() -> void:
 	for i in 20:
 		await process_frame
 	if not _check(is_instance_valid(streak) and streak.position.distance_to(start) > 0.1, "o meteoro anda"): return
-	await create_timer(PlanetBackdrop.METEOR_LIFE + 0.3).timeout
+	await create_timer(back.METEOR_LIFE + 0.3).timeout
 	if not _check(not is_instance_valid(streak) or streak.is_queued_for_deletion(), "o meteoro some no fim do caminho"): return
 
 	# Aurora: apagada → acende → apaga
 	if not _check(not back.aurora.visible and back.aurora_strength() == 0.0, "aurora apagada no começo"): return
 	back.show_aurora()
-	back._process(PlanetBackdrop.AURORA_SECONDS * 0.5)
+	back._process(back.AURORA_SECONDS * 0.5)
 	if not _check(back.aurora.visible and back.aurora_strength() > 0.5, "aurora acesa no meio do tempo"): return
-	back._process(PlanetBackdrop.AURORA_SECONDS * 0.6)
+	back._process(back.AURORA_SECONDS * 0.6)
 	if not _check(not back.aurora.visible and back.auroras_shown >= 1, "aurora apaga sozinha"): return
 
 	# Sorteio automático: com o relógio vencido, o processo dispara meteoros e aurora sem ninguém pedir

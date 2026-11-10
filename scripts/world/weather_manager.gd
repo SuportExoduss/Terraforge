@@ -103,6 +103,8 @@ static func state_at(seed_value: int, elapsed: float, duration: float) -> Dictio
 
 ## Dispara um relâmpago (tempestade): clarão curto na tela.
 func strike() -> void:
+	if Settings.reduced_motion():   # Passo 56: sem clarão
+		return
 	flashes += 1
 	_flash = 1.0
 

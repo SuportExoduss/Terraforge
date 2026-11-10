@@ -52,6 +52,13 @@ func _ready() -> void:
 		button.pressed.connect(func(): Settings.set_value("quality", level))
 		row.add_child(button)
 
+	var reduce := CheckButton.new()
+	reduce.name = "ReduceMotion"
+	reduce.text = "REDUZIR MOVIMENTO (sem meteoros, auroras e relâmpagos)"
+	reduce.button_pressed = Settings.reduced_motion()
+	reduce.toggled.connect(func(on: bool): Settings.set_value("reduce_motion", 1.0 if on else 0.0))
+	box.add_child(reduce)
+
 	var back := Button.new()
 	back.name = "Back"
 	back.text = "VOLTAR"

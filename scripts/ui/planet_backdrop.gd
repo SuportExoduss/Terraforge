@@ -220,6 +220,10 @@ func _process(delta: float) -> void:
 		return
 	spinner.rotate_y(SPIN * delta)
 	clouds.rotate_y(CLOUD_SPIN * delta)
+	if Settings.reduced_motion():   # Passo 56: sem meteoros nem auroras novos
+		_aurora_age = -1.0
+		aurora.visible = false
+		return
 	_meteor_clock -= delta
 	if _meteor_clock <= 0.0:
 		spawn_meteor()
