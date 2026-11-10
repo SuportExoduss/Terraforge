@@ -33,6 +33,7 @@ func _ready() -> void:
 		var brain := BotSteering.new()
 		brain.name = "Steering"
 		brain.ambition = BotSteering.ambition_for(int(Profile.data.get("rating", Profile.RATING_START)))   # Passo 54: bots no nível do jogador
+		brain.greed = BotSteering.greed_for(id)   # Passo 62: cobiça por bônus fixa por civilização
 		runner.get_node("Steering").free()   # troca o motorista humano pelo cérebro de bot
 		runner.add_child(brain)
 		homes.append(home)

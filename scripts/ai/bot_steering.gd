@@ -31,6 +31,14 @@ var _danger: Array[Vector3] = []   # direções (do centro do planeta) dos event
 var _fleeing := false              # está perto demais de um evento
 ## DD-127: personalidade. 0,6 = tímido (saídas curtas, volta cedo, caça perto) … 1,6 = ousado. Sem isso bots iguais empatam em ~16,7%.
 var ambition := randf_range(0.6, 1.6)
+## Passo 62 (Cap.05 P05 "comportamentos distintos"): cobiça por bônus, fixa por civilização. Complementa a ambição do DD-130
+## (aleatória: saída, exposição, caça), que não mexe no alcance dos cristais: multiplica `bonus_range`.
+const GREEDS: Array[float] = [1.0, 1.0, 1.5, 0.5, 1.0, 1.25, 0.75, 1.0]
+var greed := 1.0
+
+
+static func greed_for(civ_id: int) -> float:
+	return GREEDS[civ_id % GREEDS.size()]
 
 
 ## Passo 54 (DD-066, bots simulam jogadores reais): o sorteio da personalidade acompanha a habilidade do jogador —
@@ -147,7 +155,7 @@ func _find_enemy_trail_point() -> bool:
 
 
 func _find_bonus_point() -> bool:
-	var best := bonus_range * bonus_range
+	var best := bonus_range * bonus_range * greed * greed
 	var found := false
 	for pickup in get_tree().get_nodes_in_group("bonus_pickups"):
 		var d := (pickup as Node3D).global_position.distance_squared_to(_runner.global_position)

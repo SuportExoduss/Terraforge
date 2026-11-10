@@ -13,7 +13,7 @@ Regra: 1 commit por passo, smoke novo + regressão verde antes de cada commit; n
 | 59 | Bônus guardados | Cap.03 P08 USO, DD-029 | Recuperação e Vida Extra seguem automáticos; Velocidade, Congelamento e Escudo Temporal vão para o estoque (limite 3); estoque cheio = cristal fica no chão; bots usam o que guardam depois de uns segundos |
 | 60 | Usar o estoque | Cap.03 P08 INTERFACE, Cap.05 P06 HUD | tecla ESPAÇO (e toque na coluna da direita) usa o próximo bônus guardado; a coluna mostra o estoque (nome + contador) |
 | 61 | Bots fogem de evento | Cap.05 P05 "Resposta aos eventos" | bot não sai em surtida para perto de evento em aviso/execução e, se já estiver perto, volta para a base |
-| 62 | Personalidade por civilização | Cap.05 P05 DD-065 / critério "comportamentos distintos" | cada bot tem um perfil fixo pelo id da civilização (caçador, cauteloso, ousado, oportunista, paciente) que ajusta alcance de caça, surtida, exposição e cobiça por bônus |
+| 62 | Cobiça por civilização (ajustado) | Cap.05 P05 "comportamentos distintos", DD-130 | o DD-130 já faz a personalidade (ambição aleatória) mexer em surtida, exposição e caça; então o perfil fixo por id da civilização só mexe no alcance dos cristais de bônus (0,5×–1,5×) |
 | 63 | Pouso longe de confrontos | Cap.03 P06 RESPAWN | o pouso também evita corredores adversários em campo (≥ 0,3 rad) |
 | 64 | Zoom na contemplação | Cap.03 P11 PLANETA FINAL | roda do mouse / +- aproximam e afastam a câmera do planeta final (com limites) |
 | 65 | Observar cada civilização | Cap.03 P11 "observar cada civilização" | na contemplação, TAB gira a câmera para a base da próxima civilização |
@@ -29,3 +29,4 @@ Status:
 - Passo 59 ✔ (estoque de bônus: `BonusSystem.STORED`/`STOCK_LIMIT`/`use_next`/`stock_of`, sinal `bonus_stock_changed`; bots usam sozinhos após `bot_use_delay`; smoke_bonus_stock; o estoque NÃO é salvo na reconexão — ponytail)
 - Passo 60 ✔ (usar o estoque: HUD botão "Stock" + ESPAÇO → `EventBus.bonus_use_requested` → `BonusSystem.use_next`; toque no botão não vira direção; smoke_bonus_use)
 - Passo 61 ✔ (bots fogem de evento: `BotSteering.EVENT_AVOID_ARC` 0,5 rad, `_danger`/`_fleeing`; fora de casa e perto de evento → volta; surtida/caça/bônus não escolhem pontos dentro da zona; smoke_bot_flee)
+- Passo 62 ✔ (ajustado: perfil fixo por civilização só em `BotSteering.greed`/`greed_for(id)` × `bonus_range`, para não contradizer a ambição aleatória do DD-130; smoke_bot_greed)
