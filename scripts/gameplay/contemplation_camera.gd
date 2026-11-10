@@ -6,6 +6,7 @@ extends Node
 ## A/D e setas (W/S inclinam); sem comando, a vitrine gira sozinha. Assume a câmera que o RunnerCamera
 ## larga ao fim da partida. Passo 64: roda do mouse e +/- aproximam/afastam (com limites); sem pinça no toque (ponytail).
 ## Passo 65: TAB gira a câmera até a base da próxima civilização ("observar cada civilização"); girar à mão cancela.
+## Passo 70: uma legenda embaixo mostra nome, domínio, colocação e estatísticas da civilização observada ("analisar estratégias").
 
 @export var camera_path: NodePath
 ## Distância final = raio x fator. No retrato o FOV horizontal é o estreito: 3,5 deixa folga nas bordas.
@@ -24,6 +25,7 @@ var _active := false
 var _drag := Vector2.ZERO
 var _focus_dir := Vector3.ZERO   # direção (do centro) da base observada; zero = sem foco
 var _observed_id := 0            # civilização observada por último (TAB passa à próxima id)
+var _caption: Label             # legenda da civilização observada (criada no primeiro TAB)
 var _factor: float   # distância alvo = raio x _factor; o zoom mexe aqui (começa em distance_factor)
 
 
@@ -62,6 +64,33 @@ func _observe_next() -> void:
 	var later: Array = ids.filter(func(id: int) -> bool: return id > _observed_id)
 	_observed_id = later.front() if not later.is_empty() else ids.front()
 	_focus_dir = (Services.home_bases[_observed_id]["position"] - Services.planet.center).normalized()
+	_show_caption(_observed_id)
+
+
+func _show_caption(id: int) -> void:
+	if _caption == null:
+		var layer := CanvasLayer.new()
+		layer.layer = 5
+		_caption = Label.new()
+		_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_caption.add_theme_font_size_override("font_size", roundi(24 * Settings.text_scale()))
+		_caption.add_theme_color_override("font_outline_color", Color.BLACK)
+		_caption.add_theme_constant_override("outline_size", 6)
+		_caption.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		_caption.offset_top = -110.0
+		layer.add_child(_caption)
+		add_child(layer)
+	var stats := Services.stats
+	var text := "VOCÊ" if id == Civilization.PLAYER_ID else "CIVILIZAÇÃO %d" % id
+	if stats != null:
+		var share: float = stats.peak(id) if stats.is_eliminated(id) else stats.dominance(id)
+		text += "  —  %s do planeta" % ("%.1f%%" % (share * 100.0)).replace(".", ",")
+		text += "  (ELIMINADA)" if stats.is_eliminated(id) else "  (%dº)" % (stats.ranking().find(id) + 1)
+		text += "
+Áreas %d  ·  Tomado de rivais %s  ·  Cortes %d  ·  Eliminações %d" % [stats.get_stat(id, "loops"),
+				("%.1f%%" % (stats.get_stat(id, "converted") * 100.0)).replace(".", ","), stats.get_stat(id, "cuts"), stats.get_stat(id, "kills")]
+	_caption.text = text
+	_caption.visible = true
 
 
 func _zoom(multiplier: float) -> void:
@@ -85,6 +114,8 @@ func _process(delta: float) -> void:
 	orbit += keys * key_step
 	if orbit != Vector2.ZERO:
 		_focus_dir = Vector3.ZERO   # o jogador pegou o comando
+		if _caption != null:
+			_caption.visible = false
 	elif _focus_dir == Vector3.ZERO:
 		orbit.x = deg_to_rad(auto_orbit_speed_degrees) * delta   # vitrine
 
