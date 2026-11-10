@@ -38,6 +38,7 @@ var _bot_wait: Dictionary = {}         # id do bot -> segundos desde que ele pas
 
 func _ready() -> void:
 	EventBus.bonus_drop_requested.connect(_on_drop_requested)
+	EventBus.bonus_use_requested.connect(use_next)
 	EventBus.match_ended.connect(_on_match_ended)
 
 

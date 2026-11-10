@@ -27,6 +27,7 @@ var _event: Label
 var _hearts: Control
 var _joystick: Control
 var _bonus_column: VBoxContainer
+var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
 var _bonus_labels: Dictionary = {}   # nome do bônus -> Label
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
 
@@ -56,12 +57,25 @@ func _ready() -> void:
 	root.add_child(_joystick)
 
 	EventBus.match_clock_changed.connect(_on_clock)
-	EventBus.match_ended.connect(func(): _clock.text = "")   # o painel de resultados assume a tela
+	EventBus.match_ended.connect(_on_match_ended)
 	EventBus.territory_score_changed.connect(_on_score)
 	EventBus.health_changed.connect(_on_health)
 	EventBus.respawn_countdown.connect(_on_respawn_countdown)
 	EventBus.global_event_warning.connect(_on_event_warning)
 	EventBus.bonus_activated.connect(_on_bonus)
+	EventBus.bonus_stock_changed.connect(_on_stock)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
+		EventBus.bonus_use_requested.emit(Civilization.PLAYER_ID)
+		get_viewport().set_input_as_handled()
+
+
+func _on_match_ended() -> void:
+	_clock.text = ""   # o painel de resultados assume a tela
+	_stock_button.hide()
 
 
 func _process(_delta: float) -> void:
@@ -127,6 +141,24 @@ func _build_bonus_column(parent: Control) -> void:
 	_bonus_column.grow_vertical = Control.GROW_DIRECTION_BOTH
 	_bonus_column.offset_left = -16.0
 	_bonus_column.offset_right = -16.0
+	_stock_button = Button.new()
+	_stock_button.name = "Stock"
+	_stock_button.focus_mode = Control.FOCUS_NONE   # senão o ESPAÇO acionaria o botão por foco E pelo atalho
+	_stock_button.add_theme_font_size_override("font_size", 20)
+	_stock_button.visible = false
+	_stock_button.button_down.connect(TouchSteering.set_ui_pointer_held.bind(true))   # o toque no botão não vira direção
+	_stock_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
+	_stock_button.pressed.connect(func(): EventBus.bonus_use_requested.emit(Civilization.PLAYER_ID))
+	_bonus_column.add_child(_stock_button)
+
+
+# Estoque do jogador: mostra o próximo a ser usado e quantos há guardados.
+func _on_stock(owner_id: int, kinds: Array) -> void:
+	if owner_id != Civilization.PLAYER_ID:
+		return
+	_stock_button.visible = not kinds.is_empty()
+	if not kinds.is_empty():
+		_stock_button.text = "ESPAÇO · %s  [%d]" % [kinds[0], kinds.size()]
 
 
 func _on_bonus(owner_id: int, kind: String, seconds: float) -> void:
