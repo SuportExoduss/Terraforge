@@ -41,7 +41,7 @@ func _ready() -> void:
 
 	_clock = _label(root, "ClockLabel", 30, Color.WHITE, Control.PRESET_TOP_WIDE, Vector2(0, 14))
 	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
-	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62))
+	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62.0 * Settings.text_scale()))   # desce junto com o relógio maior
 	_countdown = _label(root, "CountdownLabel", 110, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
 	_countdown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_score.text = "Domínio: 0,0%"
@@ -86,6 +86,7 @@ func _process(_delta: float) -> void:
 
 
 func _label(parent: Control, label_name: String, size: int, color: Color, preset: int, offset: Vector2) -> Label:
+	size = roundi(size * Settings.text_scale())   # Passo 66: ajuste TEXTO das configurações
 	var l := Label.new()
 	l.name = label_name
 	l.add_theme_font_size_override("font_size", size)
@@ -144,7 +145,7 @@ func _build_bonus_column(parent: Control) -> void:
 	_stock_button = Button.new()
 	_stock_button.name = "Stock"
 	_stock_button.focus_mode = Control.FOCUS_NONE   # senão o ESPAÇO acionaria o botão por foco E pelo atalho
-	_stock_button.add_theme_font_size_override("font_size", 20)
+	_stock_button.add_theme_font_size_override("font_size", roundi(20 * Settings.text_scale()))
 	_stock_button.visible = false
 	_stock_button.button_down.connect(TouchSteering.set_ui_pointer_held.bind(true))   # o toque no botão não vira direção
 	_stock_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))

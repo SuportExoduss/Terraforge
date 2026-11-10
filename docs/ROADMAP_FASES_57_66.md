@@ -33,3 +33,4 @@ Status:
 - Passo 63 ✔ (pouso longe de confrontos: `HomeTerritory.RUNNER_SAFE_ARC` 0,3 rad; corredor adversário em campo (`is_active_in_field`) recusa o ponto em `is_fair_spot`; o da própria civilização não conta; smoke_fair_spawn_runner)
 - Passo 64 ✔ (zoom na contemplação: roda do mouse e +/- mexem em `ContemplationCamera._factor` entre `min_factor` 1,8 e `max_factor` 6; sem pinça no toque — ponytail; smoke_contemplation_zoom)
 - Passo 65 ✔ (observar civilizações: TAB (sem eco) → `ContemplationCamera._observe_next()` gira até a base da próxima id com base, dando a volta; arrastar/teclas cancelam o foco; smoke_contemplation_observe)
+- Passo 66 ✔ (texto grande: ajuste "text" (0..1 = 100%–150%) em `Settings.text_scale()`, controle TEXTO na tela de configurações, `Hud._label` e botão do estoque usam a escala ao montar a HUD; smoke_text_scale)
