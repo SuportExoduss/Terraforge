@@ -10,7 +10,9 @@ extends Node3D
 
 enum Kind { SPEED, HEAL, EXTRA_LIFE, FREEZE, SHIELD }
 
-const NAMES: Array[String] = ["VELOCIDADE", "RECUPERAÇÃO", "VIDA EXTRA", "CONGELAMENTO", "ESCUDO TEMPORAL"]
+const RARE: Array[int] = [Kind.EXTRA_LIFE, Kind.SHIELD]   # os dois mais fortes (o GDMD não lista quais são "raros": interpretação)
+const RARE_AFTER_SECONDS := 45.0                          # Cap.03 P03 REGRAS: "nenhum bônus raro aparece antes de 45 segundos"
+const NAMES: Array[String] =["VELOCIDADE", "RECUPERAÇÃO", "VIDA EXTRA", "CONGELAMENTO", "ESCUDO TEMPORAL"]
 const COLORS: Array[Color] = [Color(1.0, 0.85, 0.2), Color(0.3, 1.0, 0.45), Color(0.35, 0.8, 1.0), Color(0.75, 0.95, 1.0), Color(0.75, 0.45, 1.0)]
 const FLOAT_HEIGHT := 1.2
 
@@ -61,11 +63,24 @@ func _on_drop_requested(center: Vector3, count: int) -> void:
 	var up := (center - planet.center).normalized()
 	var tangent := up.cross(Vector3.RIGHT if absf(up.dot(Vector3.RIGHT)) < 0.99 else Vector3.FORWARD).normalized()
 	var first_angle := randf() * TAU
+	var elapsed := elapsed_seconds()
 	for i in count:
 		var spread := tangent.rotated(up, first_angle + i * TAU / count)
 		var direction := (up + spread * (scatter_radius / planet.radius)).normalized()
 		var point := planet.center + direction * (planet.get_surface_radius(direction) + FLOAT_HEIGHT)
-		_spawn(point, direction, randi() % Kind.size())
+		_spawn(point, direction, pick_kind(elapsed))
+
+
+## Segundos de partida já corridos (sem relógio na cena, conta como "já passou": cena de teste isolada).
+func elapsed_seconds() -> float:
+	var timer := get_tree().get_first_node_in_group("match_timer") as MatchTimer
+	return INF if timer == null else timer.duration_seconds - timer.seconds_left()
+
+
+## Sorteia o tipo do cristal; antes de RARE_AFTER_SECONDS os raros ficam fora do sorteio.
+func pick_kind(elapsed: float) -> int:
+	var pool: Array = range(Kind.size()).filter(func(k): return elapsed >= RARE_AFTER_SECONDS or not k in RARE)
+	return pool.pick_random()
 
 
 func _spawn(point: Vector3, up: Vector3, kind: int) -> void:
