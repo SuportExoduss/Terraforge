@@ -28,6 +28,13 @@ var _wobble_seed := randf() * TAU
 ## DD-127: personalidade. 0,6 = tímido (saídas curtas, volta cedo, caça perto) … 1,6 = ousado. Sem isso bots iguais empatam em ~16,7%.
 var ambition := randf_range(0.6, 1.6)
 
+
+## Passo 54 (DD-066, bots simulam jogadores reais): o sorteio da personalidade acompanha a habilidade do jogador —
+## +200 pontos de rating = +0,2 de ambição (e -200 = -0,2), nunca abaixo de 0,5; rating 1000 = o sorteio original 0,6…1,6.
+## ponytail: só desloca o sorteio; os bots não têm rating próprio.
+static func ambition_for(rating: int) -> float:
+	return maxf(randf_range(0.6, 1.6) + clampf((rating - Profile.RATING_START) / 1000.0, -0.2, 0.2), 0.5)
+
 ## DD-012 (começo calmo): o 1º minuto prioriza descoberta, não caos. Durante `calm_seconds` o bot não caça rastro inimigo;
 ## depois o alcance de caça sobe em linha reta até o pleno aos calm+ramp = 45 s.
 @export var calm_seconds := 15.0
