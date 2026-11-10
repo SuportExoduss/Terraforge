@@ -28,3 +28,4 @@ Status:
 - Passo 52 ✔ (CRIAR SALA na tela ONLINE: sobe um servidor dedicado de 2 vagas num processo à parte e entra nele; SAIR/CANCELAR/fechar a tela encerram o processo; smoke_online_host; regressão 61/61)
 - Passo 53 ✔ (nível de habilidade: rating do perfil começa em 1000, sobe/desce pela colocação (+25/+10/0, -15 do 4º para baixo), gravado na apuração e mostrado em PERFIL; smoke_rating; regressão 62/62)
 - Passo 54 ✔ (bots no nível do jogador: BotSteering.ambition_for(rating) desloca o sorteio de ambição em até ±0,2 (piso 0,5) conforme o rating do perfil, usado pela MatchSetup; smoke_bot_level; regressão 63/63)
+- Passo 55 ✔ (sensibilidade do giro: ajuste "turn" 50%–150% nas configurações, multiplica a direção do jogador)

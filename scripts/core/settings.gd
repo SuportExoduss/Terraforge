@@ -5,7 +5,7 @@ extends RefCounted
 ## resolução 3D e no antisserrilhado da janela principal.
 ## ponytail: só o que já existe para ajustar; controles, idioma e acessibilidade entram quando houver o que escolher.
 
-const DEFAULTS := {"sfx": 1.0, "music": 0.8, "quality": 2}
+const DEFAULTS := {"sfx": 1.0, "music": 0.8, "quality": 2, "turn": 0.5}   # turn: 0..1 no controle = giro de 50% a 150% (0.5 = 100%)
 const QUALITY_NAMES := ["BAIXA", "MÉDIA", "ALTA"]
 const QUALITY_SCALE := [0.7, 0.85, 1.0]                                                       # resolução 3D relativa
 const QUALITY_MSAA := [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X]
@@ -14,6 +14,11 @@ const QUALITY_MSAA := [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4
 static func get_value(key: String) -> Variant:
 	var saved: Dictionary = Profile.data.get("settings", {})
 	return saved.get(key, DEFAULTS[key])
+
+
+## Passo 55 (UI-006): multiplicador da direção do jogador, de 0,5 a 1,5.
+static func turn_gain() -> float:
+	return 0.5 + float(get_value("turn"))
 
 
 ## Muda um ajuste e aplica na hora; `save = false` enquanto o jogador arrasta um controle (salva ao soltar).

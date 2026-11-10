@@ -30,6 +30,7 @@ func _ready() -> void:
 
 	_add_slider(box, "Sfx", "EFEITOS", "sfx")
 	_add_slider(box, "Music", "MÚSICA", "music")
+	_add_slider(box, "Turn", "GIRO (50% A 150%)", "turn")
 
 	var quality_label := Label.new()
 	quality_label.text = "QUALIDADE GRÁFICA"
