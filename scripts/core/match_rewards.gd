@@ -67,6 +67,8 @@ func _grant() -> void:
 	data["loops"] += loops
 	data["cuts"] += cuts
 	data["kills"] += kills
+	var rating_before := int(data["rating"])
+	data["rating"] = Profile.rating_after(rating_before, place)
 
 	# Conquistas: o que o snapshot cumpre menos o que o perfil já tem (guarda o instante em que saiu)
 	var snapshot := {"loops": loops, "converted": taken, "cuts": cuts, "kills": kills, "percent": percent,
@@ -77,4 +79,4 @@ func _grant() -> void:
 		known[id] = Time.get_unix_time_from_system()
 	Profile.save()
 	last = {"xp": xp, "coins": coins, "level_before": level_before, "level": Profile.level(), "place": place,
-			"percent": percent, "new_achievements": fresh}
+			"percent": percent, "new_achievements": fresh, "rating_before": rating_before, "rating": data["rating"]}

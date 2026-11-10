@@ -29,6 +29,7 @@ func build(parent: VBoxContainer) -> void:
 	bar.custom_minimum_size = Vector2(0.0, 18.0)
 	parent.add_child(bar)
 	parent.add_child(make_label("%d / %d XP para o nível %d" % [int(data["xp"]), next, level + 1], 16, "Xp"))
+	parent.add_child(make_label("Habilidade %d" % int(data["rating"]), 20, "Rating"))   # sobe e desce com a colocação (Passo 53)
 	parent.add_child(make_label("%d moedas  ·  %d partidas  ·  %d vitórias  ·  melhor %d%% do planeta" % [
 			int(data["coins"]), int(data["matches"]), int(data["wins"]), roundi(float(data["best_percent"]) * 100.0)], 18, "Totals"))
 	parent.add_child(make_label("%d áreas fechadas  ·  %d cortes  ·  %d eliminações" % [

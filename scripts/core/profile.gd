@@ -8,12 +8,23 @@ extends RefCounted
 const XP_PER_LEVEL_STEP := 100   # nível N começa em 100 * (N-1)^2 XP
 
 static var path := "user://profile_headless.json" if DisplayServer.get_name() == "headless" else "user://profile.json"
+const RATING_START := 1000
+const RATING_DELTA := [25, 10, 0]   # 1º, 2º e 3º lugar; do 4º para baixo (ou sem pontuar) perde RATING_LOSS
+const RATING_LOSS := 15
+
 static var data := {}
 
 
 static func defaults() -> Dictionary:
 	return {"xp": 0, "coins": 0, "matches": 0, "wins": 0, "best_percent": 0.0,
-			"loops": 0, "cuts": 0, "kills": 0, "achievements": {}}
+			"loops": 0, "cuts": 0, "kills": 0, "achievements": {}, "rating": RATING_START}
+
+
+## Habilidade (cap. 03 parte 02, matchmaking): sobe ou desce conforme a colocação final (1 = primeiro, 0 = nunca pontuou).
+## ponytail: passos fixos por colocação, sem pesar a força dos rivais; Elo de verdade se um dia houver ranking online.
+static func rating_after(rating: int, place: int) -> int:
+	var change: int = RATING_DELTA[place - 1] if place >= 1 and place <= RATING_DELTA.size() else -RATING_LOSS
+	return maxi(rating + change, 0)
 
 
 ## Lê o arquivo (campos que faltam voltam ao padrão; arquivo ausente ou corrompido = perfil novo).
