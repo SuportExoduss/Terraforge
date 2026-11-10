@@ -6,6 +6,9 @@ extends Node
 ## final é idêntico ao original (é o mesmo fluxo de pinturas, na mesma ordem).
 ## ponytail: só o território (nascimentos, expansões, conversões); eventos e clima não aparecem no replay.
 
+## Passo 68: quantos segundos (do replay) o nome de um evento fica na legenda.
+@export var event_caption_seconds := 2.0
+
 var playing := false
 
 var _batches: Array = []   # [segundos da partida, owner_id, células, espaçamento]
@@ -15,6 +18,12 @@ var _total := 0.0
 var _next := 0             # próximo lote a repintar
 var _elapsed := 0.0
 var _duration := 0.0
+var _events: Array = []    # [segundos da partida, nome] de cada evento global anunciado
+var _event_name_seen := ""
+var _last_warning := 0     # última contagem do aviso: se ela sobe, é um evento novo
+var _next_event := 0
+var _event_name := ""
+var _event_left := 0.0
 var _layer: CanvasLayer   # legenda do replay (Passo 67): só existe enquanto ele roda
 var _caption: Label
 
@@ -22,6 +31,7 @@ var _caption: Label
 func _ready() -> void:
 	EventBus.territory_cells_claimed.connect(func(owner_id: int, cells: PackedVector3Array, spacing: float) -> void:
 		_batches.append([_clock, owner_id, cells, spacing]))
+	EventBus.global_event_warning.connect(_on_warning)
 	EventBus.match_started.connect(func() -> void: _running = true)
 	EventBus.match_ended.connect(func() -> void:
 		_running = false
@@ -40,9 +50,25 @@ func _process(delta: float) -> void:
 		return
 	var upto := _total * _elapsed / _duration
 	_caption.text = "REPLAY  %d:%02d" % [floori(upto / 60.0), int(upto) % 60]
+	while _next_event < _events.size() and _events[_next_event][0] <= upto:
+		_event_name = _events[_next_event][1]
+		_event_left = event_caption_seconds
+		_next_event += 1
+	if _event_left > 0.0:
+		_event_left -= delta
+		_caption.text += "
+" + _event_name
 	while _next < _batches.size() and _batches[_next][0] <= upto:
 		_push(_next)
 		_next += 1
+
+
+# O aviso conta os segundos para baixo; quando a contagem sobe (ou o nome muda), um evento novo foi anunciado.
+func _on_warning(event_name: String, seconds: int) -> void:
+	if _running and (seconds > _last_warning or event_name != _event_name_seen):
+		_events.append([_clock, event_name])
+	_last_warning = seconds
+	_event_name_seen = event_name
 
 
 func _on_state(state: int) -> void:
@@ -60,6 +86,8 @@ func _begin() -> void:
 	painter.paint_all_now()
 	painter.clear()
 	_next = 0
+	_next_event = 0
+	_event_left = 0.0
 	_elapsed = 0.0
 	playing = true
 	_show_caption()
