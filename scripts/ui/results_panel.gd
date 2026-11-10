@@ -6,6 +6,8 @@ extends CanvasLayer
 ## Dois botões fecham o fluxo do cap. 04 (Resultados → Menu): JOGAR DE NOVO recarrega a partida, MENU volta ao início.
 ## ponytail: texto puro, sem pódio 3D.
 
+const FOCUS_DELAY := 0.6   # Passo 71: espera antes de dar foco ao JOGAR DE NOVO
+
 var _panel: PanelContainer
 var _text: RichTextLabel
 var _stats: RichTextLabel   # "SUAS ESTATÍSTICAS" (apuração, MatchStats)
@@ -101,6 +103,11 @@ func _on_state(state: int) -> void:
 	elif state == MatchFlow.State.RESULTS:
 		_rewards.text = _rewards_text()   # a concessão já aconteceu na apuração
 		_panel.visible = true
+		# Passo 71 (DD-038): ENTER já joga de novo. O foco vem com atraso: quem acabou de pular o replay com ENTER/ESPAÇO
+		# não reinicia a partida sem querer antes de ver o resultado.
+		get_tree().create_timer(FOCUS_DELAY).timeout.connect(func() -> void:
+			if is_instance_valid(_panel) and _panel.visible:
+				(_panel.get_node("Box/Buttons/PlayAgain") as Button).grab_focus())
 
 
 func _tally() -> void:
