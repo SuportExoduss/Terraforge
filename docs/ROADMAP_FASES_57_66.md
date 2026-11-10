@@ -30,3 +30,4 @@ Status:
 - Passo 60 ✔ (usar o estoque: HUD botão "Stock" + ESPAÇO → `EventBus.bonus_use_requested` → `BonusSystem.use_next`; toque no botão não vira direção; smoke_bonus_use)
 - Passo 61 ✔ (bots fogem de evento: `BotSteering.EVENT_AVOID_ARC` 0,5 rad, `_danger`/`_fleeing`; fora de casa e perto de evento → volta; surtida/caça/bônus não escolhem pontos dentro da zona; smoke_bot_flee)
 - Passo 62 ✔ (ajustado: perfil fixo por civilização só em `BotSteering.greed`/`greed_for(id)` × `bonus_range`, para não contradizer a ambição aleatória do DD-130; smoke_bot_greed)
+- Passo 63 ✔ (pouso longe de confrontos: `HomeTerritory.RUNNER_SAFE_ARC` 0,3 rad; corredor adversário em campo (`is_active_in_field`) recusa o ponto em `is_fair_spot`; o da própria civilização não conta; smoke_fair_spawn_runner)

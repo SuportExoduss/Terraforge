@@ -13,6 +13,7 @@ const COUNTDOWN_LEAD_SECONDS := 3.0     # DD-100: contagem na tela = 3 s finais 
 const MAX_POLE_SIN := 0.8               # pouso nunca nos polos (a mais de ~53° do equador)
 const MIN_BASE_ARC := 0.5               # pouso a pelo menos 0,5 rad (~29°) de qualquer outra base
 const EVENT_SAFE_ARC := 0.4             # e a pelo menos 0,4 rad (~23°) do foco de um evento em aviso/execução
+const RUNNER_SAFE_ARC := 0.3            # e a pelo menos 0,3 rad (~17°) de corredor adversário em campo (Cap.03 P06: longe de confrontos)
 
 @export var dome_radius: float = 7.5    # Unity: domo com escala 15 -> raio 7,5
 @export var opening_seconds := 5.0      # DD-096: descida de abertura
@@ -171,7 +172,8 @@ func _pick_landing_position() -> Vector3:
 	return pick
 
 
-## Cap.03 P02 CRITÉRIOS DE SPAWN: fora dos polos, longe de outras bases e longe do foco de evento em aviso/execução.
+## Cap.03 P02 CRITÉRIOS DE SPAWN + P06 RESPAWN: fora dos polos, longe de outras bases, do foco de evento em aviso/execução
+## e de corredor adversário em campo.
 ## "Bloqueado por obstáculo" não entra aqui: o ObstacleSystem já empurra o corredor para fora de qualquer sólido.
 func is_fair_spot(point: Vector3) -> bool:
 	var planet := Services.planet
@@ -184,6 +186,12 @@ func is_fair_spot(point: Vector3) -> bool:
 	for event in get_tree().get_nodes_in_group("minimap_events"):
 		var focus: Dictionary = event.minimap_focus()
 		if not focus.is_empty() and direction.angle_to(focus["direction"]) < EVENT_SAFE_ARC:
+			return false
+	for node in get_tree().get_nodes_in_group("runners"):
+		var runner := node as PlanetRunner
+		if not runner.is_active_in_field() or runner.get_node("Civilization").id == _civilization.id:
+			continue
+		if direction.angle_to((runner.global_position - planet.center).normalized()) < RUNNER_SAFE_ARC:
 			return false
 	return true
 
