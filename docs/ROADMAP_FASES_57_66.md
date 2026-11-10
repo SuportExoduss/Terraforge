@@ -26,3 +26,4 @@ listas são minha interpretação; ordem dos nomes das civilizações (perfis do
 Status:
 - Passo 57 ✔ (bônus raro só após 45 s: `BonusSystem.RARE` = Vida Extra + Escudo, `pick_kind(elapsed)`; smoke_rare_bonus)
 - Passo 58 ✔ (pouso justo em `HomeTerritory.is_fair_spot`; smoke_fair_spawn)
+- Passo 59 ✔ (estoque de bônus: `BonusSystem.STORED`/`STOCK_LIMIT`/`use_next`/`stock_of`, sinal `bonus_stock_changed`; bots usam sozinhos após `bot_use_delay`; smoke_bonus_stock; o estoque NÃO é salvo na reconexão — ponytail)

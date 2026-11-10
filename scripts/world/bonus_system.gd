@@ -12,6 +12,8 @@ enum Kind { SPEED, HEAL, EXTRA_LIFE, FREEZE, SHIELD }
 
 const RARE: Array[int] = [Kind.EXTRA_LIFE, Kind.SHIELD]   # os dois mais fortes (o GDMD não lista quais são "raros": interpretação)
 const RARE_AFTER_SECONDS := 45.0                          # Cap.03 P03 REGRAS: "nenhum bônus raro aparece antes de 45 segundos"
+const STORED: Array[int] = [Kind.SPEED, Kind.FREEZE, Kind.SHIELD]   # Cap.03 P08: vão para o estoque e o dono decide quando usar (interpretação)
+const STOCK_LIMIT := 3                                    # estoque cheio: o cristal desses tipos fica no chão
 const NAMES: Array[String] =["VELOCIDADE", "RECUPERAÇÃO", "VIDA EXTRA", "CONGELAMENTO", "ESCUDO TEMPORAL"]
 const COLORS: Array[Color] = [Color(1.0, 0.85, 0.2), Color(0.3, 1.0, 0.45), Color(0.35, 0.8, 1.0), Color(0.75, 0.95, 1.0), Color(0.75, 0.45, 1.0)]
 const FLOAT_HEIGHT := 1.2
@@ -26,9 +28,12 @@ const FLOAT_HEIGHT := 1.2
 @export var freeze_seconds := 5.0
 @export var freeze_multiplier := 0.5
 @export var shield_seconds := 6.0
+@export var bot_use_delay := 4.0        # bots usam o que guardaram depois de uns segundos
 
 var _pickups: Array[Dictionary] = []   # {node, kind, age}
 var _timers: Array[Dictionary] = []    # efeitos temporários nos corredores: {runner, property, left}; ao fim a propriedade volta a 1.0
+var _stock: Dictionary = {}            # id da civilização -> Array[int] de tipos guardados (o mais antigo sai primeiro)
+var _bot_wait: Dictionary = {}         # id do bot -> segundos desde que ele passou a ter estoque
 
 
 func _ready() -> void:
@@ -38,6 +43,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_tick_timers(delta)
+	_tick_bots(delta)
 	if _pickups.is_empty():
 		return
 	var runners := get_tree().get_nodes_in_group("runners")
@@ -47,7 +53,7 @@ func _process(delta: float) -> void:
 		var node: Node3D = pickup["node"]
 		node.rotate_object_local(Vector3.UP, 2.0 * delta)
 		(node.get_child(0) as Node3D).position.y = sin(pickup["age"] * 3.0) * 0.25
-		var taker := _find_taker(runners, node.global_position)
+		var taker := _find_taker(runners, node.global_position, pickup["kind"])
 		if taker != null:
 			_collect(taker, pickup["kind"])
 		elif pickup["age"] < lifetime_seconds:
@@ -105,16 +111,70 @@ func _spawn(point: Vector3, up: Vector3, kind: int) -> void:
 	_pickups.append({"node": node, "kind": kind, "age": 0.0})
 
 
-func _find_taker(runners: Array[Node], point: Vector3) -> PlanetRunner:
+func _find_taker(runners: Array[Node], point: Vector3, kind: int) -> PlanetRunner:
 	for node in runners:
 		var runner := node as PlanetRunner
-		if runner.is_active_in_field() and runner.global_position.distance_to(point) <= pickup_radius:
+		if runner.is_active_in_field() and runner.global_position.distance_to(point) <= pickup_radius 				and not (kind in STORED and stock_of(_id_of(runner)).size() >= STOCK_LIMIT):
 			return runner
 	return null
 
 
+func _id_of(runner: PlanetRunner) -> int:
+	return (runner.get_node("Civilization") as Civilization).id
+
+
+## Estoque da civilização (cópia): tipos guardados, o próximo a ser usado primeiro.
+func stock_of(id: int) -> Array:
+	return (_stock.get(id, []) as Array).duplicate()
+
+
+## Usa o bônus guardado mais antigo; false se não há estoque ou o dono não está em campo.
+func use_next(id: int) -> bool:
+	var stock: Array = _stock.get(id, [])
+	if stock.is_empty():
+		return false
+	for node in get_tree().get_nodes_in_group("runners"):
+		var runner := node as PlanetRunner
+		if _id_of(runner) == id and runner.is_active_in_field():
+			_activate(runner, stock.pop_front())
+			_announce_stock(id)
+			return true
+	return false
+
+
+func _announce_stock(id: int) -> void:
+	var names: Array = (_stock.get(id, []) as Array).map(func(k): return NAMES[k])
+	EventBus.bonus_stock_changed.emit(id, names)
+
+
+# Bots não têm teclado: usam o estoque `bot_use_delay` segundos depois de passarem a ter algo guardado.
+func _tick_bots(delta: float) -> void:
+	for id in _stock.keys():
+		if id == Civilization.PLAYER_ID:
+			continue
+		if (_stock[id] as Array).is_empty():
+			_bot_wait.erase(id)
+			continue
+		_bot_wait[id] = _bot_wait.get(id, 0.0) + delta
+		if _bot_wait[id] >= bot_use_delay:
+			_bot_wait.erase(id)
+			use_next(id)
+
+
 func _collect(runner: PlanetRunner, kind: int) -> void:
-	var id := (runner.get_node("Civilization") as Civilization).id
+	if kind in STORED:
+		var id := _id_of(runner)
+		var stock: Array = _stock.get(id, [])
+		stock.append(kind)
+		_stock[id] = stock
+		_announce_stock(id)
+		print("[Gameplay] Civilização %d guardou o bônus %s (%d/%d)." % [id, NAMES[kind], stock.size(), STOCK_LIMIT])
+	else:
+		_activate(runner, kind)
+
+
+func _activate(runner: PlanetRunner, kind: int) -> void:
+	var id := _id_of(runner)
 	var health := runner.get_node_or_null("Health") as Health
 	var seconds := 0.0
 	match kind:
@@ -177,3 +237,5 @@ func _on_match_ended() -> void:
 		if is_instance_valid(timer["runner"]):
 			timer["runner"].set(timer["property"], 1.0)
 	_timers.clear()
+	_stock.clear()
+	_bot_wait.clear()

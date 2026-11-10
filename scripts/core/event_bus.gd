@@ -5,6 +5,7 @@ extends Node
 signal base_fallen(owner_id: int, conqueror_id: int)
 signal base_relocated(owner_id: int, new_position: Vector3)
 signal bonus_activated(owner_id: int, kind: String, seconds: float)   # seconds = 0 -> efeito instantâneo
+signal bonus_stock_changed(owner_id: int, kinds: Array)   # estoque de bônus guardados (nomes, na ordem de uso)
 signal bonus_drop_requested(center: Vector3, count: int)
 signal civilization_eliminated(owner_id: int)
 signal civilization_killed(victim_id: int, killer_id: int)   # eliminada POR CORTE de rastro (eventos/defensores não creditam)

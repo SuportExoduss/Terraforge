@@ -100,6 +100,7 @@ func _run() -> void:
 	_drop_on_runner(SPEED)
 	await process_frame
 	await process_frame
+	_bonuses.use_next(1)   # Passo 59: esse tipo vai para o estoque; o efeito começa ao usar
 	if not _check(absf(_runner.speed_multiplier - 1.4) < 0.001, "Velocidade x1,4 (%.2f)" % _runner.speed_multiplier): return
 	await create_timer(0.7).timeout
 	if not _check(_runner.speed_multiplier == 1.0, "a velocidade deveria voltar ao normal (%.2f)" % _runner.speed_multiplier): return
@@ -114,6 +115,7 @@ func _run() -> void:
 	_drop_on_runner(FREEZE)
 	await process_frame
 	await process_frame
+	_bonuses.use_next(1)   # Passo 59: esse tipo vai para o estoque; o efeito começa ao usar
 	if not _check(rival.freeze_multiplier == 0.5 and _runner.freeze_multiplier == 1.0, "Congelamento: rival 0,5 e quem pegou 1,0 (%.2f / %.2f)" % [rival.freeze_multiplier, _runner.freeze_multiplier]): return
 	if not _check(_activations.has([2, "CONGELADO", 0.4]) and _activations.has([1, "CONGELAMENTO", 0.4]), "sinais do Congelamento: %s" % [_activations]): return
 	await create_timer(0.7).timeout
@@ -123,6 +125,7 @@ func _run() -> void:
 	_drop_on_runner(FREEZE)
 	await process_frame
 	await process_frame
+	_bonuses.use_next(1)   # Passo 59: esse tipo vai para o estoque; o efeito começa ao usar
 	if not _check(rival.freeze_multiplier == 1.0, "rival longe não congela (%.2f)" % rival.freeze_multiplier): return
 
 	# 2e. Escudo Temporal: dano de pontos não passa; acabou o tempo, volta a ferir
@@ -131,6 +134,7 @@ func _run() -> void:
 	_drop_on_runner(SHIELD)
 	await process_frame
 	await process_frame
+	_bonuses.use_next(1)   # Passo 59: esse tipo vai para o estoque; o efeito começa ao usar
 	_health.take_damage(4)
 	if not _check(_health.points == _health.max_points, "Escudo: sem dano (%d)" % _health.points): return
 	await create_timer(0.7).timeout
