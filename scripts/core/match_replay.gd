@@ -15,6 +15,8 @@ var _total := 0.0
 var _next := 0             # próximo lote a repintar
 var _elapsed := 0.0
 var _duration := 0.0
+var _layer: CanvasLayer   # legenda do replay (Passo 67): só existe enquanto ele roda
+var _caption: Label
 
 
 func _ready() -> void:
@@ -37,6 +39,7 @@ func _process(delta: float) -> void:
 		_finish()
 		return
 	var upto := _total * _elapsed / _duration
+	_caption.text = "REPLAY  %d:%02d" % [floori(upto / 60.0), int(upto) % 60]
 	while _next < _batches.size() and _batches[_next][0] <= upto:
 		_push(_next)
 		_next += 1
@@ -59,11 +62,16 @@ func _begin() -> void:
 	_next = 0
 	_elapsed = 0.0
 	playing = true
+	_show_caption()
 
 
 # Pinta o que faltou e devolve o planeta final.
 func _finish() -> void:
 	playing = false
+	if _layer != null:
+		_layer.queue_free()
+		_layer = null
+		_caption = null
 	while _next < _batches.size():
 		_push(_next)
 		_next += 1
@@ -73,3 +81,19 @@ func _finish() -> void:
 func _push(index: int) -> void:
 	var batch: Array = _batches[index]
 	Services.planet.painter.enqueue(batch[1], batch[2], batch[3])
+
+
+## Passo 67: legenda no alto da tela com o instante da partida que o replay está mostrando.
+func _show_caption() -> void:
+	_layer = CanvasLayer.new()
+	_layer.layer = 5
+	_caption = Label.new()
+	_caption.text = "REPLAY  0:00"
+	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_caption.add_theme_font_size_override("font_size", 28)
+	_caption.add_theme_color_override("font_outline_color", Color.BLACK)
+	_caption.add_theme_constant_override("outline_size", 6)
+	_caption.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_caption.offset_top = 24.0
+	_layer.add_child(_caption)
+	add_child(_layer)
