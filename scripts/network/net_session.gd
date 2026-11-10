@@ -91,6 +91,14 @@ func is_online() -> bool:
 	return peer != null and peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED
 
 
+## Cliente: ida e volta até o servidor em ms (o próprio ENet mede e suaviza); -1 = sem conexão.
+func ping_ms() -> int:
+	if not is_online() or not multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		return -1
+	var link := (multiplayer.multiplayer_peer as ENetMultiplayerPeer).get_peer(1)   # o servidor é sempre o par 1
+	return -1 if link == null else int(link.get_statistic(ENetPacketPeer.PEER_ROUND_TRIP_TIME))
+
+
 ## Cliente: pede ao servidor para virar e já prevê o quadro localmente (DD-044). `dt` = duração do quadro de tela.
 ## Devolve o número do comando (a predição guarda o que o servidor ainda não confirmou). Fora do ar: não faz nada
 ## (o corredor segue reto no servidor até a volta).

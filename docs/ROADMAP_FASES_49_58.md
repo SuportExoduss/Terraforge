@@ -24,3 +24,4 @@ Ordem dos nomes das civilizações (suposição). Cópia de segurança do disco 
 Status:
 - Passo 49 ✔ (música do menu: MenuMusic com base suave, camada de pulso entra ao abrir uma tela, some no mergulho; smoke_menu_music; regressão 58/58)
 - Passo 50 ✔ (sala online lembrada: endereço e porta no perfil, tela ONLINE volta preenchida; smoke_online_saved; regressão 59/59)
+- Passo 51 ✔ (ping na tela ONLINE: NetSession.ping_ms() mede a ida e volta pelo ENet; aparece no status da sala e no quadro da partida; smoke_online_ping; regressão 60/60)

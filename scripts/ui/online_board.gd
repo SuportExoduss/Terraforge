@@ -63,5 +63,6 @@ func _draw() -> void:
 				dom = p.dom
 		draw_string(font, Vector2(size.x - 130, 24 + line * 22), "%dº  Civ %d  %d%%" % [line + 1, id, roundi(dom * 100.0)], HORIZONTAL_ALIGNMENT_LEFT, -1, 18, COLORS[(id - 1) % COLORS.size()])
 		line += 1
+	draw_string(font, Vector2(8, size.y - 12.0), "Ping %d ms" % net.ping_ms(), HORIZONTAL_ALIGNMENT_LEFT, -1, 16)
 	if over():
 		draw_string(font, Vector2(0.0, size.y - 12.0), "PARTIDA ENCERRADA", HORIZONTAL_ALIGNMENT_CENTER, size.x, 24)

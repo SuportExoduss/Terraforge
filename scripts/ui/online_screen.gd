@@ -136,4 +136,4 @@ func _process(_delta: float) -> void:
 		status.text = "Sala fechada: a partida está começando…"
 		return
 	var left := maxf(float(_info.seconds_left) - (Time.get_ticks_msec() - _info_at) / 1000.0, 0.0)
-	status.text = "Na sala: %d de %d jogadores · a partida abre em %d s\nAs vagas que sobrarem serão completadas por bots." % [_info.humans, _info.capacity, ceili(left)]
+	status.text = "Na sala: %d de %d jogadores · a partida abre em %d s · ping %d ms\nAs vagas que sobrarem serão completadas por bots." % [_info.humans, _info.capacity, ceili(left), net.ping_ms()]
