@@ -78,6 +78,9 @@ func _run() -> void:
 	await _expect("conversão", func(): _bus.territory_cells_converted.emit(PLAYER, 0.05), ["convert"])
 	await _expect("conversão de outro", func(): _bus.territory_cells_converted.emit(OTHER, 0.05), [])
 	await _expect("corte dado", func(): _bus.trail_cut.emit(OTHER, PLAYER), ["cut"])
+	for r in get_nodes_in_group("runners"):
+		if r.get_node("Civilization").id == PLAYER:
+			r.get_node("Health").shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	await _expect("corte sofrido (o som vem da vida real do jogador)", func(): _bus.trail_cut.emit(PLAYER, OTHER), ["damage"])
 	await _expect("bônus", func(): _bus.bonus_activated.emit(PLAYER, "SPEED", 5.0), ["bonus"])
 	await _expect("bônus de outro", func(): _bus.bonus_activated.emit(OTHER, "SPEED", 5.0), [])

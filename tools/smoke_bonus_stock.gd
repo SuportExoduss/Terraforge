@@ -70,6 +70,7 @@ func _run() -> void:
 	if not _check(_signals.back() == [1, ["VELOCIDADE"]], "sinal do estoque: %s" % [_signals.back()]): return
 
 	# 2. Recuperação segue automática mesmo com estoque
+	_health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	_health.take_damage(8)
 	await _drop(_runner, HEAL)
 	if not _check(_health.points == 14, "Recuperação automática: 8 + 6 = 14 (%d)" % _health.points): return
@@ -107,6 +108,7 @@ func _run() -> void:
 
 	# 6. O bot usa sozinho depois de bot_use_delay
 	var rival_health: Node = _match.get_node("Main/Runner2/Health")
+	rival_health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	await _drop(rival, SHIELD)
 	if not _check(_bonuses.stock_of(2) == [SHIELD] and rival_health.shield_left == 0.0, "bot guardou o Escudo sem ligar: %s" % [_bonuses.stock_of(2)]): return
 	await create_timer(0.7).timeout

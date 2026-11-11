@@ -47,6 +47,7 @@ func _run() -> void:
 		if r.get_node("Civilization").id == 1:
 			health = r.get_node("Health")
 	_check(health != null, "corredor do jogador não achado")
+	health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	_check(_cause() == "", "legenda deveria começar vazia: '%s'" % _cause())
 
 	health.take_damage(1, "VULCÃO")

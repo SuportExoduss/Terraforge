@@ -7,6 +7,7 @@ extends Node
 ## DD-123: perder a retaguarda NÃO tira vida; o próprio corredor volta andando (PlanetRunner).
 
 const MAX_POINTS := 16
+const RETURN_PROTECTION := 2.0   # SYS-003 RESPAWN: ao voltar ao campo o jogador fica 2 s sem perder pontos (anda e conquista normalmente)
 const MAX_EXTRA_POINTS := 4   # SYS-005: o bônus Vida Extra acrescenta, no máximo, 1 coração (teto de balanceamento)
 
 @export var cut_damage_points := 2
@@ -135,6 +136,7 @@ func _on_base_relocated(owner_id: int, new_position: Vector3) -> void:
 	if owner_id != _civilization.id or _eliminated:
 		return
 	_runner.teleport_to(new_position)
+	shield_left = maxf(shield_left, RETURN_PROTECTION)
 	points = max_points
 	_publish_points()
 
@@ -144,6 +146,7 @@ func return_to_force_field() -> void:
 	var base: Dictionary = Services.home_bases.get(_civilization.id, {})
 	if not base.is_empty():
 		_runner.teleport_to(base["position"])
+		shield_left = maxf(shield_left, RETURN_PROTECTION)
 
 
 func _publish_points() -> void:

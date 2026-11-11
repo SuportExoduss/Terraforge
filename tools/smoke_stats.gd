@@ -83,6 +83,7 @@ func _run() -> void:
 	_bus.civilization_eliminated.emit(5)   # eliminação sem corte (evento/defensor): ninguém ganha crédito
 	if not _check(stats.get_stat(1, "kills") == 0.0 and stats.get_stat(2, "kills") == 0.0, "eliminação por evento não credita"): return
 	var health: Node = _match.get_node("Main/Runner/Health")
+	health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	health.take_damage(health.points - 2)   # sobra 1 corte de vida (cut_damage_points = 2)
 	_bus.trail_cut.emit(1, 2)               # o corte da civilização 2 elimina o jogador
 	if not _check(health.points == 0, "o corte eliminou o jogador (%d pts)" % health.points): return

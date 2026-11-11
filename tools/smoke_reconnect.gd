@@ -85,6 +85,7 @@ func _run() -> void:
 	_server.peer_left(999)   # quem nunca entrou: ignorado
 	if not _check(_server.is_waiting(2) and log_ref.count("peer_desconectado") == 1, "queda registrada uma vez, sessão em espera"): return
 	if not _check(is_equal_approx(driver.get_steer(), 0.0), "sem jogador, o corredor segue reto"): return
+	runner.get_node("Health").shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	runner.get_node("Health").take_damage(4)
 	if not _check(await _until(func(): return _server.snapshot().left < left_before, 3.0), "o relógio da partida não para por causa da queda"): return
 

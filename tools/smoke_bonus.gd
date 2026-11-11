@@ -76,6 +76,7 @@ func _run() -> void:
 	_bonuses._pickups.clear()
 
 	# 2a. Recuperação
+	_health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	_health.take_damage(8)
 	_drop_on_runner(HEAL)
 	await process_frame

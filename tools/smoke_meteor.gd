@@ -61,6 +61,7 @@ func _run() -> void:
 	# 1. Dano em anéis (antes do primeiro meteoro, que só vem 1 s depois do GO)
 	_strikes.clear()
 	var side := runner.global_basis.x
+	health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	_bus.radial_damage.emit(runner.global_position + side * 30.0, 6.0, 4, true, 12.0, 2, 20.0, 1)
 	if not _check(health.points == 16, "fora do anel externo não deveria ferir (%d)" % health.points): return
 	_bus.radial_damage.emit(runner.global_position + side * 15.0, 6.0, 4, true, 12.0, 2, 20.0, 1)

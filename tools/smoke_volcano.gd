@@ -89,6 +89,7 @@ func _run() -> void:
 
 	# 1. Regra das bolas: 1 ponto cada; a 4ª acumulada = volta à base e o contador zera
 	_runner.teleport_to(antipode)
+	health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção
 	for i in 3:
 		_volcano.hit(_runner)
 	if not _check(health.points == 13, "3 bolas = -3 (%d)" % health.points): return

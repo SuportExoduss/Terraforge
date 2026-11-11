@@ -76,6 +76,7 @@ func _process(delta: float) -> bool:
 					return _fail("o sensor não cortou o rastro alheio")
 				# corte sofrido: leva o corredor longe da base e dispara o corte contra ele
 				_runner.teleport_to(_base_pos + _runner.forward * 40.0)
+				health.shield_left = 0.0   # Passo 73: o pouso da abertura dá 2 s de proteção; aqui o corte já deve valer
 				_bus.trail_cut.emit(1, 2)
 				var dist: float = _runner.global_position.distance_to(_base_pos)
 				print("fase2: vida=%d  distância da base=%.1f" % [health.points, dist])
@@ -113,6 +114,7 @@ func _process(delta: float) -> bool:
 				_time = 0.0
 		5:  # R1: 8 cortes x 2 pontos = 16 -> eliminada, uma vez só
 			for i in 9:
+				health.shield_left = 0.0   # Passo 73: cada corte devolve ao campo com 2 s de proteção; aqui cortes em sequência valem
 				_bus.trail_cut.emit(1, 2)
 			print("fase5: vida=%d eliminações=%d" % [health.points, _eliminated])
 			if health.points != 0 or _eliminated != 1:
