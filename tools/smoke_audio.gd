@@ -75,7 +75,7 @@ func _run() -> void:
 	await _expect("circuito grande", func(): _bus.territory_loop_claimed.emit(PLAYER, 20), ["capture"])
 	await _expect("circuito vazio", func(): _bus.territory_loop_claimed.emit(PLAYER, 3), [])
 	await _expect("circuito de outro", func(): _bus.territory_loop_claimed.emit(OTHER, 20), [])
-	await _expect("conversão", func(): _bus.territory_cells_converted.emit(PLAYER, 0.05), ["convert"])
+	await _expect("conversão", func(): _bus.territory_cells_converted.emit(PLAYER, 0.05), [_director.convert_sound(_audio.civilization)])
 	await _expect("conversão de outro", func(): _bus.territory_cells_converted.emit(OTHER, 0.05), [])
 	await _expect("corte dado", func(): _bus.trail_cut.emit(OTHER, PLAYER), ["cut"])
 	for r in get_nodes_in_group("runners"):

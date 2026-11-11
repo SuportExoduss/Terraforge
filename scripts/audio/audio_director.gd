@@ -14,7 +14,12 @@ const MUSIC_BUS := "Música"
 # nome -> lista de notas [freq_inicial, freq_final, segundos, volume, mistura_de_ruído 0..1]
 const SOUNDS := {
 	"capture": [[392, 392, 0.07, 0.5, 0.0], [494, 494, 0.07, 0.5, 0.0], [587, 587, 0.07, 0.5, 0.0], [784, 784, 0.18, 0.55, 0.0]],
-	"convert": [[220, 440, 0.20, 0.5, 0.1]],
+	"convert": [[220, 440, 0.20, 0.5, 0.1]],   # Passo 75 (SYS-002 "sons exclusivos"): 1 = Velho Oeste; 2..6 = as demais, na ordem do catálogo
+	"convert_2": [[900, 300, 0.12, 0.45, 0.0], [300, 900, 0.12, 0.45, 0.0]],      # Alien: gorjeio
+	"convert_3": [[523, 523, 0.07, 0.4, 0.0], [659, 659, 0.13, 0.45, 0.0]],       # Floresta: sininho
+	"convert_4": [[300, 700, 0.14, 0.5, 0.3]],                                    # Skate City: roda com ruído
+	"convert_5": [[110, 165, 0.12, 0.6, 0.15], [165, 147, 0.14, 0.6, 0.1]],       # Piratas: grave de madeira
+	"convert_6": [[2093, 1760, 0.08, 0.4, 0.0], [1760, 1568, 0.14, 0.4, 0.0]],    # Reino do Gelo: vidro
 	"cut": [[600, 120, 0.22, 0.6, 0.35]],
 	"damage": [[160, 60, 0.25, 0.7, 0.3]],
 	"bonus": [[880, 880, 0.06, 0.45, 0.0], [1175, 1175, 0.06, 0.45, 0.0], [1568, 1568, 0.16, 0.5, 0.0]],
@@ -26,6 +31,7 @@ const SOUNDS := {
 }
 
 var played: Array[String] = []   # últimos sons tocados (o smoke confere por aqui)
+var civilization := 1            # Passo 75: civilização do jogador (timbre da conversão)
 
 var _streams: Dictionary = {}    # nome -> AudioStreamWAV (gerado na primeira vez)
 var _voices: Array[AudioStreamPlayer] = []
@@ -36,13 +42,14 @@ var _health: int = -1
 
 func _ready() -> void:
 	ensure_buses()
+	civilization = CivilizationCatalog.chosen()
 	for i in VOICES:
 		var voice := AudioStreamPlayer.new()
 		voice.bus = SFX_BUS
 		add_child(voice)
 		_voices.append(voice)
 	EventBus.territory_loop_claimed.connect(func(id, cells): if id == Civilization.PLAYER_ID and cells >= MatchStats.MIN_LOOP_CELLS: play("capture"))
-	EventBus.territory_cells_converted.connect(func(id, _f): if id == Civilization.PLAYER_ID: play("convert"))
+	EventBus.territory_cells_converted.connect(func(id, _f): if id == Civilization.PLAYER_ID: play(convert_sound(civilization)))
 	EventBus.trail_cut.connect(func(_victim, attacker): if attacker == Civilization.PLAYER_ID: play("cut"))
 	EventBus.bonus_activated.connect(func(id, _k, _s): if id == Civilization.PLAYER_ID: play("bonus"))
 	EventBus.global_event_warning.connect(func(_n, _s): play("warning"))
@@ -60,6 +67,11 @@ static func ensure_buses() -> void:
 			var index := AudioServer.get_bus_count() - 1
 			AudioServer.set_bus_name(index, bus_name)
 			AudioServer.set_bus_send(index, "Master")
+
+
+## Nome do som de conversão da civilização `civ` (1..6); fora disso, o padrão (Velho Oeste).
+static func convert_sound(civ: int) -> String:
+	return "convert_%d" % civ if SOUNDS.has("convert_%d" % civ) else "convert"
 
 
 ## Volume de um barramento em escala linear (0 = mudo, 1 = cheio).
