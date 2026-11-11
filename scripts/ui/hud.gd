@@ -19,6 +19,7 @@ const GO_SECONDS := 1.0
 const IMPACT_SECONDS := 1.2
 const CAUSE_SECONDS := 2.0
 const DAMAGE_FLASH_SECONDS := 0.4
+const PULSE_SECONDS := 0.9   # Passo 76: período do pulso do último coração (~1 Hz, bem abaixo do limite de 3 Hz de brilho)
 const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
 const KNOB_RADIUS := 22.0
 
@@ -30,6 +31,7 @@ var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder v
 var _damage_flash: ColorRect         # Passo 74: clarão vermelho ao perder vida
 var _damage_tween: Tween
 var _hearts: Control
+var _low_life := false               # Passo 76: último coração em risco (1..4 pontos)
 var _joystick: Control
 var _bonus_column: VBoxContainer
 var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
@@ -97,6 +99,7 @@ func _process(_delta: float) -> void:
 	if _joystick.visible:
 		_joystick.queue_redraw()
 	_tick_bonuses()
+	_pulse_last_heart()
 
 
 func _label(parent: Control, label_name: String, size: int, color: Color, preset: int, offset: Vector2) -> Label:
@@ -138,7 +141,17 @@ func _build_hearts(parent: Control) -> void:
 	_refresh_hearts(BASE_POINTS, BASE_POINTS)
 
 
+# Passo 76: com pouca vida o último coração (o 1º) pulsa; parado com "Reduzir movimento" (Passo 56).
+func _pulse_last_heart() -> void:
+	var alpha := 1.0
+	if _low_life and not Settings.reduced_motion():
+		alpha = 0.7 + 0.3 * cos(Time.get_ticks_msec() * 0.001 * TAU / PULSE_SECONDS)
+	for i in SEGMENTS_PER_HEART:
+		(_hearts.get_child(i) as ColorRect).modulate.a = alpha
+
+
 func _refresh_hearts(points: int, max_points: int) -> void:
+	_low_life = points > 0 and points <= Health.LOW_LIFE_POINTS
 	for i in _hearts.get_child_count():
 		var segment := _hearts.get_child(i) as ColorRect
 		segment.visible = i < max_points

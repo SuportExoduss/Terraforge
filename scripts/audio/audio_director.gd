@@ -7,7 +7,8 @@ extends Node
 
 const RATE := 22050
 const VOICES := 8
-const MIN_GAP_MSEC := 80   # o mesmo som não empilha (um circuito grande dispara vários sinais seguidos)
+const BEAT_SECONDS := 0.9   # Passo 76: com 1..4 pontos de vida (Health.LOW_LIFE_POINTS) o batimento toca a cada 0,9 s
+const MIN_GAP_MSEC := 80  # o mesmo som não empilha (um circuito grande dispara vários sinais seguidos)
 const SFX_BUS := "SFX"
 const MUSIC_BUS := "Música"
 
@@ -22,6 +23,7 @@ const SOUNDS := {
 	"convert_6": [[2093, 1760, 0.08, 0.4, 0.0], [1760, 1568, 0.14, 0.4, 0.0]],    # Reino do Gelo: vidro
 	"cut": [[600, 120, 0.22, 0.6, 0.35]],
 	"damage": [[160, 60, 0.25, 0.7, 0.3]],
+	"heartbeat": [[75, 50, 0.09, 0.8, 0.0], [50, 50, 0.07, 0.0, 0.0], [65, 45, 0.1, 0.7, 0.0]],   # Passo 76: "tum-tum" grave de pouca vida
 	"bonus": [[880, 880, 0.06, 0.45, 0.0], [1175, 1175, 0.06, 0.45, 0.0], [1568, 1568, 0.16, 0.5, 0.0]],
 	"warning": [[660, 660, 0.12, 0.5, 0.0], [440, 440, 0.14, 0.5, 0.0]],
 	"tick": [[800, 800, 0.06, 0.4, 0.0]],
@@ -38,6 +40,7 @@ var _voices: Array[AudioStreamPlayer] = []
 var _next_voice := 0
 var _last_msec: Dictionary = {}
 var _health: int = -1
+var _beat_clock := 0.0
 
 
 func _ready() -> void:
@@ -57,6 +60,16 @@ func _ready() -> void:
 	EventBus.health_changed.connect(_on_health)
 	EventBus.civilization_eliminated.connect(func(id): if id == Civilization.PLAYER_ID: play("eliminated"))
 	EventBus.match_ended.connect(func(): play("end"))
+
+
+func _process(delta: float) -> void:
+	if _health < 1 or _health > Health.LOW_LIFE_POINTS:
+		_beat_clock = 0.0   # ao entrar em risco o primeiro batimento é imediato
+		return
+	_beat_clock -= delta
+	if _beat_clock <= 0.0:
+		_beat_clock = BEAT_SECONDS
+		play("heartbeat")
 
 
 ## Cria os barramentos SFX e Música (filhos do Master) se ainda não existirem.

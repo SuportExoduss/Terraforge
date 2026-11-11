@@ -8,7 +8,8 @@ extends Node
 
 const MAX_POINTS := 16
 const RETURN_PROTECTION := 2.0   # SYS-003 RESPAWN: ao voltar ao campo o jogador fica 2 s sem perder pontos (anda e conquista normalmente)
-const MAX_EXTRA_POINTS := 4   # SYS-005: o bônus Vida Extra acrescenta, no máximo, 1 coração (teto de balanceamento)
+const LOW_LIFE_POINTS := 4   # SYS-003 "tensão": com 4 pontos ou menos (só o último coração) a HUD pulsa e o áudio bate
+const MAX_EXTRA_POINTS := 4  # SYS-005: o bônus Vida Extra acrescenta, no máximo, 1 coração (teto de balanceamento)
 
 @export var cut_damage_points := 2
 @export var seconds_per_regen_point := 1.5
