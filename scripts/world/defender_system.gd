@@ -163,7 +163,7 @@ func _update(guard: Guard, delta: float) -> void:
 				if guard.position.distance_to(guard.target.global_position) <= attack_range * 1.3:
 					var health := guard.target.get_node_or_null("Health") as Health
 					if health != null:
-						health.take_damage(damage)
+						health.take_damage(damage, "DEFENSOR")
 				guard.cooldown = attack_cooldown
 				_set_state(guard, State.CHASE)
 

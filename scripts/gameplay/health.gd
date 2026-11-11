@@ -50,10 +50,11 @@ func _process(delta: float) -> void:
 
 
 ## Dano de qualquer origem (corte, eventos, defensores).
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, cause := "DANO") -> void:
 	if _eliminated or shield_left > 0.0:
 		return
 	points = maxi(0, points - amount)
+	EventBus.damage_taken.emit(_civilization.id, amount, cause)
 	if points <= 0:
 		eliminate()
 	else:
@@ -106,7 +107,7 @@ func grant_shield(seconds: float) -> void:
 func _on_trail_cut(victim_id: int, attacker_id: int) -> void:
 	if victim_id != _civilization.id or _eliminated:
 		return
-	take_damage(cut_damage_points)
+	take_damage(cut_damage_points, "RASTRO CORTADO")
 	if _eliminated:
 		EventBus.civilization_killed.emit(victim_id, attacker_id)   # a apuração credita a eliminação a quem cortou
 	else:
@@ -120,13 +121,13 @@ func _on_radial_damage(center: Vector3, inner_radius: float, inner_damage: int, 
 		return
 	var distance := _runner.global_position.distance_to(center)
 	if distance <= inner_radius:
-		take_damage(inner_damage)
+		take_damage(inner_damage, "IMPACTO")
 		if not _eliminated and inner_returns_to_base:
 			return_to_force_field()
 	elif distance <= mid_radius:
-		take_damage(mid_damage)
+		take_damage(mid_damage, "IMPACTO")
 	elif distance <= outer_radius:
-		take_damage(outer_damage)
+		take_damage(outer_damage, "IMPACTO")
 
 
 # DD-100: perdeu a base = recomeço junto à nave, com a vida cheia.

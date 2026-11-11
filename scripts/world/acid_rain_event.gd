@@ -192,7 +192,7 @@ func _burn_runner(runner: PlanetRunner, delta: float) -> void:
 		_burn[id] -= 1.0
 		var health := runner.get_node_or_null("Health") as Health
 		if health != null:
-			health.take_damage(1)
+			health.take_damage(1, "CHUVA ÁCIDA")
 
 
 # Direção (do centro do planeta) de um ponto da área: ângulo + fração do raio, a partir do centro atual.

@@ -180,7 +180,7 @@ func _affect(runner: PlanetRunner, delta: float) -> void:
 			runner.push = inward * z1_pull
 			if health != null and clock - _sent.get(id, -99.0) > 2.0:
 				_sent[id] = clock
-				health.take_damage(z1_damage)
+				health.take_damage(z1_damage, "FURACÃO")
 				if health.points > 0:
 					health.return_to_force_field()
 		2:
@@ -194,7 +194,7 @@ func _affect(runner: PlanetRunner, delta: float) -> void:
 		if _burn[id] >= 1.0:
 			_burn[id] -= 1.0
 			if health != null:
-				health.take_damage(1)
+				health.take_damage(1, "FURACÃO")
 	else:
 		_burn[id] = 0.0
 

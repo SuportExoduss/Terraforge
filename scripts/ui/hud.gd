@@ -17,6 +17,7 @@ const GAP := 1.0
 const HEART_GAP := 8.0
 const GO_SECONDS := 1.0
 const IMPACT_SECONDS := 1.2
+const CAUSE_SECONDS := 2.0
 const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
 const KNOB_RADIUS := 22.0
 
@@ -24,6 +25,7 @@ var _clock: Label
 var _score: Label
 var _countdown: Label
 var _event: Label
+var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
 var _hearts: Control
 var _joystick: Control
 var _bonus_column: VBoxContainer
@@ -42,6 +44,7 @@ func _ready() -> void:
 	_clock = _label(root, "ClockLabel", 30, Color.WHITE, Control.PRESET_TOP_WIDE, Vector2(0, 14))
 	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
 	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62.0 * Settings.text_scale()))   # desce junto com o relógio maior
+	_cause = _label(root, "CauseLabel", 18, FULL, Control.PRESET_TOP_LEFT, Vector2(16, 76))   # sob os corações
 	_countdown = _label(root, "CountdownLabel", 110, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
 	_countdown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_score.text = "Domínio: 0,0%"
@@ -60,6 +63,7 @@ func _ready() -> void:
 	EventBus.match_ended.connect(_on_match_ended)
 	EventBus.territory_score_changed.connect(_on_score)
 	EventBus.health_changed.connect(_on_health)
+	EventBus.damage_taken.connect(_on_damage)
 	EventBus.respawn_countdown.connect(_on_respawn_countdown)
 	EventBus.global_event_warning.connect(_on_event_warning)
 	EventBus.bonus_activated.connect(_on_bonus)
@@ -202,6 +206,11 @@ func _on_score(owner_id: int, owned_fraction: float) -> void:
 func _on_health(owner_id: int, points: int, max_points: int) -> void:
 	if owner_id == Civilization.PLAYER_ID:
 		_refresh_hearts(points, max_points)
+
+
+func _on_damage(owner_id: int, points: int, cause: String) -> void:
+	if owner_id == Civilization.PLAYER_ID:
+		_flash(_cause, "-%d  %s" % [points, cause], CAUSE_SECONDS)
 
 
 func _on_respawn_countdown(owner_id: int, seconds_remaining: int) -> void:

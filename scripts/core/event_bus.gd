@@ -9,6 +9,7 @@ signal bonus_use_requested(owner_id: int)   # o dono pediu o próximo bônus gua
 signal bonus_stock_changed(owner_id: int, kinds: Array)   # estoque de bônus guardados (nomes, na ordem de uso)
 signal bonus_drop_requested(center: Vector3, count: int)
 signal civilization_eliminated(owner_id: int)
+signal damage_taken(victim_id: int, points: int, cause: String)   # perdeu pontos de vida (já descontado o escudo): quantos e por quê
 signal civilization_killed(victim_id: int, killer_id: int)   # eliminada POR CORTE de rastro (eventos/defensores não creditam)
 signal global_event_active_changed(active: bool)   # um evento global (chuva/verme/terremoto) entrou ou saiu da execução
 signal global_event_warning(event_name: String, seconds_remaining: int)

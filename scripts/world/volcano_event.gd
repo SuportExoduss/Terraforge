@@ -141,7 +141,7 @@ func hit(runner: PlanetRunner) -> void:
 	var health := runner.get_node_or_null("Health") as Health
 	if health == null:
 		return
-	health.take_damage(1)
+	health.take_damage(1, "VULCÃO")
 	var id := runner.get_instance_id()
 	var count: int = _hits.get(id, 0) + 1
 	if count >= BALLS_FOR_RETURN:

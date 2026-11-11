@@ -261,7 +261,7 @@ func _place_crack(i: int, width: float) -> void:
 func _hurt(runner: PlanetRunner, points: int) -> void:
 	var health := runner.get_node_or_null("Health") as Health
 	if health != null:
-		health.take_damage(points)
+		health.take_damage(points, "TERREMOTO")
 
 
 

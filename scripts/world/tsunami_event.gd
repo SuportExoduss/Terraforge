@@ -106,7 +106,7 @@ func _tick_active(delta: float) -> bool:
 			_applied[id] = points
 			var health := runner.get_node_or_null("Health") as Health
 			if health != null:
-				health.take_damage(points - already)
+				health.take_damage(points - already, "TSUNAMI")
 	return _angle >= deg_to_rad(travel_degrees)
 
 
