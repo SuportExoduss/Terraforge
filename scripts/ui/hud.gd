@@ -18,6 +18,7 @@ const HEART_GAP := 8.0
 const GO_SECONDS := 1.0
 const IMPACT_SECONDS := 1.2
 const CAUSE_SECONDS := 2.0
+const DAMAGE_FLASH_SECONDS := 0.4
 const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
 const KNOB_RADIUS := 22.0
 
@@ -26,6 +27,8 @@ var _score: Label
 var _countdown: Label
 var _event: Label
 var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
+var _damage_flash: ColorRect         # Passo 74: clarão vermelho ao perder vida
+var _damage_tween: Tween
 var _hearts: Control
 var _joystick: Control
 var _bonus_column: VBoxContainer
@@ -40,6 +43,13 @@ func _ready() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE   # o HUD nunca engole o toque de direção
 	add_child(root)
+
+	_damage_flash = ColorRect.new()   # primeiro filho: os textos ficam por cima do clarão
+	_damage_flash.name = "DamageFlash"
+	_damage_flash.color = Color(0.9, 0.05, 0.08, 0.0)
+	_damage_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_damage_flash)
 
 	_clock = _label(root, "ClockLabel", 30, Color.WHITE, Control.PRESET_TOP_WIDE, Vector2(0, 14))
 	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
@@ -209,8 +219,16 @@ func _on_health(owner_id: int, points: int, max_points: int) -> void:
 
 
 func _on_damage(owner_id: int, points: int, cause: String) -> void:
-	if owner_id == Civilization.PLAYER_ID:
-		_flash(_cause, "-%d  %s" % [points, cause], CAUSE_SECONDS)
+	if owner_id != Civilization.PLAYER_ID:
+		return
+	_flash(_cause, "-%d  %s" % [points, cause], CAUSE_SECONDS)
+	if Settings.reduced_motion():   # Passo 56: só a legenda, sem clarão
+		return
+	_damage_flash.color.a = minf(0.1 + 0.08 * points, 0.5)   # quanto mais pontos, mais forte
+	if _damage_tween:
+		_damage_tween.kill()
+	_damage_tween = create_tween()
+	_damage_tween.tween_property(_damage_flash, "color:a", 0.0, DAMAGE_FLASH_SECONDS)
 
 
 func _on_respawn_countdown(owner_id: int, seconds_remaining: int) -> void:
