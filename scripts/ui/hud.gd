@@ -8,6 +8,9 @@ extends CanvasLayer
 const HEARTS := 5   # 4 normais + 1 do bônus Vida Extra (SYS-005), escondido até existir
 const BASE_POINTS := 16
 const BONUS_FLASH_SECONDS := 1.5
+const BONUS_GLYPHS := {"VELOCIDADE": "»", "RECUPERAÇÃO": "R", "VIDA EXTRA": "+", "CONGELAMENTO": "*", "ESCUDO TEMPORAL": "O", "CONGELADO": "!"}   # Passo 80: símbolo da ficha de cada bônus
+const CHILL := Color(0.55, 0.7, 0.95)   # ficha do CONGELADO (o castigo não tem cristal)
+const CHIP_SIZE := 32.0
 const SEGMENTS_PER_HEART := 4
 const FULL := Color(1.0, 0.27, 0.32)
 const EMPTY := Color(0.12, 0.12, 0.15, 0.85)
@@ -35,7 +38,7 @@ var _low_life := false               # Passo 76: último coração em risco (1..
 var _joystick: Control
 var _bonus_column: VBoxContainer
 var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
-var _bonus_labels: Dictionary = {}   # nome do bônus -> Label
+var _bonus_rows: Dictionary = {}     # nome do bônus -> linha (Top/Chip + Top/Bonus)
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
 
 
@@ -189,14 +192,39 @@ func _on_stock(owner_id: int, kinds: Array) -> void:
 		_stock_button.text = "ESPAÇO · %s  [%d]" % [kinds[0], kinds.size()]
 
 
+# Passo 80 (SYS-005 INTERFACE, "ícone exclusivo"): cada bônus ativo é uma linha com ficha (cor do cristal + símbolo) e o contador.
+func _build_bonus_row(kind: String) -> Control:
+	var row := VBoxContainer.new()
+	row.name = "Row_" + kind
+	_bonus_column.add_child(row)
+	var top := HBoxContainer.new()
+	top.name = "Top"
+	row.add_child(top)
+	var index := BonusSystem.NAMES.find(kind)
+	var style := StyleBoxFlat.new()
+	style.bg_color = BonusSystem.COLORS[index] if index >= 0 else CHILL
+	style.set_corner_radius_all(roundi(CHIP_SIZE / 4.0))
+	var chip := PanelContainer.new()
+	chip.name = "Chip"
+	chip.custom_minimum_size = Vector2.ONE * roundi(CHIP_SIZE * Settings.text_scale())
+	chip.add_theme_stylebox_override("panel", style)
+	top.add_child(chip)
+	var glyph := _label(chip, "Glyph", 20, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
+	glyph.text = BONUS_GLYPHS.get(kind, "?")
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var label := _label(top, "Bonus", 20, AMBER, Control.PRESET_TOP_LEFT, Vector2.ZERO)
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return row
+
+
 func _on_bonus(owner_id: int, kind: String, seconds: float) -> void:
 	if owner_id != Civilization.PLAYER_ID:
 		return
-	if not _bonus_labels.has(kind):
-		_bonus_labels[kind] = _label(_bonus_column, "Bonus", 20, AMBER, Control.PRESET_TOP_LEFT, Vector2.ZERO)
-	var label: Label = _bonus_labels[kind]
-	label.text = kind
-	label.visible = true
+	if not _bonus_rows.has(kind):
+		_bonus_rows[kind] = _build_bonus_row(kind)
+	var row: Control = _bonus_rows[kind]
+	(row.get_node("Top/Bonus") as Label).text = kind
+	row.visible = true
 	_bonus_until[kind] = {"until_ms": Time.get_ticks_msec() + int((seconds if seconds > 0.0 else BONUS_FLASH_SECONDS) * 1000.0), "timed": seconds > 0.0}
 
 
@@ -204,12 +232,12 @@ func _tick_bonuses() -> void:
 	for kind in _bonus_until.keys():
 		var entry: Dictionary = _bonus_until[kind]
 		var left_ms: int = entry["until_ms"] - Time.get_ticks_msec()
-		var label: Label = _bonus_labels[kind]
+		var row: Control = _bonus_rows[kind]
 		if left_ms <= 0:
-			label.visible = false
+			row.visible = false
 			_bonus_until.erase(kind)
 		elif entry["timed"]:
-			label.text = "%s %ds" % [kind, ceili(left_ms / 1000.0)]
+			(row.get_node("Top/Bonus") as Label).text = "%s %ds" % [kind, ceili(left_ms / 1000.0)]
 
 
 func _draw_joystick() -> void:
