@@ -21,6 +21,7 @@ enum State { WAITING_MATCH, COOLDOWN, WARNING, ACTIVE, SCAR }
 const MAX_SIMULTANEOUS := 1
 static var gate_gap_seconds := 25.0   # (var para o teste encurtar)
 static var _running := 0
+const LATE_PACE := 0.5                # SYS-004 BALANCEAMENTO "a intensidade aumenta": no fim da partida o intervalo cai à metade
 static var _gap_left := 0.0
 static var _gap_frame := -1
 
@@ -48,6 +49,12 @@ static func gate_tick(delta: float) -> void:
 	var frame := Engine.get_process_frames()
 	if frame != _gap_frame:
 		_gap_frame = frame
+## Fator do intervalo entre eventos: 1 no começo da partida, LATE_PACE no fim (linear). Os eventos de ciclo próprio (meteoro) usam também.
+static func pace(tree: SceneTree, seconds_left: int) -> float:
+	var timer := tree.get_first_node_in_group("match_timer") as MatchTimer
+	return 1.0 if timer == null else lerpf(1.0, LATE_PACE, clampf(1.0 - seconds_left / timer.duration_seconds, 0.0, 1.0))
+
+
 		_gap_left = maxf(0.0, _gap_left - delta)
 
 var state := State.WAITING_MATCH
@@ -147,7 +154,7 @@ func _on_match_ended() -> void:
 func _begin_cooldown() -> void:
 	state = State.COOLDOWN
 	clock = 0.0
-	_cooldown_target = randf_range(min_seconds_between, max_seconds_between)
+	_cooldown_target = randf_range(min_seconds_between, max_seconds_between) * pace(get_tree(), _seconds_remaining)
 
 
 func _start_warning() -> void:

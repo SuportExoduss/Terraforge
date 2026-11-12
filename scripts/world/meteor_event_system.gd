@@ -100,7 +100,7 @@ func _on_match_ended() -> void:
 func _begin_cooldown() -> void:
 	_state = State.COOLDOWN
 	_clock = 0.0
-	_cooldown_target = randf_range(min_seconds_between, max_seconds_between)
+	_cooldown_target = randf_range(min_seconds_between, max_seconds_between) * GlobalEvent.pace(get_tree(), _seconds_remaining)
 
 
 ## Onde o meteoro vai cair, para o minimapa (MP-003/005): só durante o aviso.
