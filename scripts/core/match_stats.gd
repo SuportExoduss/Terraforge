@@ -4,7 +4,9 @@ extends Node
 ## Chaves: loops (áreas conquistadas = circuitos que renderam >= 12 células), converted (fração do planeta tomada de outros),
 ## cuts (rastros cortados), kills (eliminações por corte). Quem precisa de um número consulta Services.stats.
 ## Também guarda o domínio (fração do planeta) atual e o auge de cada civilização e quem foi eliminado: ranking().
-## ponytail: sem histórico no tempo (o replay guarda o seu); eliminação por evento global não credita ninguém.
+## Passo 86: também conta os eventos globais da partida (um por aviso) e em quais deles o jogador levou dano.
+## ponytail: sem histórico no tempo (o replay guarda o seu); eliminação por evento global não credita ninguém; o dano "IMPACTO"
+## vem do Meteoro e do Verme (mesmo sinal): vale para o mais recente dos dois.
 
 const KEYS := ["loops", "converted", "cuts", "kills"]
 const MIN_LOOP_CELLS := 12   # abaixo disso o circuito não conta como "área conquistada"
@@ -13,6 +15,10 @@ var _stats := {}   # id -> {chave: valor}
 var _latest := {}       # id -> domínio atual (fração)
 var _peak := {}         # id -> maior domínio já visto
 var _eliminated := {}   # id -> true
+var _warning_left := {}   # nome do evento -> última contagem do aviso (se ela sobe, é um evento novo)
+var _event_number := {}   # nome do evento -> número do evento mais recente com esse nome
+var _events := 0
+var _hit := {}            # número do evento -> true (o jogador levou dano dele)
 
 
 func _ready() -> void:
@@ -27,6 +33,8 @@ func _ready() -> void:
 		_latest[id] = fraction
 		_peak[id] = maxf(_peak.get(id, 0.0), fraction))
 	EventBus.civilization_eliminated.connect(func(id: int) -> void: _eliminated[id] = true)
+	EventBus.global_event_warning.connect(_on_warning)
+	EventBus.damage_taken.connect(_on_damage)
 
 
 func _exit_tree() -> void:
@@ -36,6 +44,15 @@ func _exit_tree() -> void:
 
 func get_stat(civilization_id: int, key: String) -> float:
 	return _stats.get(civilization_id, {}).get(key, 0.0)
+
+
+## Eventos globais anunciados na partida e quantos deles machucaram o jogador.
+func events_seen() -> int:
+	return _events
+
+
+func events_hit() -> int:
+	return _hit.size()
 
 
 func dominance(civilization_id: int) -> float:
@@ -65,6 +82,24 @@ func _before(a: int, b: int) -> bool:
 		if score != 0.0:
 			return score > 0.0
 	return a < b
+
+
+func _on_warning(event_name: String, seconds: int) -> void:
+	if seconds > _warning_left.get(event_name, -1):
+		_events += 1
+		_event_number[event_name] = _events
+	_warning_left[event_name] = seconds
+
+
+func _on_damage(victim_id: int, _points: int, cause: String) -> void:
+	if victim_id != Civilization.PLAYER_ID:
+		return
+	var latest := 0
+	for event_name: String in _event_number:
+		if event_name.begins_with(cause) or (cause == "IMPACTO" and (event_name.begins_with("METEORO") or event_name.begins_with("VERME"))):
+			latest = maxi(latest, _event_number[event_name])
+	if latest > 0:
+		_hit[latest] = true
 
 
 func _bump(civilization_id: int, key: String, amount: float) -> void:

@@ -136,6 +136,7 @@ func _stats_text() -> String:
 		"Território tomado de rivais: %s" % _percent(stats.get_stat(me, "converted")),
 		"Rastros cortados: %d" % stats.get_stat(me, "cuts"),
 		"Eliminações: %d" % stats.get_stat(me, "kills"),
+		"Eventos globais: %d — escapou de %d, atingido por %d" % [stats.events_seen(), stats.events_seen() - stats.events_hit(), stats.events_hit()],
 	])
 
 
