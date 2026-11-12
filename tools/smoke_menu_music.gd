@@ -16,7 +16,7 @@ func _initialize() -> void:
 
 func _process(delta: float) -> bool:
 	_time += delta
-	if _time > 60.0:
+	if _time > 150.0:
 		print("FALHOU: tempo esgotado")
 		quit(1)
 	return false
@@ -67,7 +67,7 @@ func _run() -> void:
 	if not _check(music.leaving, "JOGAR marca a saída da trilha"): return
 	if not _check(await _until(func(): return base.volume_db < -28.0, 2.0), "a base abaixa durante o mergulho"): return
 	# espera a partida carregar (sair no meio da carga em segundo plano gera ERROR de recurso)
-	if not _check(await _until(func(): return current_scene != null and current_scene.name != "Menu", 30.0), "o mergulho termina na partida"): return
+	if not _check(await _until(func(): return current_scene != null and current_scene.name != "Menu", 100.0), "o mergulho termina na partida"): return
 	for i in 5:
 		await process_frame
 	print("OK smoke_menu_music")

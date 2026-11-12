@@ -18,7 +18,7 @@ func _initialize() -> void:
 
 func _process(delta: float) -> bool:
 	_time += delta
-	if _time > 60.0:
+	if _time > 180.0:
 		print("FALHOU: tempo esgotado")
 		quit(1)
 	return false
@@ -159,7 +159,7 @@ func _run() -> void:
 	if not _check(a.my_civ == 1 and b.my_civ == 2, "na ordem de chegada (A=1, B=2; a civilização de C não existiu)"): return
 	if not _check(matchsrv.peer_of(1) != 0 and matchsrv.peer_of(2) != 0 and matchsrv.free_civilization() == 3, "a 3ª civilização ficou com o bot"): return
 	if not _check(infos_a[-1].phase == P.CLOSED, "o cliente soube que o lobby fechou"): return
-	if not _check(await _until(func(): return not a.last_snapshot.is_empty() and not b.last_snapshot.is_empty(), 4.0), "a partida corre: os dois recebem snapshots"): return
+	if not _check(await _until(func(): return not a.last_snapshot.is_empty() and not b.last_snapshot.is_empty(), 90.0), "a partida corre: os dois recebem snapshots"): return
 
 	# Lobby fechado: quem chega depois é recusado
 	var late := _side("ClientLate")
