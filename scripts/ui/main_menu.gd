@@ -65,6 +65,7 @@ func _ready() -> void:
 	_add_dock(dock, "Civilizations", "CIVILIZAÇÕES", CivilizationsScreen)
 	_add_dock(dock, "Shop", "LOJA", ShopScreen)
 	_add_dock(dock, "Online", "ONLINE", OnlineScreen)
+	_add_dock(dock, "Events", "EVENTOS", EventsScreen)
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
 	play.grab_focus()   # teclado / controle
