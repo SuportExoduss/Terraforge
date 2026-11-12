@@ -30,3 +30,4 @@ signal territory_loop_claimed(owner_id: int, new_cells: int)   # circuito já re
 signal territory_score_changed(owner_id: int, owned_fraction: float)
 signal trail_anchor_lost(owner_id: int)
 signal trail_cut(victim_id: int, attacker_id: int)
+signal weather_changed(condition: String)   # a janela de clima mudou ("clear", "rain", "fog", "storm", "aurora"): o replay anota

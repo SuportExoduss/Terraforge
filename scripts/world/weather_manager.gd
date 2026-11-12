@@ -17,6 +17,7 @@ const FLASH_MAX := 0.12
 const DAY_CONDITIONS := ["clear", "rain", "fog", "storm"]
 const NIGHT_FIRST_WINDOW := 3        # aurora só da janela 3 em diante (noite)
 const FOG_SHARE := {"fog": 1.0, "storm": 0.6, "rain": 0.35}
+const LABELS := {"rain": "CHUVA", "fog": "NEBLINA", "storm": "TEMPESTADE", "aurora": "AURORA"}   # legenda do replay (Passo 85)
 
 const SHADER := """
 shader_type canvas_item;
@@ -120,7 +121,9 @@ func _process(delta: float) -> void:
 	var duration: float = timer.duration_seconds if timer else 600.0
 	_event_factor = move_toward(_event_factor, 0.0 if _event_active else 1.0, delta / maxf(override_seconds, 0.01))
 	var state := state_at(weather_seed, _elapsed, duration)
-	condition = state["condition"]
+	if state["condition"] != condition:
+		condition = state["condition"]
+		EventBus.weather_changed.emit(condition)
 	intensity = state["intensity"] * _event_factor
 	_flash = maxf(0.0, _flash - delta * 4.0)
 	if condition == "storm" and intensity > 0.5:

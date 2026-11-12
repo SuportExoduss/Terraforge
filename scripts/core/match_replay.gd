@@ -4,7 +4,7 @@ extends Node
 ## conquistadas com o relógio da partida e, no estado REPLAY (MatchFlow), repinta o planeta do zero em velocidade
 ## acelerada: a partida inteira cabe em replay_seconds. Ao sair do REPLAY o resto é pintado na hora, então o planeta
 ## final é idêntico ao original (é o mesmo fluxo de pinturas, na mesma ordem).
-## ponytail: só o território (nascimentos, expansões, conversões); eventos e clima não aparecem no replay.
+## ponytail: o território (nascimentos, expansões, conversões) é repintado; eventos e clima só aparecem na legenda.
 
 ## Passo 68: quantos segundos (do replay) o nome de um evento fica na legenda.
 @export var event_caption_seconds := 2.0
@@ -24,6 +24,9 @@ var _last_warning := 0     # última contagem do aviso: se ela sobe, é um event
 var _next_event := 0
 var _event_name := ""
 var _event_left := 0.0
+var _weather: Array = [[0.0, "clear"]]   # Passo 85: [segundos da partida, condição] a cada mudança de clima
+var _next_weather := 0
+var _weather_label := ""
 var _layer: CanvasLayer   # legenda do replay (Passo 67): só existe enquanto ele roda
 var _caption: Label
 
@@ -32,6 +35,9 @@ func _ready() -> void:
 	EventBus.territory_cells_claimed.connect(func(owner_id: int, cells: PackedVector3Array, spacing: float) -> void:
 		_batches.append([_clock, owner_id, cells, spacing]))
 	EventBus.global_event_warning.connect(_on_warning)
+	EventBus.weather_changed.connect(func(condition: String) -> void:
+		if _running:
+			_weather.append([_clock, condition]))
 	EventBus.match_started.connect(func() -> void: _running = true)
 	EventBus.match_ended.connect(func() -> void:
 		_running = false
@@ -49,7 +55,12 @@ func _process(delta: float) -> void:
 		_finish()
 		return
 	var upto := _total * _elapsed / _duration
+	while _next_weather < _weather.size() and _weather[_next_weather][0] <= upto:
+		_weather_label = WeatherManager.LABELS.get(_weather[_next_weather][1], "")
+		_next_weather += 1
 	_caption.text = "REPLAY  %d:%02d" % [floori(upto / 60.0), int(upto) % 60]
+	if _weather_label != "":
+		_caption.text += "  ·  " + _weather_label
 	while _next_event < _events.size() and _events[_next_event][0] <= upto:
 		_event_name = _events[_next_event][1]
 		_event_left = event_caption_seconds
@@ -99,6 +110,8 @@ func _begin() -> void:
 	painter.clear()
 	_next = 0
 	_next_event = 0
+	_next_weather = 0
+	_weather_label = ""
 	_event_left = 0.0
 	_elapsed = 0.0
 	playing = true
