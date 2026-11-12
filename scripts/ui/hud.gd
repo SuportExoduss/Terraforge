@@ -214,6 +214,15 @@ func _build_bonus_row(kind: String) -> Control:
 	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var label := _label(top, "Bonus", 20, AMBER, Control.PRESET_TOP_LEFT, Vector2.ZERO)
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var fill := StyleBoxFlat.new()   # Passo 81 (SYS-005 INTERFACE, "indicador de duração"): barra que esvazia sob o bônus temporário
+	fill.bg_color = style.bg_color
+	var bar := ProgressBar.new()
+	bar.name = "Bar"
+	bar.max_value = 1.0
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0.0, 6.0)
+	bar.add_theme_stylebox_override("fill", fill)
+	row.add_child(bar)
 	return row
 
 
@@ -225,7 +234,10 @@ func _on_bonus(owner_id: int, kind: String, seconds: float) -> void:
 	var row: Control = _bonus_rows[kind]
 	(row.get_node("Top/Bonus") as Label).text = kind
 	row.visible = true
-	_bonus_until[kind] = {"until_ms": Time.get_ticks_msec() + int((seconds if seconds > 0.0 else BONUS_FLASH_SECONDS) * 1000.0), "timed": seconds > 0.0}
+	row.get_node("Bar").visible = seconds > 0.0
+	row.get_node("Bar").value = 1.0
+	var span := int((seconds if seconds > 0.0 else BONUS_FLASH_SECONDS) * 1000.0)
+	_bonus_until[kind] = {"until_ms": Time.get_ticks_msec() + span, "span_ms": span, "timed": seconds > 0.0}
 
 
 func _tick_bonuses() -> void:
@@ -238,6 +250,7 @@ func _tick_bonuses() -> void:
 			_bonus_until.erase(kind)
 		elif entry["timed"]:
 			(row.get_node("Top/Bonus") as Label).text = "%s %ds" % [kind, ceili(left_ms / 1000.0)]
+			(row.get_node("Bar") as ProgressBar).value = float(left_ms) / entry["span_ms"]
 
 
 func _draw_joystick() -> void:
