@@ -11,6 +11,8 @@ const BONUS_FLASH_SECONDS := 1.5
 const BONUS_GLYPHS := {"VELOCIDADE": "»", "RECUPERAÇÃO": "R", "VIDA EXTRA": "+", "CONGELAMENTO": "*", "ESCUDO TEMPORAL": "O", "CONGELADO": "!"}   # Passo 80: símbolo da ficha de cada bônus
 const CHILL := Color(0.55, 0.7, 0.95)   # ficha do CONGELADO (o castigo não tem cristal)
 const CHIP_SIZE := 32.0
+const POP_SCALE := 1.6   # Passo 82: a ficha nasce deste tamanho e assenta em 1
+const POP_SECONDS := 0.35
 const SEGMENTS_PER_HEART := 4
 const FULL := Color(1.0, 0.27, 0.32)
 const EMPTY := Color(0.12, 0.12, 0.15, 0.85)
@@ -207,6 +209,7 @@ func _build_bonus_row(kind: String) -> Control:
 	var chip := PanelContainer.new()
 	chip.name = "Chip"
 	chip.custom_minimum_size = Vector2.ONE * roundi(CHIP_SIZE * Settings.text_scale())
+	chip.pivot_offset = chip.custom_minimum_size / 2.0
 	chip.add_theme_stylebox_override("panel", style)
 	top.add_child(chip)
 	var glyph := _label(chip, "Glyph", 20, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
@@ -237,7 +240,17 @@ func _on_bonus(owner_id: int, kind: String, seconds: float) -> void:
 	row.get_node("Bar").visible = seconds > 0.0
 	row.get_node("Bar").value = 1.0
 	var span := int((seconds if seconds > 0.0 else BONUS_FLASH_SECONDS) * 1000.0)
+	_pop(row.get_node("Top/Chip"))
 	_bonus_until[kind] = {"until_ms": Time.get_ticks_msec() + span, "span_ms": span, "timed": seconds > 0.0}
+
+
+# Passo 82 (SYS-005 INTERFACE / DD-028, "animação de ativação"): a ficha pula ao ativar; "Reduzir movimento" = sem pulo.
+func _pop(chip: Control) -> void:
+	chip.scale = Vector2.ONE
+	if Settings.reduced_motion():
+		return
+	chip.scale = Vector2.ONE * POP_SCALE
+	create_tween().tween_property(chip, "scale", Vector2.ONE, POP_SECONDS).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _tick_bonuses() -> void:

@@ -1,7 +1,8 @@
 extends SceneTree
 ## Teste de fumaça dos Passos 80–82 (SYS-005 INTERFACE: "ícone exclusivo, contador, indicador de duração, animação de ativação"):
 ## (80) cada bônus ativo tem na coluna da HUD uma ficha com cor e símbolo só dele; (81) o bônus temporário tem uma barra
-## que esvazia, o instantâneo não tem barra.
+## que esvazia, o instantâneo não tem barra; (82) a ficha "pula" ao ativar e volta ao tamanho normal; com "Reduzir
+## movimento" ligado ela não pula.
 ## Uso: godot_console --headless --path . -s res://tools/smoke_bonus_hud.gd
 
 const TEST_PROFILE := "user://profile_smoke_bonus_hud.json"
@@ -77,6 +78,16 @@ func _run() -> void:
 	_bus.bonus_activated.emit(1, "VIDA EXTRA", 8.0)
 	if not _check((_row("VIDA EXTRA").find_child("Bar", true, false) as Control).visible, "voltando a ser temporário a barra reaparece"): return
 
+	# 82. Animação de ativação: a ficha pula e assenta; reduzir movimento = sem pulo
+	var chip := _chip("RECUPERAÇÃO")
+	_bus.bonus_activated.emit(1, "RECUPERAÇÃO", 8.0)
+	if not _check(chip.scale.x > 1.1, "ao ativar a ficha cresce (%.2f)" % chip.scale.x): return
+	await create_timer(0.8).timeout
+	if not _check(is_equal_approx(chip.scale.x, 1.0), "a ficha volta ao normal (%.2f)" % chip.scale.x): return
+	load("res://scripts/core/settings.gd").set_value("reduce_motion", 1.0)
+	_bus.bonus_activated.emit(1, "RECUPERAÇÃO", 8.0)
+	if not _check(is_equal_approx(chip.scale.x, 1.0), "reduzir movimento: a ficha não pula (%.2f)" % chip.scale.x): return
+	load("res://scripts/core/settings.gd").set_value("reduce_motion", 0.0)
 	DirAccess.remove_absolute(TEST_PROFILE)
 	print("OK")
 	quit(0)
