@@ -12,6 +12,7 @@ enum State { PATROL, ALERT, CHASE, ATTACK, RETURN, REST }
 
 const BODY_HEIGHT := 2.2
 const SENSE_INTERVAL := 0.2        # percepção a 5 Hz: barato mesmo com 18 sentinelas
+const MARK_RADIUS := 1.5           # Passo 83: raio do anel de identidade no chão
 const EYE_IDLE := Color(0.1, 0.1, 0.12)
 const EYE_ALERT := Color(1.0, 0.85, 0.2)
 const EYE_ATTACK := Color(1.0, 0.1, 0.05)
@@ -112,9 +113,24 @@ func _spawn(owner_id: int) -> void:
 	guard.node.add_child(body)
 	guard.node.add_child(guard.eye)
 	guard.node.add_to_group("defenders")
+	guard.node.add_child(_civ_mark(owner_id))
 	add_child(guard.node)
 	_place(guard, Vector3.ZERO)
 	_guards.append(guard)
+
+
+# Passo 83 (SYS-006, "identidade visual única para cada civilização"): anel no chão, na cor viva do solo da civilização dona.
+func _civ_mark(owner_id: int) -> MeshInstance3D:
+	var theme := Services.themes.theme_of(owner_id) if Services.themes != null else null
+	var ring := TorusMesh.new()
+	ring.inner_radius = MARK_RADIUS - 0.15
+	ring.outer_radius = MARK_RADIUS + 0.15
+	ring.material = _flat_material(Color.from_hsv((theme.soil_base if theme != null else Color.GRAY).h, 0.8, 1.0))
+	var mark := MeshInstance3D.new()
+	mark.name = "CivMark"
+	mark.mesh = ring
+	mark.position.y = 0.15
+	return mark
 
 
 func _flat_material(color: Color) -> StandardMaterial3D:
