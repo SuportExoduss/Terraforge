@@ -16,18 +16,23 @@ extends Node3D
 enum State { WAITING_MATCH, COOLDOWN, WARNING, ACTIVE, SCAR }
 
 # DD-128 — portão único dos 7 eventos (o meteoro também usa): GDMD cap.03 parte 07 "eventos respeitam limite simultâneo".
-# No máximo MAX_SIMULTANEOUS em AVISO/EXECUÇÃO e uma folga depois de cada execução (a cicatriz de um evento pode
+# No máximo limit() em AVISO/EXECUÇÃO e uma folga depois de cada execução (a cicatriz de um evento pode
 # coexistir com o aviso do próximo). Um evento que esgotou o cooldown mas achou o portão fechado espera a sua vez.
 const MAX_SIMULTANEOUS := 1
+const RUNNERS_PER_EXTRA := 3          # SYS-004 BALANCEAMENTO: o limite cresce 1 a cada 3 corredores (1-3 → 1, 4-6 → 2); o planeta tem um só tamanho
 static var gate_gap_seconds := 25.0   # (var para o teste encurtar)
-static var _running := 0
 const LATE_PACE := 0.5                # SYS-004 BALANCEAMENTO "a intensidade aumenta": no fim da partida o intervalo cai à metade
+static var _running := 0
 static var _gap_left := 0.0
 static var _gap_frame := -1
 
 
+static func limit() -> int:
+	return MAX_SIMULTANEOUS + maxi(0, (Engine.get_main_loop() as SceneTree).get_nodes_in_group("runners").size() - 1) / RUNNERS_PER_EXTRA
+
+
 static func gate_open() -> bool:
-	return _running < MAX_SIMULTANEOUS and _gap_left <= 0.0
+	return _running < limit() and _gap_left <= 0.0
 
 
 static func gate_enter() -> void:
@@ -44,17 +49,17 @@ static func gate_reset() -> void:
 	_gap_left = 0.0
 
 
-## Todo evento chama a cada quadro; só a primeira chamada do quadro desconta a folga (são vários relógios, um tempo só).
-static func gate_tick(delta: float) -> void:
-	var frame := Engine.get_process_frames()
-	if frame != _gap_frame:
-		_gap_frame = frame
 ## Fator do intervalo entre eventos: 1 no começo da partida, LATE_PACE no fim (linear). Os eventos de ciclo próprio (meteoro) usam também.
 static func pace(tree: SceneTree, seconds_left: int) -> float:
 	var timer := tree.get_first_node_in_group("match_timer") as MatchTimer
 	return 1.0 if timer == null else lerpf(1.0, LATE_PACE, clampf(1.0 - seconds_left / timer.duration_seconds, 0.0, 1.0))
 
 
+## Todo evento chama a cada quadro; só a primeira chamada do quadro desconta a folga (são vários relógios, um tempo só).
+static func gate_tick(delta: float) -> void:
+	var frame := Engine.get_process_frames()
+	if frame != _gap_frame:
+		_gap_frame = frame
 		_gap_left = maxf(0.0, _gap_left - delta)
 
 var state := State.WAITING_MATCH
