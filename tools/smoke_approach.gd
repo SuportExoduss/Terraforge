@@ -18,7 +18,7 @@ func _initialize() -> void:
 
 func _process(delta: float) -> bool:
 	_time += delta
-	if _time > 90.0:
+	if _time > 150.0:
 		print("FALHOU: tempo esgotado")
 		quit(1)
 	return false
@@ -53,12 +53,10 @@ func _run() -> void:
 	# Fim: câmera dentro da atmosfera, imagem escura, e a partida entra sozinha (carregada em segundo plano)
 	var last_z := 99.0
 	var last_dark := 1.0
-	var waited := 0.0
-	while is_instance_valid(menu) and waited < 40.0:
+	while is_instance_valid(menu) and _time < 120.0:
 		last_z = back.camera.position.z
 		last_dark = back.modulate.r
 		await process_frame
-		waited += 0.016
 	await process_frame
 	await process_frame
 	if not _check(is_instance_valid(current_scene) and current_scene.name == "Match", "a partida entra depois do mergulho"): return

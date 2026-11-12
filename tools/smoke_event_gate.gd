@@ -1,5 +1,5 @@
 extends SceneTree
-## Teste de fumaça (item 7, DD-128): os 7 eventos globais com cooldown de 8 s NUNCA ficam 2 em AVISO/EXECUÇÃO ao mesmo
+## Teste de fumaça (item 7, DD-128): os 8 eventos globais com cooldown de 8 s NUNCA ficam 2 em AVISO/EXECUÇÃO ao mesmo
 ## tempo e respeitam a folga depois de cada execução. Também exige que ao menos 4 eventos diferentes tenham rodado.
 ## Uso: godot_console --headless --path . --fixed-fps 60 -s res://tools/smoke_event_gate.gd
 
@@ -20,7 +20,7 @@ func _initialize() -> void:
 	_match = load("res://scenes/match.tscn").instantiate()
 	_match.get_node("MatchSetup").skip_ceremony = true
 	_match.get_node("MatchSetup").bot_count = 0
-	for node_name in ["Meteors", "Tsunami", "Volcano", "Hurricane", "AcidRain", "Earthquake", "GiantWorm"]:
+	for node_name in ["Meteors", "Tsunami", "Volcano", "Hurricane", "AcidRain", "Earthquake", "GiantWorm", "Stampede"]:
 		var event: Node3D = _match.get_node(node_name)
 		event.min_seconds_between = 8.0
 		event.max_seconds_between = 8.0

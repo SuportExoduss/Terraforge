@@ -31,6 +31,7 @@
 [ext_resource type="Script" path="res://scripts/core/event_log.gd" id="29"]
 [ext_resource type="Script" path="res://scripts/core/update_order.gd" id="30"]
 [ext_resource type="Script" path="res://scripts/world/first_conquest_burst.gd" id="31"]
+[ext_resource type="Script" path="res://scripts/world/stampede_event.gd" id="32"]
 
 [node name="Match" type="Node"]
 
@@ -92,6 +93,9 @@ script = ExtResource("18")
 
 [node name="GiantWorm" type="Node3D" parent="."]
 script = ExtResource("19")
+
+[node name="Stampede" type="Node3D" parent="."]
+script = ExtResource("32")
 
 [node name="Bonuses" type="Node3D" parent="."]
 script = ExtResource("11")
