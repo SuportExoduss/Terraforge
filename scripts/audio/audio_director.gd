@@ -111,7 +111,7 @@ func play(sound: String) -> void:
 
 func stream(sound: String) -> AudioStreamWAV:
 	if not _streams.has(sound):
-		_streams[sound] = synthesize(SOUNDS[sound])
+		_streams[sound] = SoundBank.stream("sfx:" + sound)   # pré-gerado pelo menu (SoundBank.warm); senão sintetiza aqui
 	return _streams[sound]
 
 

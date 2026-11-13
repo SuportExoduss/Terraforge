@@ -38,8 +38,8 @@ var _tweens: Dictionary = {}
 
 func _ready() -> void:
 	AudioDirector.ensure_buses()
-	_base = _player(music_stream(false))
-	_tense = _player(music_stream(true))
+	_base = _player(SoundBank.stream("music:base"))   # pré-gerado pelo menu (SoundBank.warm); senão sintetiza aqui
+	_tense = _player(SoundBank.stream("music:tense"))
 	_beds = [_player(null), _player(null)]
 	EventBus.match_started.connect(_start)
 	EventBus.match_ended.connect(_stop)
@@ -100,7 +100,7 @@ func _set_ambient(civilization_id: int, immediate: bool) -> void:
 	var old := _beds[_bed]
 	_bed = 1 - _bed
 	var bed := _beds[_bed]
-	bed.stream = ambient_stream(civilization_id)
+	bed.stream = SoundBank.stream("ambient:%d" % (civilization_id % 6))
 	bed.volume_db = AMBIENT_DB if immediate else QUIET_DB
 	bed.play()
 	if not immediate:
