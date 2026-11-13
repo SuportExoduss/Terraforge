@@ -45,6 +45,8 @@ func _ready() -> void:
 
 	Profile.load_data()
 	Settings.apply_all()   # volumes e qualidade salvos valem desde o menu
+	ModelCache.prefetch()   # Passo 89: touro e gema carregam em segundo plano enquanto o jogador escolhe; a partida os pega prontos
+	ResourceLoader.load_threaded_request(MATCH_SCENE)   # idem a partida: no JOGAR ela já vem andada (o pedido repetido é inofensivo)
 	var music := MenuMusic.new()   # trilha suave; entra mais um instrumento a cada tela aberta
 	music.name = "Music"
 	add_child(music)
