@@ -101,7 +101,7 @@ func _begin_warning() -> bool:
 	for i in ROCKS:
 		rocks.append(spot_near_runner(0.0, rock_spread))
 	plan(cracks, rocks)
-	print("[World] TERREMOTO iminente! (DD-107)")
+	GameLog.say("[World] TERREMOTO iminente! (DD-107)")
 	return true
 
 
@@ -149,7 +149,7 @@ func _begin_scar() -> void:
 	for mark in _marks:
 		mark.visible = false
 	EventBus.bonus_drop_requested.emit(ground_point(_crack_dir[0]), randi_range(2, 3))   # as rachaduras mostram cristais
-	print("[World] O terremoto passou: rachaduras e pedras (DD-108).")
+	GameLog.say("[World] O terremoto passou: rachaduras e pedras (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

@@ -101,7 +101,7 @@ func _setup() -> void:
 func _begin_warning() -> bool:
 	var start := Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized()   # uniforme na esfera
 	plan(start, start.cross(Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0))))
-	print("[World] CHUVA ÁCIDA se aproximando! (DD-107)")
+	GameLog.say("[World] CHUVA ÁCIDA se aproximando! (DD-107)")
 	return true
 
 
@@ -152,7 +152,7 @@ func _begin_scar() -> void:
 	for flower in _flowers:
 		_scatter(flower, b, 0.6, FLOWER_SCALE)
 	EventBus.bonus_drop_requested.emit(ground_point(center_dir), randi_range(3, 4))   # flores raras
-	print("[World] A chuva ácida passou: plantas queimadas e flores raras (DD-108).")
+	GameLog.say("[World] A chuva ácida passou: plantas queimadas e flores raras (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

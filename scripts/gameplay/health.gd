@@ -71,7 +71,7 @@ func eliminate() -> void:
 	_publish_points()
 	_eliminated = true
 	EventBus.civilization_eliminated.emit(_civilization.id)
-	print("[Gameplay] Civilização %d foi ELIMINADA da partida!" % _civilization.id)
+	GameLog.say("[Gameplay] Civilização %d foi ELIMINADA da partida!" % _civilization.id)
 
 
 func heal(amount: int) -> void:

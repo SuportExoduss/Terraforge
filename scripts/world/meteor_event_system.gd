@@ -123,7 +123,7 @@ func _begin_warning() -> void:
 	_state = State.WARNING
 	_clock = 0.0
 	_last_announced = -1
-	print("[World] METEORO a caminho! (DD-107)")
+	GameLog.say("[World] METEORO a caminho! (DD-107)")
 
 
 func _update_warning(delta: float) -> void:
@@ -154,7 +154,7 @@ func _impact() -> void:
 	_state = State.SCAR
 	_clock = 0.0
 	EventBus.bonus_drop_requested.emit(_impact_point, randi_range(1, 3))   # RECOMPENSA do evento (DD-106, SYS-005)
-	print("[World] IMPACTO do meteoro! Cratera aberta (DD-108).")
+	GameLog.say("[World] IMPACTO do meteoro! Cratera aberta (DD-108).")
 
 
 # CICATRIZ: a cratera encolhe até sumir (DD-108, ~25 s).

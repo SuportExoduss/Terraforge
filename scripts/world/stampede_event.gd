@@ -74,7 +74,7 @@ func _begin_warning() -> bool:
 	var axis := target.cross(heading).normalized()
 	var back := -speed * run_seconds * 0.5 / Services.planet.radius
 	plan(target.rotated(axis, back), heading.rotated(axis, back))
-	print("[World] MANADA se aproximando! (DD-107)")
+	GameLog.say("[World] MANADA se aproximando! (DD-107)")
 	return true
 
 
@@ -123,7 +123,7 @@ func _begin_scar() -> void:
 		var at := _at((i + 0.5) * span / PRINTS)
 		place_disc(_prints[i], _spot(at[0], at[1], V[i % BULLS]), 2.0)
 	EventBus.bonus_drop_requested.emit(ground_point(_at(span)[0]), randi_range(2, 3))
-	print("[World] A manada passou: pegadas no chão (DD-108).")
+	GameLog.say("[World] A manada passou: pegadas no chão (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

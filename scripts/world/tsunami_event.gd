@@ -59,7 +59,7 @@ func _begin_warning() -> bool:
 	var start := Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized()   # uniforme na esfera
 	var spin := Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0))
 	plan(start, spin.slide(start).normalized())
-	print("[World] TSUNAMI a caminho! (DD-107)")
+	GameLog.say("[World] TSUNAMI a caminho! (DD-107)")
 	return true
 
 
@@ -116,7 +116,7 @@ func _begin_scar() -> void:
 	var end := _front_point(deg_to_rad(travel_degrees))
 	place_disc(_puddle, end, puddle_diameter)
 	EventBus.bonus_drop_requested.emit(Services.planet.center + end * Services.planet.get_surface_radius(end), randi_range(1, 3))
-	print("[World] Tsunami passou: poça no ponto final (DD-108).")
+	GameLog.say("[World] Tsunami passou: poça no ponto final (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

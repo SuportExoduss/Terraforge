@@ -87,7 +87,7 @@ func _setup() -> void:
 
 func _begin_warning() -> bool:
 	plan([], randi_range(min_jumps, max_jumps))
-	print("[World] VERME GIGANTE iminente: %d saltos (DD-107)" % jump_count)
+	GameLog.say("[World] VERME GIGANTE iminente: %d saltos (DD-107)" % jump_count)
 	return true
 
 
@@ -137,7 +137,7 @@ func _tick_active(delta: float) -> bool:
 
 func _begin_scar() -> void:
 	EventBus.bonus_drop_requested.emit(ground_point(_target[jump_count - 1]), randi_range(2, 3))   # o verme deixa cristais
-	print("[World] O verme mergulhou: montes de terra e túneis (DD-108).")
+	GameLog.say("[World] O verme mergulhou: montes de terra e túneis (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

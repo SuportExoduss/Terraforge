@@ -96,7 +96,7 @@ func _process(delta: float) -> void:
 				_watch_clock = 0.0
 				_set_dome_visible(true)
 				EventBus.base_relocated.emit(_civilization.id, global_position)
-				print("[World] Civilização %d spawnou junto à nave (DD-100)." % _civilization.id)
+				GameLog.say("[World] Civilização %d spawnou junto à nave (DD-100)." % _civilization.id)
 
 
 func _progress(duration: float) -> float:
@@ -123,7 +123,7 @@ func _land(planet: Planet) -> void:
 	Services.register_home_base(_civilization.id, global_position, dome_radius)
 	_clock = 0.0   # (sem zerar _last_announced: a contagem da descida segue na espera pousada sem repetir o "2")
 	state = State.LANDED
-	print("[World] Nave da civilização %d pousou; campo se restabelecendo (DD-100)." % _civilization.id)
+	GameLog.say("[World] Nave da civilização %d pousou; campo se restabelecendo (DD-100)." % _civilization.id)
 
 
 func _watch_for_takeover(delta: float) -> void:
@@ -138,7 +138,7 @@ func _watch_for_takeover(delta: float) -> void:
 	var conqueror: int = territory.get_owner_at(global_position)
 	if conqueror != 0:
 		territory.convert_all_cells_of(_civilization.id, conqueror)
-		print("[World] Civilização %d tomou a base e HERDOU o império da civilização %d!" % [
+		GameLog.say("[World] Civilização %d tomou a base e HERDOU o império da civilização %d!" % [
 				conqueror, _civilization.id])
 	_set_dome_visible(false)   # o campo de força caiu
 	EventBus.base_fallen.emit(_civilization.id, conqueror)
@@ -147,11 +147,11 @@ func _watch_for_takeover(delta: float) -> void:
 		Services.unregister_home_base(_civilization.id)
 		visible = false
 		set_process(false)
-		print("[World] Ruína da civilização %d foi conquistada (DD-122)." % _civilization.id)
+		GameLog.say("[World] Ruína da civilização %d foi conquistada (DD-122)." % _civilization.id)
 		return
 	_clock = 0.0
 	state = State.COUNTDOWN
-	print("[World] Nave da civilização %d decola em %.1f s (DD-100)." % [_civilization.id, relocation_delay_seconds])
+	GameLog.say("[World] Nave da civilização %d decola em %.1f s (DD-100)." % [_civilization.id, relocation_delay_seconds])
 
 
 func _begin_flight(planet: Planet) -> void:

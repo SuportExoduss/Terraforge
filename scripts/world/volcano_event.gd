@@ -77,7 +77,7 @@ func _setup() -> void:
 
 func _begin_warning() -> bool:
 	plan(Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized())   # uniforme na esfera
-	print("[World] VULCÃO prestes a irromper! (DD-107)")
+	GameLog.say("[World] VULCÃO prestes a irromper! (DD-107)")
 	return true
 
 
@@ -117,7 +117,7 @@ func _begin_scar() -> void:
 	_clear_balls()
 	place_disc(_lava, _spot, lava_diameter)
 	EventBus.bonus_drop_requested.emit(ground_point(_spot), randi_range(2, 3))
-	print("[World] Vulcão afundou: solo escuro, lava sólida e cristais (DD-108).")
+	GameLog.say("[World] Vulcão afundou: solo escuro, lava sólida e cristais (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

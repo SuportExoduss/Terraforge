@@ -28,7 +28,7 @@ func _process(delta: float) -> void:
 	if _remaining <= 0.0:
 		_ended = true
 		EventBus.match_ended.emit()
-		print("[Core] Fim da partida! O planeta fica para contemplação.")
+		GameLog.say("[Core] Fim da partida! O planeta fica para contemplação.")
 
 
 ## Recuperação do servidor: volta o relógio ao valor salvo.

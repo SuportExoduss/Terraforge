@@ -17,4 +17,4 @@ func _on_base_landed(owner_id: int, _position: Vector3) -> void:
 	if _landed.size() >= get_tree().get_nodes_in_group("home_base").size():
 		_started = true
 		EventBus.match_started.emit()
-		print("[World] GO! Todas as naves pousaram — partida iniciada.")
+		GameLog.say("[World] GO! Todas as naves pousaram — partida iniciada.")

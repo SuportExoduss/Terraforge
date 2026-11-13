@@ -169,7 +169,7 @@ func _collect(runner: PlanetRunner, kind: int) -> void:
 		stock.append(kind)
 		_stock[id] = stock
 		_announce_stock(id)
-		print("[Gameplay] Civilização %d guardou o bônus %s (%d/%d)." % [id, NAMES[kind], stock.size(), STOCK_LIMIT])
+		GameLog.say("[Gameplay] Civilização %d guardou o bônus %s (%d/%d)." % [id, NAMES[kind], stock.size(), STOCK_LIMIT])
 	else:
 		_activate(runner, kind)
 
@@ -196,7 +196,7 @@ func _activate(runner: PlanetRunner, kind: int) -> void:
 			if health != null:
 				health.grant_shield(seconds)
 	EventBus.bonus_activated.emit(id, NAMES[kind], seconds)
-	print("[Gameplay] Civilização %d pegou o bônus %s." % [id, NAMES[kind]])
+	GameLog.say("[Gameplay] Civilização %d pegou o bônus %s." % [id, NAMES[kind]])
 
 
 # Liga o efeito (propriedade do corredor = valor) por `seconds`; pegar de novo só renova o tempo.

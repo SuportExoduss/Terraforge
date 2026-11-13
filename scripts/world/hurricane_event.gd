@@ -83,7 +83,7 @@ func _setup() -> void:
 func _begin_warning() -> bool:
 	var start := Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0)).normalized()   # uniforme na esfera
 	plan(start, start.cross(Vector3(randfn(0.0, 1.0), randfn(0.0, 1.0), randfn(0.0, 1.0))))
-	print("[World] FURACÃO se formando! (DD-107)")
+	GameLog.say("[World] FURACÃO se formando! (DD-107)")
 	return true
 
 
@@ -140,7 +140,7 @@ func _begin_scar() -> void:
 		_debris[i].scale = Vector3(1.6, 0.6, 1.1)
 		_debris[i].visible = true
 	EventBus.bonus_drop_requested.emit(ground_point(center_dir), randi_range(3, 4))   # bônus RARO
-	print("[World] Furacão se desfez: poeira e destroços (DD-108).")
+	GameLog.say("[World] Furacão se desfez: poeira e destroços (DD-108).")
 
 
 func _tick_scar(life: float) -> void:

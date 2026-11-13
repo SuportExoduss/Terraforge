@@ -253,7 +253,7 @@ func _loop_work(owner_id: int, trail_points: PackedVector3Array, bases: Dictiona
 	var claimed := _claim_cells.size()
 	var took_enemy := _dispossessed.count(1) > 0
 	_publish_claims(owner_id, true)
-	print("[World] Civilização %d anexou %d células%s" % [
+	GameLog.say("[World] Civilização %d anexou %d células%s" % [
 			owner_id, claimed, " (convertendo território inimigo!)." if took_enemy else "."])
 
 	# Nenhum vão preso: bolsões livres cercados são selados.
@@ -277,7 +277,7 @@ func _convert_disconnected_enemy_regions(conqueror_id: int, bases: Dictionary) -
 		for cell in cell_count:
 			if _owners[cell] == enemy and _mark[cell] == 0:
 				_claim_cell(conqueror_id, cell)
-		print("[World] Território amputado da civilização %d (DD-102)." % enemy)
+		GameLog.say("[World] Território amputado da civilização %d (DD-102)." % enemy)
 
 
 # Nenhum buraco fica para trás: regiões LIVRES desconectadas da maior região livre (o "oceano")
@@ -340,7 +340,7 @@ func _seal_enclosed_free_pockets() -> void:
 			_claim_cell(best_owner, _queue[q])
 		var sealed := _claim_cells.size()
 		_publish_claims(best_owner)
-		print("[World] Bolsão cercado de %d células selado para a civilização %d." % [sealed, best_owner])
+		GameLog.say("[World] Bolsão cercado de %d células selado para a civilização %d." % [sealed, best_owner])
 
 
 # Inunda a partir de start_cell por células cujo dono é (ou, com invert, NÃO é) match_owner.
@@ -545,7 +545,7 @@ func _ensure_built() -> bool:
 		_build_grid()
 	_built = true
 	build_msec = (Time.get_ticks_usec() - t0) / 1000.0
-	print("[World] Grade territorial criada: %d células, espaçamento ~%.2f unidades, %.0f ms." % [
+	GameLog.say("[World] Grade territorial criada: %d células, espaçamento ~%.2f unidades, %.0f ms." % [
 			cell_count, cell_spacing, build_msec])
 	return true
 
