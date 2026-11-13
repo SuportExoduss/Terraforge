@@ -79,8 +79,10 @@ func _balance() -> void:
 		if _dead.has(id):
 			continue
 		var wanted := clampi(1 + int(Services.territory.owned_fraction(id) / territory_per_defender), 1, max_per_civilization)
-		for n in wanted - counts.get(id, 0):
-			_spawn(id)
+		if wanted > counts.get(id, 0):
+			_spawn(id)   # Passo 95: um touro por quadro (~3 ms cada; os 6 juntos davam um quadro de 17 ms); o resto vem nos quadros seguintes
+			_balance_clock = 0.0
+			return
 
 
 func _spawn(owner_id: int) -> void:
