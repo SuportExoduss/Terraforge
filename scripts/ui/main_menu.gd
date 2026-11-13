@@ -90,6 +90,16 @@ func _play() -> void:
 	box.process_mode = Node.PROCESS_MODE_DISABLED   # nenhum botão responde durante a descida
 	create_tween().tween_property(box, "modulate:a", 0.0, minf(0.5, approach_seconds))
 	await get_node("Backdrop").approach(approach_seconds)
+	var loading := Label.new()   # Passo 94: o mergulho acaba na tela preta; a espera que sobra (carga + montagem da partida) ganha aviso, não imagem congelada
+	loading.name = "Loading"
+	loading.text = "PREPARANDO A PARTIDA…"
+	loading.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	loading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	loading.add_theme_font_size_override("font_size", 28)
+	add_child(loading)
+	await get_tree().process_frame   # dois quadros: o aviso é pintado ANTES do quadro longo da troca de cena
+	await get_tree().process_frame
 	while ResourceLoader.load_threaded_get_status(MATCH_SCENE) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
 		await get_tree().process_frame
 	var scene := ResourceLoader.load_threaded_get(MATCH_SCENE) as PackedScene

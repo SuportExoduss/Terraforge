@@ -53,12 +53,16 @@ func _run() -> void:
 	# Fim: câmera dentro da atmosfera, imagem escura, e a partida entra sozinha (carregada em segundo plano)
 	var last_z := 99.0
 	var last_dark := 1.0
+	var saw_loading := false
 	while is_instance_valid(menu) and _time < 120.0:
 		last_z = back.camera.position.z
 		last_dark = back.modulate.r
+		var loading := menu.get_node_or_null("Loading") as Label   # Passo 94: o aviso aparece quando a imagem termina preta
+		saw_loading = saw_loading or (loading != null and loading.text.begins_with("PREPARANDO") and last_dark < 0.05)
 		await process_frame
 	await process_frame
 	await process_frame
+	if not _check(saw_loading, "o aviso PREPARANDO A PARTIDA aparece sobre a tela escura antes da troca"): return
 	if not _check(is_instance_valid(current_scene) and current_scene.name == "Match", "a partida entra depois do mergulho"): return
 	if not _check(last_z < DIVE_Z + 0.5 and last_dark < 0.05, "terminou dentro da atmosfera e no escuro (z %.2f, brilho %.2f)" % [last_z, last_dark]): return
 	if not _check(root.get_node("Services").planet != null and current_scene.get_node_or_null("Main/Runner4") != null, "partida inteira (planeta, corredores)"): return
