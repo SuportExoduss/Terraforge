@@ -29,9 +29,10 @@ func _initialize() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	_say("memória no início: %d MB" % (OS.get_static_memory_usage() / 1048576))
 	ResourceLoader.load_threaded_request(PATH)
-	# o que o menu faz ao abrir (Passos 89/90); load() em tempo de execução porque um -s é compilado antes dos autoloads
+	# o que o menu faz ao abrir (Passos 89/90/92); load() em tempo de execução porque um -s é compilado antes dos autoloads
 	load("res://scripts/audio/sound_bank.gd").warm()
 	load("res://scripts/core/model_cache.gd").prefetch()
+	load("res://scripts/world/territory_map.gd").warm()   # Passo 92
 	_t0 = Time.get_ticks_usec()
 	_last = _t0
 

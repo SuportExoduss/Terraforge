@@ -533,9 +533,6 @@ func _ensure_built() -> bool:
 	var t0 := Time.get_ticks_usec()
 	_radius = Services.planet.radius
 	_center_cache = Services.planet.center
-	cell_spacing = sqrt(4.0 * PI * _radius * _radius / cell_count)
-
-	_dirs.resize(cell_count)
 	_owners.resize(cell_count)
 	_mark.resize(cell_count)
 	_queue.resize(cell_count)
@@ -544,6 +541,57 @@ func _ensure_built() -> bool:
 	_counts.resize(MAX_OWNERS)
 	_dispossessed.resize(MAX_OWNERS)
 
+	if not _take_warm():
+		_build_grid()
+	_built = true
+	build_msec = (Time.get_ticks_usec() - t0) / 1000.0
+	print("[World] Grade territorial criada: %d células, espaçamento ~%.2f unidades, %.0f ms." % [
+			cell_count, cell_spacing, build_msec])
+	return true
+
+
+# Passo 92: a grade (~600 ms de GDScript) só depende do raio e do nº de células; o menu a monta numa thread (warm) enquanto o
+# jogador escolhe, e o _ready da partida só copia (vetores empacotados são copy-on-write). Sem warm() (servidor, testes) ou com
+# outro raio/tamanho, monta na hora como antes. A grade pronta fica guardada: a 2ª partida da sessão não paga nada.
+static var _warm := {}
+static var _warm_task := -1
+
+
+static func warm(radius: float = 100.0, count: int = 20000) -> void:
+	if _warm_task == -1 and _warm.is_empty():
+		_warm_task = WorkerThreadPool.add_task(_warm_build.bind(radius, count), false, "territory_grid")
+
+
+static func _warm_build(radius: float, count: int) -> void:
+	var map := TerritoryMap.new()   # só uma bancada de montagem: nunca entra na árvore
+	map.cell_count = count
+	map._radius = radius
+	map._build_grid()
+	_warm = {"radius": radius, "count": count, "spacing": map.cell_spacing, "dirs": map._dirs, "grid": map._grid,
+			"width": map._bucket_width, "start": map._bucket_start, "data": map._bucket_data, "nb_start": map._nb_start, "nb_data": map._nb_data}
+	map.free()
+
+
+func _take_warm() -> bool:
+	if _warm_task != -1:
+		WorkerThreadPool.wait_for_task_completion(_warm_task)
+		_warm_task = -1
+	if _warm.is_empty() or _warm["radius"] != _radius or _warm["count"] != cell_count:
+		return false
+	cell_spacing = _warm["spacing"]
+	_dirs = _warm["dirs"]
+	_grid = _warm["grid"]
+	_bucket_width = _warm["width"]
+	_bucket_start = _warm["start"]
+	_bucket_data = _warm["data"]
+	_nb_start = _warm["nb_start"]
+	_nb_data = _warm["nb_data"]
+	return true
+
+
+func _build_grid() -> void:
+	cell_spacing = sqrt(4.0 * PI * _radius * _radius / cell_count)
+	_dirs.resize(cell_count)
 	# Espiral de Fibonacci: N pontos quase perfeitamente uniformes — o "papel quadriculado" do planeta.
 	var golden_angle := PI * (3.0 - sqrt(5.0))
 	for i in cell_count:
@@ -563,12 +611,6 @@ func _ensure_built() -> bool:
 		_collect_within(_dirs[cell], neighbor_distance, near, cell)
 		_nb_data.append_array(near)
 		_nb_start[cell + 1] = _nb_data.size()
-
-	_built = true
-	build_msec = (Time.get_ticks_usec() - t0) / 1000.0
-	print("[World] Grade territorial criada: %d células, espaçamento ~%.2f unidades, %.0f ms." % [
-			cell_count, cell_spacing, build_msec])
-	return true
 
 
 # Balde com largura >= 2 espaçamentos (maior consulta usual), então 3x3x3 baldes bastam.
