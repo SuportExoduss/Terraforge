@@ -16,10 +16,9 @@ extends Node3D
 enum State { WAITING_MATCH, COOLDOWN, WARNING, ACTIVE, SCAR }
 
 # DD-128 — portão único dos 7 eventos (o meteoro também usa): GDMD cap.03 parte 07 "eventos respeitam limite simultâneo".
-# No máximo limit() em AVISO/EXECUÇÃO e uma folga depois de cada execução (a cicatriz de um evento pode
+# No máximo limit() (= 1) em AVISO/EXECUÇÃO e uma folga depois de cada execução (a cicatriz de um evento pode
 # coexistir com o aviso do próximo). Um evento que esgotou o cooldown mas achou o portão fechado espera a sua vez.
-const MAX_SIMULTANEOUS := 1
-const RUNNERS_PER_EXTRA := 3          # SYS-004 BALANCEAMENTO: o limite cresce 1 a cada 3 corredores (1-3 → 1, 4-6 → 2); o planeta tem um só tamanho
+const MAX_SIMULTANEOUS := 1           # DD-128 (mais recente que o Cap 03 P07 "depende dos jogadores"): sempre 1, com qualquer número de corredores
 static var gate_gap_seconds := 25.0   # (var para o teste encurtar)
 const LATE_PACE := 0.5                # SYS-004 BALANCEAMENTO "a intensidade aumenta": no fim da partida o intervalo cai à metade
 static var _running := 0
@@ -28,7 +27,7 @@ static var _gap_frame := -1
 
 
 static func limit() -> int:
-	return MAX_SIMULTANEOUS + maxi(0, (Engine.get_main_loop() as SceneTree).get_nodes_in_group("runners").size() - 1) / RUNNERS_PER_EXTRA
+	return MAX_SIMULTANEOUS
 
 
 static func gate_open() -> bool:

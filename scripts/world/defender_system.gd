@@ -28,7 +28,8 @@ const EYE_ATTACK := Color(1.0, 0.1, 0.05)
 @export var windup_seconds := 0.8
 @export var attack_cooldown := 2.0
 @export var rest_seconds := 2.0
-@export var damage := 1
+@export var damage := 2                      # DD-109: guardião = 2/16 por ataque
+@export var chase_max_seconds := 4.0         # DD-109: perseguição máxima de 4 s (do aviso até desistir; o golpe em curso termina)
 
 
 class Guard extends RefCounted:
@@ -43,6 +44,7 @@ class Guard extends RefCounted:
 	var clock := 0.0
 	var cooldown := 0.0
 	var sense := 0.0
+	var pursuit := 0.0               # segundos de perseguição desde o aviso (DD-109)
 
 
 var _guards: Array[Guard] = []
@@ -149,6 +151,8 @@ func _flat_material(color: Color) -> StandardMaterial3D:
 func _update(guard: Guard, delta: float) -> void:
 	guard.cooldown -= delta
 	guard.clock += delta
+	if guard.state == State.CHASE or guard.state == State.ATTACK:
+		guard.pursuit += delta
 	match guard.state:
 		State.PATROL, State.RETURN, State.REST:
 			_look_for_invader(guard, delta)
@@ -165,6 +169,9 @@ func _update(guard: Guard, delta: float) -> void:
 				_set_state(guard, State.CHASE)
 		State.CHASE:
 			if not _still_invader(guard):
+				_set_state(guard, State.RETURN)
+				return
+			if guard.pursuit >= chase_max_seconds:   # DD-109: desiste (o touro não persegue por muito tempo)
 				_set_state(guard, State.RETURN)
 				return
 			var target_point := guard.target.global_position
@@ -207,6 +214,8 @@ func _calm(guard: Guard, delta: float) -> void:
 func _set_state(guard: Guard, state: State) -> void:
 	guard.state = state
 	guard.clock = 0.0
+	if state == State.ALERT:
+		guard.pursuit = 0.0
 	guard.node.scale = Vector3.ONE
 	guard.eye.scale = Vector3.ONE
 	guard.eye_material.albedo_color = EYE_ALERT if state == State.ALERT else (EYE_ATTACK if state == State.ATTACK or state == State.CHASE else EYE_IDLE)

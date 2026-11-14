@@ -2,7 +2,7 @@ class_name MenuScreen
 extends Control
 ## Base das telas do menu (Civilizações, Perfil, Loja): fundo escuro, título, um corpo para o conteúdo e VOLTAR.
 ## `closed` avisa o dono (o menu) para tirar a tela; Esc também volta. As telas filhas montam o corpo em `build`.
-## ponytail: uma coluna só, sem rolagem — o conteúdo de cada tela cabe nos 540 px da janela.
+## Uma coluna só, centralizada; se a janela for menor que o conteúdo, a tela rola (`scrolling_center`).
 
 signal closed
 
@@ -17,9 +17,7 @@ func _ready() -> void:
 	background.color = Color(0.03, 0.05, 0.12)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
+	var center := scrolling_center(self)
 	var box := VBoxContainer.new()
 	box.name = "Box"
 	box.custom_minimum_size = Vector2(620.0, 0.0)
@@ -45,6 +43,22 @@ func _ready() -> void:
 	back.pressed.connect(close)
 	box.add_child(back)
 	back.grab_focus()
+
+
+## Área que ocupa a tela toda, centraliza o que recebe e ganha barra de rolagem vertical quando o conteúdo não cabe
+## (janela pequena). Devolve o container onde o conteúdo entra. Também usada pelo SettingsPanel.
+static func scrolling_center(parent: Control) -> CenterContainer:
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.follow_focus = true   # Tab/setas levam o botão focado para dentro da vista
+	parent.add_child(scroll)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # cabendo, ocupa a tela toda e centraliza
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center)
+	return center
 
 
 ## Cada tela monta o seu conteúdo aqui.

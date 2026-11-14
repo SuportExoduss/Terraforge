@@ -1,17 +1,18 @@
 extends SceneTree
-## Teste de fumaça do Passo 79 (SYS-004 BALANCEAMENTO: "o número de eventos simultâneos depende da quantidade de jogadores"):
-## o limite do portão é 1 para até 3 corredores e cresce 1 a cada 3 (DD-128 segue valendo: 1 jogador = nunca 2 juntos,
-## coberto por smoke_event_gate). Aqui, com 6 corredores (1 jogador + 5 robôs) os eventos chegam a 2 ao mesmo tempo
-## (AVISO/EXECUÇÃO) e nunca a 3.
+## Teste de fumaça (SYS-004 BALANCEAMENTO + DD-128): o limite de eventos simultâneos é SEMPRE 1, mesmo com 6 corredores
+## (1 jogador + 5 robôs). O Passo 79 fazia o limite crescer com os jogadores (Cap 03 P07); o DD-128 ("1 por vez") é mais
+## recente e vence. Aqui: limit() == 1, nunca 2 eventos em AVISO/EXECUÇÃO e ao menos 2 eventos diferentes chegam à EXECUÇÃO.
 ## Uso: godot_console --headless --path . -s res://tools/smoke_event_limit.gd
 
 const RUNNING := [2, 3]   # GlobalEvent.State: AVISO, EXECUÇÃO (sem citar a classe em scripts -s)
+const ACTIVE := 3
 
 var _match: Node
 var _events: Array = []
 var _gate: GDScript
 var _time := 0.0
 var _max_seen := 0
+var _reached := {}
 
 
 func _initialize() -> void:
@@ -39,15 +40,18 @@ func _process(delta: float) -> bool:
 	var running := 0
 	for event in _events:
 		running += 1 if RUNNING.has(event.state) else 0
+		if event.state == ACTIVE:
+			_reached[event.name] = true
 	_max_seen = maxi(_max_seen, running)
-	if running > 2:
-		print("FALHOU: 3 eventos ao mesmo tempo com 6 corredores")
+	if running > 1:
+		print("FALHOU: %d eventos ao mesmo tempo com %d corredores (DD-128: 1 por vez)" % [running, get_nodes_in_group("runners").size()])
 		quit(1)
-	elif _max_seen == 2:
+	elif _reached.size() >= 2:
 		var runners := get_nodes_in_group("runners").size()
-		print("OK" if runners == 6 and _gate.limit() == 2 else "FALHOU: %d corredores, limite %d" % [runners, _gate.limit()])
-		quit(0 if runners == 6 and _gate.limit() == 2 else 1)
-	elif _time > 60.0:
-		print("FALHOU: nunca houve 2 eventos juntos (máximo %d)" % _max_seen)
+		var ok: bool = runners == 6 and _gate.limit() == 1
+		print("OK" if ok else "FALHOU: %d corredores, limite %d (esperado 6 e 1)" % [runners, _gate.limit()])
+		quit(0 if ok else 1)
+	elif _time > 90.0:
+		print("FALHOU: só %d evento(s) chegaram à execução em 90 s" % _reached.size())
 		quit(1)
 	return false

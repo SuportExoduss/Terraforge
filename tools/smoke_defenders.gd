@@ -1,7 +1,7 @@
 extends SceneTree
 ## Teste de fumaça do Passo 9 (SYS-006 Defensores): (1) cada civilização ganha sentinela(s), dentro do teto;
 ## (2) patrulham sem nunca sair do próprio território; (3) um invasor é avisado (ALERTA), perseguido e atacado
-## com golpe de 1 ponto e recarga (sem matar de uma vez), e o dono nunca é ferido; (4) invasor que sai do
+## com golpe de 2 pontos (DD-109) e recarga (sem matar de uma vez), e o dono nunca é ferido; (4) invasor que sai do
 ## território é largado (RETORNO). Uso: godot_console --headless --path . -s res://tools/smoke_defenders.gd
 
 const PATROL := 0   # = DefenderSystem.State (a classe não é citada: no modo -s ela compilaria antes dos autoloads)
@@ -97,24 +97,40 @@ func _run() -> void:
 		for g in _guards_of(1):
 			seen[g.state] = true
 		if not _check(_all_inside(), "sentinela saiu do território na perseguição"): return
-	if not _check(health2.points == 15, "primeiro golpe tira exatamente 1 ponto (%d)" % health2.points): return
+	if not _check(health2.points == 14, "primeiro golpe tira exatamente 2 pontos (%d)" % health2.points): return
 	if not _check(seen.has(ALERT) and seen.has(CHASE), "deveria ter passado por ALERTA e PERSEGUIÇÃO (%s)" % [seen.keys()]): return
 	if not _check(health1.points == 16, "o dono nunca é ferido (%d)" % health1.points): return
 	hit_at = t
-	# recarga: 1 s depois ainda 15 (cooldown 2 s)
+	# recarga: 1 s depois ainda 14 (cooldown 2 s)
 	while t < hit_at + 1.0:
 		await process_frame
 		t += _dt
-	if not _check(health2.points == 15, "recarga do golpe (%d)" % health2.points): return
+	if not _check(health2.points == 14, "recarga do golpe (%d)" % health2.points): return
+
+	# 3b. DD-109: perseguição máxima de 4 s. O invasor fica parado ao lado do touro: sem o teto, CHASE/ATTACK seria contínuo.
+	var run := {}
+	var longest := 0.0
+	var tt := 0.0
+	while tt < 9.0:
+		await process_frame
+		tt += _dt
+		for g in _guards_of(1):
+			if g.state == CHASE or g.state == ATTACK:
+				run[g] = run.get(g, 0.0) + _dt
+				longest = maxf(longest, run[g])
+			else:
+				run[g] = 0.0
+	if not _check(longest <= 5.2, "perseguição contínua de %.1f s (DD-109: máximo 4 s, mais o golpe em curso)" % longest): return
 
 	# 4. Invasor foge para terra de ninguém: sentinelas largam a caça
 	var far: Vector3 = _services.territory.get_random_unowned_position()
 	runner2.teleport_to(far)
+	var hp_before: int = health2.points
 	if not _check(not _services.territory.is_owned_by(1, runner2.global_position), "ponto fugido deveria ser livre"): return
 	for i in 30:
 		await process_frame
 	for g in _guards_of(1):
 		if not _check(g.state in [RETURN, REST, PATROL], "sentinela ainda caçando fora do território (estado %d)" % g.state): return
-	if not _check(health2.points == 15, "sem golpes fora do território (%d)" % health2.points): return
+	if not _check(health2.points >= hp_before, "sem golpes fora do território (%d < %d)" % [health2.points, hp_before]): return
 	print("OK")
 	quit(0)

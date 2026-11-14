@@ -1,7 +1,7 @@
 class_name RunnerCamera
 extends Camera3D
 ## Câmera superior: paira acima do corredor olhando para baixo, com a frente do personagem para o
-## topo da tela. DD-113 (retrato): mira um ponto À FRENTE do corredor (horizonte no topo).
+## topo da tela. DD-126 (paisagem): mira um ponto À FRENTE do corredor (horizonte no topo).
 
 @export var target_path: NodePath
 @export var height: float = 12.0

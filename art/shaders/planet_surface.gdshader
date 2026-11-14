@@ -119,14 +119,30 @@ void fragment() {
 	blend *= 0.1;
 	float fill = smoothstep(0.06, 0.9, blend.a);
 
+	float edge_height = 0.0;   // cobertura final: vira a "altura" da duna na borda (relevo arredondado, abaixo)
 	if (fill > 0.0) {
-		float crumble = vnoise(dir * 40.0 + terra_seed) * 0.6 + vnoise(dir * 120.0 + terra_seed) * 0.4;
-		float coverage = smoothstep(0.12, 0.8, fill + (0.5 - crumble) * 0.35);
+		float crumble = vnoise(dir * 40.0 + terra_seed) * 0.5 + vnoise(dir * 120.0 + terra_seed) * 0.3 + vnoise(dir * 420.0 + terra_seed) * 0.2;
+		float coverage = smoothstep(0.12, 0.8, fill + (0.5 - crumble) * 0.4);
+		// grãos de areia soltos só na faixa da borda (onde a cobertura passa de 0 a 1): a franja vira poeira, não degrau
+		float grain = vnoise(dir * 900.0 + terra_seed * 1.7);
+		coverage = smoothstep(0.3, 0.7, coverage + (grain - 0.5) * 0.7 * (1.0 - abs(2.0 * coverage - 1.0)));
+		edge_height = coverage;
 		if (coverage > 0.001) {
 			vec3 soil = blend.rgb / max(blend.a, 0.001);
 			float relief = 0.0;
 			vec3 tn_w = vec3(0.0);
-			int idx = owner_index_at(texel_of(uv, textureSize(ownership_map, 0)), textureSize(ownership_map, 0));
+			ivec2 size = textureSize(ownership_map, 0);
+			ivec2 c = texel_of(uv, size);
+			int idx = owner_index_at(c, size);
+			// Franja: a cobertura já foi borrada mas o texel de id (nearest) ainda não chegou. Pega o dono do vizinho
+			// mais próximo, senão a textura do piso só aparece em texels exatos e a borda vira degraus de pixel.
+			for (int k = 0; k < 8 && idx < 0; k++) {
+				vec2 dv = vec2(cos(float(k) * 0.7853982), sin(float(k) * 0.7853982));
+				idx = owner_index_at(c + ivec2(round(dv * 4.0)), size);
+				if (idx < 0) {
+					idx = owner_index_at(c + ivec2(round(dv * 8.0)), size);
+				}
+			}
 			if (idx >= 0 && idx < 16) {
 				vec4 gp = ground_params[idx];
 				bool dead = ground_tint[idx].a < 0.5;
@@ -153,6 +169,9 @@ void fragment() {
 					soil = mix(soil, vec3(dot(soil, vec3(0.299, 0.587, 0.114))), 0.6) * 0.45;
 				}
 			}
+			// granulado da areia: ruído fino de brilho, que some com a distância (não cintila de longe)
+			float near = 1.0 - smoothstep(30.0, 90.0, length(VERTEX));
+			soil *= 1.0 + (hash31(floor(dir * 650.0 + terra_seed)) - 0.5) * 0.22 * near;
 			albedo = mix(albedo, soil, coverage);
 			if (relief > 0.0) {
 				shading_n = normalize(mix(geo_n, tn_w, coverage));
@@ -163,5 +182,7 @@ void fragment() {
 	ALBEDO = albedo;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
-	NORMAL = normalize((VIEW_MATRIX * vec4(shading_n, 0.0)).xyz);
+	vec3 view_n = (VIEW_MATRIX * vec4(shading_n, 0.0)).xyz;
+	view_n.xy -= vec2(dFdx(edge_height), dFdy(edge_height)) * 0.5;   // bordinha de duna: a luz pega o território subindo
+	NORMAL = normalize(view_n);
 }

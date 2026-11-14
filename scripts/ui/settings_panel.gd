@@ -13,9 +13,7 @@ func _ready() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
+	var center := MenuScreen.scrolling_center(self)
 	var box := VBoxContainer.new()
 	box.name = "Box"
 	box.custom_minimum_size = Vector2(420.0, 0.0)
