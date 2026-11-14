@@ -4,9 +4,9 @@ extends Node
 ## landmark — ver EnvironmentSlotSystem.SOLID_RADIUS): por isso já trocam sozinhos com o dono do chão (animação
 ## de saída/entrada do DD-035) e já "pertencem" à civilização. Este nó só faz dois trabalhos: (1) tirar os
 ## corredores de dentro deles e curvar o rumo para contornar — sem travar a fluidez; (2) quando um evento
-## (meteoro) arrasa uma área, os obstáculos dali somem por um tempo e depois voltam.
+## (meteoro, tsunami, vulcão) arrasa uma área, os obstáculos dali somem por um tempo e depois voltam.
 ## Este nó precisa vir DEPOIS dos corredores na árvore (empurra o que eles já andaram neste quadro).
-## ponytail: sem perigos ainda (lava/alagamento chegam com os eventos Vulcão/Tsunami, com aviso visual);
+## ponytail: sem perigos próprios (lava/alagamento só limpam o caminho, via obstacles_cleared);
 ## o rumo é suavizado só quando o corredor anda de frente para o obstáculo.
 
 @export var slots_path := NodePath("../Main/Slots")

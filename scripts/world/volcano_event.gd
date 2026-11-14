@@ -101,6 +101,8 @@ func _begin_active() -> void:
 	_hits.clear()
 	_next_launch = 0.5
 	place_disc(_soil, _spot, soil_diameter)
+	# SYS-007: o solo escuro (lava) não tem obstáculo em cima; eles voltam quando a cicatriz some (ponytail: tudo de uma vez, sem arrastar)
+	EventBus.obstacles_cleared.emit(ground_point(_spot), soil_diameter * 0.5, eruption_seconds + scar_seconds)
 
 
 func _tick_active(delta: float) -> bool:
