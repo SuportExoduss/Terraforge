@@ -19,6 +19,7 @@ const SEGMENTS := 17
 @export var push_speed := 30.0
 @export var wave_height := 3.0
 @export var puddle_diameter := 40.0
+@export var flood_clear_seconds := 12.0    # SYS-007: os obstáculos que a onda alaga somem por este tempo e voltam
 
 var _start := Vector3.UP        # direção (unitária, do centro) do ponto de partida
 var _travel := Vector3.RIGHT    # tangente de avanço em _start
@@ -27,6 +28,7 @@ var _angle := 0.0               # quanto a onda já andou (rad)
 var _segments: Array[MeshInstance3D] = []
 var _puddle: MeshInstance3D
 var _applied := {}              # id do corredor -> pontos já cobrados nesta passagem
+var _flood_clock := 0.0         # de quanto em quanto tempo a onda varre os obstáculos
 
 
 func _event_name() -> String:
@@ -70,6 +72,7 @@ func plan(start: Vector3, travel: Vector3) -> void:
 	_normal = _start.cross(_travel)
 	_angle = 0.0
 	_applied.clear()
+	_flood_clock = 0.0
 	_place_wave(0.15)
 
 
@@ -87,6 +90,7 @@ func _tick_active(delta: float) -> bool:
 	_place_wave(1.0)
 	var front := _front_point(_angle)
 	var ahead := _front_tangent(_angle)
+	_flood_obstacles(planet, front, delta)
 	for node in get_tree().get_nodes_in_group("runners"):
 		var runner := node as PlanetRunner
 		if not runner.is_active_in_field():
@@ -108,6 +112,19 @@ func _tick_active(delta: float) -> bool:
 			if health != null:
 				health.take_damage(points - already, "TSUNAMI")
 	return _angle >= deg_to_rad(travel_degrees)
+
+
+# SYS-007: a onda "alaga os caminhos": a cada 0,25 s os obstáculos da faixa (espuma + folga, em toda a largura) somem e depois voltam.
+# ponytail: a faixa é uma fila de círculos de 1,5x a espuma, espaçados de 2x a espuma, em vez de um teste de faixa de verdade.
+func _flood_obstacles(planet: Planet, front: Vector3, delta: float) -> void:
+	_flood_clock -= delta
+	if _flood_clock > 0.0:
+		return
+	_flood_clock = 0.25
+	var spacing := foam_half * 2.0
+	for k in range(-ceili(half_width / spacing), ceili(half_width / spacing) + 1):
+		var side := front * cos(k * spacing / planet.radius) + _normal * sin(k * spacing / planet.radius)
+		EventBus.obstacles_cleared.emit(planet.center + side * planet.radius, foam_half * 1.5, flood_clear_seconds)
 
 
 func _begin_scar() -> void:

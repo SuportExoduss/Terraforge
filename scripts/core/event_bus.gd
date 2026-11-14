@@ -22,6 +22,7 @@ signal minimap_dragged(delta_pixels: Vector2)
 signal minimap_held(is_held: bool)
 signal minimap_zoomed(factor: float)   # roda/pinça no minimapa aberto (>1 aproxima); a câmera acumula e limita
 signal radial_damage(center: Vector3, inner_radius: float, inner_damage: int, inner_returns_to_base: bool, mid_radius: float, mid_damage: int, outer_radius: float, outer_damage: int)
+signal obstacles_cleared(center: Vector3, radius: float, seconds: float)   # SYS-007: um evento alagou/queimou uma área: os obstáculos dali somem por `seconds`
 signal respawn_countdown(owner_id: int, seconds_remaining: int)
 signal territory_cells_claimed(owner_id: int, cell_positions: PackedVector3Array, cell_spacing: float)
 signal territory_cells_converted(conqueror_id: int, planet_fraction: float)   # parte do planeta tomada de OUTRAS civilizações

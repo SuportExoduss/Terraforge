@@ -19,6 +19,7 @@ extends Node
 
 func _ready() -> void:
 	EventBus.radial_damage.connect(_on_radial_damage)
+	EventBus.obstacles_cleared.connect(func(center: Vector3, radius: float, seconds: float) -> void: _slots.suppress_around(center, radius, seconds))
 
 
 func _process(delta: float) -> void:
