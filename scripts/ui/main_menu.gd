@@ -7,6 +7,8 @@ const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const Leagues := preload("res://scripts/core/leagues.gd")
 const MissionsScreen := preload("res://scripts/ui/missions_screen.gd")
+const SeasonPass := preload("res://scripts/core/season_pass.gd")
+const PassScreen := preload("res://scripts/ui/pass_screen.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
@@ -75,6 +77,8 @@ func _ready() -> void:
 	var planet := _add_button(box, "Planet", "", _cycle_planet, 40.0, 14)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
 	planet.text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
 	planet.disabled = first_time
+	_add_button(box, "Pass", "", func(): _open_screen(PassScreen.new(), "Pass"), 40.0, 14)   # Passo 123: faixa do passe de temporada
+	_refresh_pass_label()
 	var dock := GridContainer.new()   # atalhos das telas do menu (3 por linha)
 	dock.name = "Dock"
 	dock.columns = 3
@@ -171,6 +175,13 @@ func _refresh_missions_badge() -> void:
 	get_node("Box/Dock/Missions").text = "MISSÕES (%d)" % n if n > 0 else "MISSÕES"
 
 
+## Passo 123: "PASSE DA TEMPORADA  ·  nível 3/20" e, com recompensa pronta, "PASSE  ·  2 recompensas!".
+func _refresh_pass_label() -> void:
+	var n := SeasonPass.claimable()
+	get_node("Box/Pass").text = ("PASSE  ·  %d %s!" % [n, "recompensa" if n == 1 else "recompensas"]) if n > 0 \
+			else "PASSE DA TEMPORADA  ·  nível %d/%d" % [SeasonPass.tiers_reached(), SeasonPass.TRACK.size()]
+
+
 ## Abre uma tela do menu por cima; o corpo do menu fica parado (sem foco nem cliques) até ela fechar.
 func _open_screen(screen: MenuScreen, return_to: String) -> void:
 	get_node("Music").deepen()
@@ -183,7 +194,8 @@ func _open_screen(screen: MenuScreen, return_to: String) -> void:
 		get_node("Box/Profile").text = _profile_text()   # a loja pode ter gastado moedas ou trocado título e moldura
 		_dress_profile(get_node("Box/Profile"))
 		_refresh_missions_badge()   # resgatar na tela de missões muda o aviso
-		get_node("Box/Dock/" + return_to).grab_focus())
+		_refresh_pass_label()
+		box.find_child(return_to, true, false).grab_focus())
 	add_child(screen)
 
 

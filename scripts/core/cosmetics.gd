@@ -29,6 +29,7 @@ const CATALOG := {   # categoria -> [id, nome, preço (na moeda da raridade), va
 		["rubi", "Rubi", 180, Color(1.0, 0.2, 0.3), "epico"],
 		["gelo", "Gelo", 260, Color(0.75, 0.92, 1.0), "epico"],
 		["nova", "Nova", 60, Color(1.0, 0.55, 0.15), "lendario"],   # lendário: preço em GEMAS
+		["eclipse", "Eclipse", 0, Color(0.55, 0.35, 1.0), "epico", "passe"],   # 6º campo "passe": só sai no passe de temporada (Passo 123)
 	],
 	"frame": [
 		["default", "Sem moldura", 0, Color(0.0, 0.0, 0.0, 0.0), "comum"],
@@ -36,6 +37,7 @@ const CATALOG := {   # categoria -> [id, nome, preço (na moeda da raridade), va
 		["prata", "Prata", 100, Color(0.8, 0.85, 0.92), "raro"],
 		["ouro", "Ouro", 200, Color(1.0, 0.8, 0.2), "epico"],
 		["aurora", "Aurora", 40, Color(0.45, 1.0, 0.8), "lendario"],
+		["forja", "Forja", 0, Color(1.0, 0.5, 0.1), "epico", "passe"],
 	],
 	"title": [
 		["default", "Sem título", 0, "", "comum"],
@@ -43,6 +45,7 @@ const CATALOG := {   # categoria -> [id, nome, preço (na moeda da raridade), va
 		["cercador", "Mestre das Cercas", 120, "Mestre das Cercas", "raro"],
 		["conquistador", "Conquistador de Mundos", 250, "Conquistador de Mundos", "epico"],
 		["lenda", "Lenda do Planeta", 50, "Lenda do Planeta", "lendario"],
+		["forjador", "Forjador de Mundos", 0, "Forjador de Mundos", "lendario", "passe"],
 	],
 }
 const TINT_ALPHA := 0.55   # quanto da cor cobre o modelo da cerca
@@ -76,8 +79,13 @@ static func price_text(item: Array) -> String:
 	return "%d gemas" % item[2] if currency(item) == "gems" else "%d" % item[2]
 
 
+## Item exclusivo do passe de temporada: não se compra, só se resgata (SeasonPass).
+static func pass_only(item: Array) -> bool:
+	return item.size() > 5
+
+
 static func can_afford(item: Array) -> bool:
-	return int(Profile.data.get(currency(item), 0)) >= int(item[2])
+	return not pass_only(item) and int(Profile.data.get(currency(item), 0)) >= int(item[2])
 
 
 static func owned(cat := "trail") -> Array:
@@ -97,12 +105,20 @@ static func equipped(cat := "trail") -> String:
 ## Compra com a moeda do item (moedas ou gemas); falha se o item não existe, já é seu ou falta saldo.
 static func buy(id: String, cat := "trail") -> bool:
 	var item := entry(id, cat)
-	if item.is_empty() or is_owned(id, cat) or not can_afford(item):
+	if item.is_empty() or is_owned(id, cat) or not can_afford(item):   # can_afford já recusa o exclusivo do passe
 		return false
 	var wallet := currency(item)
 	Profile.data[wallet] = int(Profile.data.get(wallet, 0)) - int(item[2])
 	Profile.data["owned_%ss" % cat] = owned(cat) + [id]
 	Profile.save()
+	return true
+
+
+## Dá o item sem cobrar (recompensa do passe); falha se não existe ou já é seu.
+static func grant(id: String, cat: String) -> bool:
+	if entry(id, cat).is_empty() or is_owned(id, cat):
+		return false
+	Profile.data["owned_%ss" % cat] = owned(cat) + [id]
 	return true
 
 

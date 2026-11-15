@@ -103,12 +103,17 @@ func _run() -> void:
 	for id: String in daily_progress:
 		if daily_want.has(id) and not _check(int(daily_progress[id]) == int(daily_want[id]), "missão %s = %s (esperado %s)" % [id, daily_progress[id], daily_want[id]]): return
 
+	# Passo 123 (DD-163): o mesmo XP da partida rendeu XP do passe (gravado), e o painel mostra o nível do passe
+	var pass_tiers := floori(xp_expected / 150.0)
+	if not _check(int(d["pass"]["xp"]) == xp_expected and int(last.get("pass_before", -1)) == 0, "XP do passe: %s / %s" % [d.get("pass"), last]): return
+
 	# Tela de resultados mostra a recompensa
 	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("RECOMPENSAS") and text.contains("+%d XP" % xp_expected) and text.contains("+%d moedas" % coins_expected), "painel de recompensas:\n" + text): return
 	if not _check(text.contains("+%d gemas" % gems_expected), "gemas no painel:" + text): return
 	if not _check(text.contains("Missões do dia: "), "missões do dia no painel:\n" + text): return   # Passo 116
 	if not _check(text.contains("Nível %d" % last["level"]), "nível no painel:\n" + text): return
+	if not _check(text.contains("Passe: nível %d/20" % pass_tiers) and (pass_tiers == 0 or text.contains("Recompensa nova no PASSE")), "passe no painel:\n" + text): return   # Passo 123
 
 	DirAccess.remove_absolute(TEST_PROFILE)
 	print("OK")

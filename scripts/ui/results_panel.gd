@@ -9,6 +9,7 @@ extends CanvasLayer
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const Leagues := preload("res://scripts/core/leagues.gd")
+const SeasonPass := preload("res://scripts/core/season_pass.gd")
 const FOCUS_DELAY := 0.6   # Passo 71: espera antes de dar foco ao JOGAR DE NOVO
 
 var _panel: PanelContainer
@@ -164,6 +165,7 @@ func _rewards_text() -> String:
 			"+%d XP   +%d moedas" % [last["xp"], last["coins"]],
 			"Nível %d" % last["level"] + ("  — SUBIU DE NÍVEL!" if last["level"] > last["level_before"] else "")]
 	lines.append(Leagues.result_line(int(last.get("rating_before", last.get("rating", 0))), int(last.get("rating", 0))))   # Passo 122 (DD-162)
+	lines.append(SeasonPass.result_line(int(last.get("pass_before", 0))))   # Passo 123 (DD-163)
 	if int(last.get("gems", 0)) > 0:
 		lines.append("+%d gemas" % last["gems"])
 	for id: String in last.get("new_achievements", []):

@@ -6,6 +6,7 @@ extends Node
 ## ponytail: o GDMD não fixa valores, então são constantes provisórias para balancear depois; sem passe de batalha.
 
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
+const SeasonPass := preload("res://scripts/core/season_pass.gd")
 
 const XP_PARTICIPATION := 50
 const XP_PLACE := [100, 50, 25]     # 1º, 2º e 3º lugar
@@ -61,6 +62,7 @@ func _grant() -> void:
 
 	Profile.load_data()
 	var level_before := Profile.level()
+	var pass_before := SeasonPass.tiers_reached()
 	var data := Profile.data
 	data["xp"] += xp
 	data["coins"] += coins
@@ -83,6 +85,7 @@ func _grant() -> void:
 	for id: String in fresh:
 		known[id] = Time.get_unix_time_from_system()
 	DailyMissions.record(snapshot)   # Passo 115 (DD-155): a partida também avança as missões do dia
+	SeasonPass.add_xp(xp)   # Passo 123 (DD-163): e o passe de temporada (mesmo XP da partida)
 	Profile.save()
 	last = {"xp": xp, "coins": coins, "gems": gems, "level_before": level_before, "level": Profile.level(), "place": place,
-			"percent": percent, "new_achievements": fresh, "rating_before": rating_before, "rating": data["rating"]}
+			"percent": percent, "new_achievements": fresh, "rating_before": rating_before, "rating": data["rating"], "pass_before": pass_before}

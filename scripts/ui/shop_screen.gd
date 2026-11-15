@@ -148,7 +148,7 @@ func _refresh() -> void:
 			_cards[cat + "_" + id].add_theme_stylebox_override("panel", UiTheme.card(Cosmetics.rarity_color(item), equipped))
 			button.theme_type_variation = ""
 			if not Cosmetics.is_owned(id, cat):
-				button.text = "COMPRAR  (%s)" % Cosmetics.price_text(item)
+				button.text = "SÓ NO PASSE" if Cosmetics.pass_only(item) else "COMPRAR  (%s)" % Cosmetics.price_text(item)
 				button.disabled = not Cosmetics.can_afford(item)
 			elif equipped:
 				button.text = "EQUIPADO"
