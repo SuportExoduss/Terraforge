@@ -3,6 +3,7 @@ extends SceneTree
 ## Uso: godot_console --path . -s res://tools/shot_results.gd -- <pasta de saída>
 
 func _initialize() -> void:
+	load("res://scripts/core/profile.gd").path = "user://profile_shot.json"   # nunca grava no perfil de verdade
 	var match_scene: Node = load("res://scenes/match.tscn").instantiate()
 	match_scene.get_node("MatchSetup").skip_ceremony = true
 	match_scene.get_node("MatchSetup").bot_count = 0

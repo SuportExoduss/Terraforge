@@ -107,6 +107,7 @@ func _run() -> void:
 	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("RECOMPENSAS") and text.contains("+%d XP" % xp_expected) and text.contains("+%d moedas" % coins_expected), "painel de recompensas:\n" + text): return
 	if not _check(text.contains("+%d gemas" % gems_expected), "gemas no painel:" + text): return
+	if not _check(text.contains("Missões do dia: "), "missões do dia no painel:\n" + text): return   # Passo 116
 	if not _check(text.contains("Nível %d" % last["level"]), "nível no painel:\n" + text): return
 
 	DirAccess.remove_absolute(TEST_PROFILE)

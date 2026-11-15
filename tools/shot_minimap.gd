@@ -7,6 +7,7 @@ var _out := ""
 
 
 func _initialize() -> void:
+	load("res://scripts/core/profile.gd").path = "user://profile_shot.json"   # nunca grava no perfil de verdade
 	_out = OS.get_cmdline_user_args()[0]
 	_match = load("res://scenes/match.tscn").instantiate()
 	_match.get_node("MatchSetup").skip_ceremony = true

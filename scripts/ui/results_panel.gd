@@ -7,6 +7,7 @@ extends CanvasLayer
 ## ponytail: texto puro, sem pódio 3D.
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const FOCUS_DELAY := 0.6   # Passo 71: espera antes de dar foco ao JOGAR DE NOVO
 
 var _panel: PanelContainer
@@ -165,6 +166,11 @@ func _rewards_text() -> String:
 		lines.append("+%d gemas" % last["gems"])
 	for id: String in last.get("new_achievements", []):
 		lines.append("CONQUISTA: [b]%s[/b]" % Achievements.title_of(id))
+	var ready := 0   # Passo 116 (DD-156): quanto da missão do dia a partida já adiantou (o resgate é no menu)
+	for m: Array in DailyMissions.todays():
+		ready += 1 if DailyMissions.is_done(m) else 0
+	lines.append("Missões do dia: %d/%d%s" % [ready, DailyMissions.todays().size(),
+			"  — resgate no menu" if DailyMissions.claimable() > 0 else ""])
 	return "\n".join(lines)
 
 
