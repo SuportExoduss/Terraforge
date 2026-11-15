@@ -104,6 +104,15 @@ void fragment() {
 	vec3 geo_n = normalize(v_normal);
 	vec3 dir = normalize(v_world - planet_center);
 	vec3 albedo = (texture(model_albedo, UV) * model_color).rgb;
+	// Passo 121 (DD-161): a terra neutra não é um marrom chapado. Manchas largas de tom (ocre quente / seco acinzentado) e uma
+	// pontinha de grão; a água (azul do modelo) fica como está. Só aparência, muda a cada partida pela terra_seed.
+	{
+		float macro = vnoise(dir * 6.0 + terra_seed) * 0.6 + vnoise(dir * 15.0 + terra_seed * 1.3) * 0.4;
+		float fine = vnoise(dir * 55.0 + terra_seed * 0.7);
+		vec3 shade = mix(vec3(0.80, 0.86, 0.92), vec3(1.16, 0.98, 0.78), smoothstep(0.30, 0.70, macro)) * (0.9 + 0.2 * fine);
+		float land = 1.0 - smoothstep(0.0, 0.08, albedo.b - albedo.r);
+		albedo *= mix(vec3(1.0), shade, land);
+	}
 	vec3 shading_n = geo_n;
 
 	vec2 uv = dir_to_uv(dir);
