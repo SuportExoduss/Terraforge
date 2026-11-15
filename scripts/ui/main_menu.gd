@@ -141,22 +141,12 @@ func _open_settings() -> void:
 
 ## Passo 107: o título equipado vai acima da linha do perfil e a moldura equipada vira a borda dela.
 func _dress_profile(label: Label) -> void:
-	var frame := Cosmetics.frame_color()
-	if frame.a <= 0.0:
-		label.remove_theme_stylebox_override("normal")
-		return
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(frame.r, frame.g, frame.b, 0.12)
-	style.border_color = frame
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(10.0)
-	label.add_theme_stylebox_override("normal", style)
+	Cosmetics.dress_frame(label, Cosmetics.frame_color())
 
 
 func _profile_text() -> String:
 	var title := Cosmetics.title_text()
-	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
+	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  %d XP  ·  %d moedas  ·  %d gemas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data.get("gems", 0), Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
 
 
 func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:

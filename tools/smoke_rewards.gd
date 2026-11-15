@@ -83,16 +83,23 @@ func _run() -> void:
 	if not _check(last.get("place", 0) == 1 and absf(last.get("percent", 0.0) - 0.55) < 0.0001, "colocação/percentual: %s" % last): return
 	if not _check(last["level_before"] == 1 and last["level"] == profile.level(xp_expected), "nível %d → %d" % [last["level_before"], last["level"]]): return
 
+	# Passo 108 (DD-148): cada conquista NOVA rende gemas (5 cada), na recompensa e no perfil salvo
+	var fresh: int = last.get("new_achievements", []).size()
+	var gems_expected: int = fresh * cfg.GEMS_PER_ACHIEVEMENT
+	if not _check(fresh >= 1 and int(last.get("gems", -1)) == gems_expected, "gemas da recompensa: %s (conquistas novas %d)" % [last.get("gems"), fresh]): return
+
 	# Gravado no perfil salvo: recarrega do arquivo e confere
 	profile.load_data()
 	var d: Dictionary = profile.data
 	if not _check(int(d["xp"]) == xp_expected and int(d["coins"]) == coins_expected, "perfil salvo xp=%s moedas=%s" % [d["xp"], d["coins"]]): return
+	if not _check(int(d.get("gems", -1)) == gems_expected, "gemas no perfil salvo: %s" % d.get("gems")): return
 	if not _check(int(d["matches"]) == 1 and int(d["wins"]) == 1 and absf(float(d["best_percent"]) - 0.55) < 0.0001, "partidas/vitórias/melhor: %s" % d): return
 	if not _check(int(d["loops"]) == 2 and int(d["cuts"]) == 1 and int(d["kills"]) == 0, "totais do perfil: %s" % d): return
 
 	# Tela de resultados mostra a recompensa
 	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("RECOMPENSAS") and text.contains("+%d XP" % xp_expected) and text.contains("+%d moedas" % coins_expected), "painel de recompensas:\n" + text): return
+	if not _check(text.contains("+%d gemas" % gems_expected), "gemas no painel:" + text): return
 	if not _check(text.contains("Nível %d" % last["level"]), "nível no painel:\n" + text): return
 
 	DirAccess.remove_absolute(TEST_PROFILE)

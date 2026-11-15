@@ -16,7 +16,7 @@ static var data := {}
 
 
 static func defaults() -> Dictionary:
-	return {"xp": 0, "coins": 0, "matches": 0, "wins": 0, "best_percent": 0.0,
+	return {"xp": 0, "coins": 0, "gems": 0, "matches": 0, "wins": 0, "best_percent": 0.0,
 			"loops": 0, "cuts": 0, "kills": 0, "achievements": {}, "rating": RATING_START, "planet": "medio"}
 
 

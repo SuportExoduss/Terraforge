@@ -15,6 +15,7 @@ const XP_SURVIVED := 25
 const COINS_PARTICIPATION := 10
 const COINS_PER_PERCENT := 1        # por 1% do planeta no fim
 const COINS_WIN := 25
+const GEMS_PER_ACHIEVEMENT := 5      # Passo 108 (DD-148): a GEMA é a moeda rara; por ora vem só de conquistas novas
 
 var last := {}   # recompensa desta partida: xp, coins, level_before, level, place, percent
 
@@ -75,8 +76,10 @@ func _grant() -> void:
 			"alive": 1 if alive else 0, "won": 1 if place == 1 else 0, "matches": data["matches"]}
 	var known: Dictionary = data["achievements"]
 	var fresh := Achievements.earned(snapshot).filter(func(id: String) -> bool: return not known.has(id))
+	var gems: int = fresh.size() * GEMS_PER_ACHIEVEMENT   # Passo 108 (DD-148): GEMAS vêm de conquistas novas (e, depois, de missões e do passe)
+	data["gems"] = int(data.get("gems", 0)) + gems
 	for id: String in fresh:
 		known[id] = Time.get_unix_time_from_system()
 	Profile.save()
-	last = {"xp": xp, "coins": coins, "level_before": level_before, "level": Profile.level(), "place": place,
+	last = {"xp": xp, "coins": coins, "gems": gems, "level_before": level_before, "level": Profile.level(), "place": place,
 			"percent": percent, "new_achievements": fresh, "rating_before": rating_before, "rating": data["rating"]}

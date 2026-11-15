@@ -5,7 +5,8 @@ extends RefCounted
 ## (sem pay-to-win, DD-144). O comprado e o equipado ficam no Profile ("owned_<cat>s", "equipped_<cat>"; a cerca mantém os nomes
 ## "owned_trails"/"equipped_trail" de sempre). Item novo = uma linha em CATALOG; categoria nova = uma linha em CATEGORIES + o
 ## lugar onde ela aparece. A partida lê `equipped_tint()`; o menu lê `frame_color()` e `title_text()`.
-## ponytail: só moedas do jogo; GEMAS e passe de temporada (Passos 108/110) entram como preço/trilha nesta mesma tabela.
+## Duas moedas (DD-144/148): MOEDAS pagam comum, raro e épico; GEMAS pagam o LENDÁRIO (`currency`). O passe de temporada (Passo 110)
+## entra como trilha nesta mesma tabela. ponytail: a cobrança real em gemas só liga com a conta de loja (DD-144 item 4).
 
 const CATEGORIES := [   # [categoria, rótulo da loja]
 	["trail", "COR DA CERCA"],
@@ -18,7 +19,7 @@ const RARITIES := {   # chave -> [nome, cor]; a raridade só colore e ordena, n�
 	"epico": ["Épico", Color(0.8, 0.5, 1.0)],
 	"lendario": ["Lendário", Color(1.0, 0.75, 0.2)],
 }
-const CATALOG := {   # categoria -> [id, nome, preço, valor (Color da cerca/moldura; texto do título), raridade]
+const CATALOG := {   # categoria -> [id, nome, preço (na moeda da raridade), valor (Color da cerca/moldura; texto do título), raridade]
 	"trail": [
 		["default", "Original", 0, Color.WHITE, "comum"],
 		["ouro", "Ouro", 60, Color(1.0, 0.8, 0.2), "comum"],
@@ -27,20 +28,21 @@ const CATALOG := {   # categoria -> [id, nome, preço, valor (Color da cerca/mol
 		["verde", "Verde neon", 120, Color(0.4, 1.0, 0.3), "raro"],
 		["rubi", "Rubi", 180, Color(1.0, 0.2, 0.3), "epico"],
 		["gelo", "Gelo", 260, Color(0.75, 0.92, 1.0), "epico"],
+		["nova", "Nova", 60, Color(1.0, 0.55, 0.15), "lendario"],   # lendário: preço em GEMAS
 	],
 	"frame": [
 		["default", "Sem moldura", 0, Color(0.0, 0.0, 0.0, 0.0), "comum"],
 		["bronze", "Bronze", 50, Color(0.8, 0.5, 0.25), "comum"],
 		["prata", "Prata", 100, Color(0.8, 0.85, 0.92), "raro"],
 		["ouro", "Ouro", 200, Color(1.0, 0.8, 0.2), "epico"],
-		["aurora", "Aurora", 400, Color(0.45, 1.0, 0.8), "lendario"],
+		["aurora", "Aurora", 40, Color(0.45, 1.0, 0.8), "lendario"],
 	],
 	"title": [
 		["default", "Sem título", 0, "", "comum"],
 		["pioneiro", "Pioneiro", 40, "Pioneiro", "comum"],
 		["cercador", "Mestre das Cercas", 120, "Mestre das Cercas", "raro"],
 		["conquistador", "Conquistador de Mundos", 250, "Conquistador de Mundos", "epico"],
-		["lenda", "Lenda do Planeta", 500, "Lenda do Planeta", "lendario"],
+		["lenda", "Lenda do Planeta", 50, "Lenda do Planeta", "lendario"],
 	],
 }
 const TINT_ALPHA := 0.55   # quanto da cor cobre o modelo da cerca
@@ -65,6 +67,19 @@ static func rarity_color(item: Array) -> Color:
 	return RARITIES[item[4]][1]
 
 
+## Moeda do item: o lendário custa GEMAS, o resto custa moedas.
+static func currency(item: Array) -> String:
+	return "gems" if item[4] == "lendario" else "coins"
+
+
+static func price_text(item: Array) -> String:
+	return "%d gemas" % item[2] if currency(item) == "gems" else "%d" % item[2]
+
+
+static func can_afford(item: Array) -> bool:
+	return int(Profile.data.get(currency(item), 0)) >= int(item[2])
+
+
 static func owned(cat := "trail") -> Array:
 	var list: Array = Profile.data.get("owned_%ss" % cat, [])
 	return ["default"] + list.filter(func(id): return id != "default")
@@ -79,12 +94,13 @@ static func equipped(cat := "trail") -> String:
 	return id if is_owned(id, cat) else "default"
 
 
-## Compra com as moedas do perfil; falha se o item não existe, já é seu ou falta moeda.
+## Compra com a moeda do item (moedas ou gemas); falha se o item não existe, já é seu ou falta saldo.
 static func buy(id: String, cat := "trail") -> bool:
 	var item := entry(id, cat)
-	if item.is_empty() or is_owned(id, cat) or int(Profile.data["coins"]) < int(item[2]):
+	if item.is_empty() or is_owned(id, cat) or not can_afford(item):
 		return false
-	Profile.data["coins"] = int(Profile.data["coins"]) - int(item[2])
+	var wallet := currency(item)
+	Profile.data[wallet] = int(Profile.data.get(wallet, 0)) - int(item[2])
 	Profile.data["owned_%ss" % cat] = owned(cat) + [id]
 	Profile.save()
 	return true
@@ -116,3 +132,17 @@ static func frame_color() -> Color:
 ## Título que aparece acima do nome do perfil; vazio = sem título.
 static func title_text() -> String:
 	return String(entry(equipped("title"), "title")[3])
+
+
+## Veste um Label com a moldura (borda + fundo suave na cor dela); alfa 0 = sem moldura. Usada pelo menu e pela prévia da loja.
+static func dress_frame(label: Label, frame: Color) -> void:
+	if frame.a <= 0.0:
+		label.remove_theme_stylebox_override("normal")
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(frame.r, frame.g, frame.b, 0.12)
+	style.border_color = frame
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(10)
+	style.set_content_margin_all(10.0)
+	label.add_theme_stylebox_override("normal", style)
