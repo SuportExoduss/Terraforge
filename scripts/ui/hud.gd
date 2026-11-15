@@ -3,7 +3,10 @@ extends CanvasLayer
 ## HUD da partida: relógio, domínio, vida em corações (DD-105), contagem de respawn, aviso de evento e o
 ## analógico flutuante. Montado em código e dirigido só pelo EventBus (a UI não conhece o Gameplay);
 ## mostra apenas o jogador local — o placar dos adversários é da tela de resultados (6f).
+## Passo 111 (DD-151): o domínio + vida ficam num cartão de vidro e o relógio numa pílula (mesma cara do menu, DD-149).
 ## ponytail: fonte padrão do Godot e quadrados no lugar de ícones de coração; arte final na fase de polimento.
+
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 
 const HEARTS := 5   # 4 normais + 1 do bônus Vida Extra (SYS-005), escondido até existir
 const BASE_POINTS := 16
@@ -32,6 +35,7 @@ var _clock: Label
 var _score: Label
 var _countdown: Label
 var _event: Label
+var _drop := 0.0                    # Passo 111: quanto o texto maior empurra corações/aviso para baixo
 var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
 var _damage_flash: ColorRect         # Passo 74: clarão vermelho ao perder vida
 var _damage_tween: Tween
@@ -58,10 +62,19 @@ func _ready() -> void:
 	_damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_damage_flash)
 
+	var ts := Settings.text_scale()
+	_drop = 24.0 * (ts - 1.0)
+	_plate(root, "ScoreCard", Rect2(8.0, 8.0, 150.0 + 40.0 * ts, 66.0 + _drop))   # sob o domínio e os corações (terminam em y=69 + queda)
+	var pill := _plate(root, "ClockPill", Rect2(0.0, 8.0, 128.0 * ts, 12.0 + 42.0 * ts))
+	pill.set_anchors_preset(Control.PRESET_CENTER_TOP)   # centrada: a posição vem das margens (todas explícitas)
+	pill.offset_left = -64.0 * ts
+	pill.offset_right = 64.0 * ts
+	pill.offset_top = 8.0
+	pill.offset_bottom = 20.0 + 42.0 * ts
 	_clock = _label(root, "ClockLabel", 30, Color.WHITE, Control.PRESET_TOP_WIDE, Vector2(0, 14))
 	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
 	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62.0 * Settings.text_scale()))   # desce junto com o relógio maior
-	_cause = _label(root, "CauseLabel", 18, FULL, Control.PRESET_TOP_LEFT, Vector2(16, 76))   # sob os corações
+	_cause = _label(root, "CauseLabel", 18, FULL, Control.PRESET_TOP_LEFT, Vector2(16, 76.0 + _drop))   # sob os corações
 	_countdown = _label(root, "CountdownLabel", 110, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
 	_countdown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_score.text = "Domínio: 0,0%"
@@ -111,6 +124,24 @@ func _process(_delta: float) -> void:
 	_pulse_last_heart()
 
 
+# Placa de vidro atrás do texto: não pega toque (o HUD nunca engole o toque de direção).
+func _plate(parent: Control, plate_name: String, rect: Rect2) -> Panel:
+	var plate := Panel.new()
+	plate.name = plate_name
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(UiTheme.GLASS, 0.62)   # translúcida: o planeta continua aparecendo
+	style.border_color = Color(UiTheme.LINE, 0.8)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(14)
+	style.anti_aliasing = true
+	plate.add_theme_stylebox_override("panel", style)
+	plate.position = rect.position
+	plate.size = rect.size
+	parent.add_child(plate)
+	return plate
+
+
 func _label(parent: Control, label_name: String, size: int, color: Color, preset: int, offset: Vector2) -> Label:
 	size = roundi(size * Settings.text_scale())   # Passo 66: ajuste TEXTO das configurações
 	var l := Label.new()
@@ -137,7 +168,7 @@ func _build_hearts(parent: Control) -> void:
 	var heart_width := QUADRANT * 2.0 + GAP
 	parent.add_child(_hearts)
 	_hearts.offset_left = 16.0   # canto superior esquerdo, sob o domínio (o canto direito é do minimapa, DD-104)
-	_hearts.offset_top = 48.0
+	_hearts.offset_top = 48.0 + _drop   # o domínio maior (texto 150%) empurra os corações para baixo
 	for heart in HEARTS:
 		for quadrant in SEGMENTS_PER_HEART:
 			var segment := ColorRect.new()
