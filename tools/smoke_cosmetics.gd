@@ -139,7 +139,7 @@ func _run() -> void:
 	profile.data["equipped_title"] = "default"
 	menu.call("_dress_profile", line)   # o menu refaz a linha ao voltar da loja: sem moldura nem título = linha simples
 	line.text = menu.call("_profile_text")
-	if not _check(line.text.begins_with("Nível ") and not (line.get_theme_stylebox("normal") is StyleBoxFlat), "sem moldura nem título: linha simples"): return
+	if not _check(line.text.begins_with("Nível ") and line.get_theme_stylebox("normal").border_width_left != 3, "sem moldura nem título: linha simples (o estilo do tema, sem a borda da moldura)"): return
 	menu.queue_free()
 
 	print("catálogo: %d itens em %d categorias; compra/equipar por categoria; menu com título e moldura" % [total, cos.CATEGORIES.size()])

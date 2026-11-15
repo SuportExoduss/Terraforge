@@ -6,6 +6,7 @@ extends MenuScreen
 ## (moldura + título + cor da cerca) sem comprar. Só aparência; o equipado vale na partida (cerca) e no menu (moldura e título).
 
 var _rows := {}      # "categoria_id" -> Button
+var _cards := {}     # "categoria_id" -> PanelContainer (o cartão do item; borda âmbar quando equipado)
 var _pages := {}     # categoria -> VBoxContainer (uma por aba)
 var _preview := {}   # categoria -> id mostrado na prévia (o equipado, ou a linha em foco)
 
@@ -19,10 +20,15 @@ func build(parent: VBoxContainer) -> void:
 	wallet.name = "Wallet"
 	wallet.alignment = BoxContainer.ALIGNMENT_CENTER
 	wallet.add_theme_constant_override("separation", 28)
-	wallet.add_child(make_label("", 22, "Coins"))
-	wallet.add_child(make_label("", 22, "Gems"))
+	var coins := make_label("", 24, "Coins")
+	coins.theme_type_variation = "CoinLabel"
+	wallet.add_child(coins)
+	var gems := make_label("", 24, "Gems")
+	gems.theme_type_variation = "GemLabel"
+	wallet.add_child(gems)
 	parent.add_child(wallet)
 	var preview := make_label("", 20, "Preview")   # como o perfil e a cerca ficariam
+	preview.theme_type_variation = "ProfileLabel"
 	preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent.add_child(preview)
 	var trail := ColorRect.new()
@@ -65,9 +71,12 @@ func _show_tab(cat: String) -> void:
 
 func _add_row(parent: VBoxContainer, cat: String, item: Array) -> void:
 	var rarity := Cosmetics.rarity_color(item)
+	var card := PanelContainer.new()
+	parent.add_child(card)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
-	parent.add_child(row)
+	card.add_child(row)
+	_cards[cat + "_" + item[0]] = card
 	var swatch := ColorRect.new()
 	swatch.color = item[3] if item[3] is Color and item[3].a > 0.0 else rarity   # cor da cerca/moldura; o resto mostra a raridade
 	swatch.custom_minimum_size = Vector2(36.0, 36.0)
@@ -123,10 +132,15 @@ func _refresh() -> void:
 		for item: Array in Cosmetics.items(cat):
 			var id: String = item[0]
 			var button: Button = _rows[cat + "_" + id]
+			var equipped: bool = Cosmetics.is_owned(id, cat) and Cosmetics.equipped(cat) == id
+			_cards[cat + "_" + id].add_theme_stylebox_override("panel", UiTheme.card(Cosmetics.rarity_color(item), equipped))
+			button.theme_type_variation = ""
 			if not Cosmetics.is_owned(id, cat):
 				button.text = "COMPRAR  (%s)" % Cosmetics.price_text(item)
 				button.disabled = not Cosmetics.can_afford(item)
-			elif Cosmetics.equipped(cat) == id:
+				if not button.disabled:
+					button.theme_type_variation = "PrimaryButton"   # o único botão em âmbar da linha: dá para comprar agora
+			elif equipped:
 				button.text = "EQUIPADO"
 				button.disabled = true
 			else:

@@ -3,6 +3,7 @@ extends Control
 ## Menu inicial (cap. 04: Menu → partida → Resultados → Menu): título, perfil salvo (nível, XP, moedas), JOGAR, CONFIGURAÇÕES (UI-006) e SAIR.
 ## ponytail: sem lobby nem matchmaking — a partida usa os padrões do MatchSetup (3 adversários); entram com o multiplayer.
 
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
@@ -26,21 +27,25 @@ func _ready() -> void:
 	var backdrop := PlanetBackdrop.new()   # abertura viva (DD-006): o planeta vem antes da interface
 	backdrop.name = "Backdrop"
 	add_child(backdrop)
+	add_child(UiTheme.left_shade())   # Passo 109: sombra à esquerda dá contraste ao texto; o planeta fica livre à direita
 
-	var box := VBoxContainer.new()
+	var box := VBoxContainer.new()   # coluna à esquerda, centrada na vertical (o planeta grande ocupa o lado direito)
 	box.name = "Box"
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.anchor_top = 0.5
+	box.anchor_bottom = 0.5
+	box.offset_left = 48.0
+	box.offset_right = 448.0
+	box.grow_horizontal = Control.GROW_DIRECTION_END
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
-	box.add_theme_constant_override("separation", 18)
+	box.add_theme_constant_override("separation", 10)
 	add_child(box)
 
 	var title := Label.new()
 	title.name = "Title"
 	title.text = "TERRAFORGE"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 56)
+	title.theme_type_variation = "TitleLabel"
+	title.add_theme_font_size_override("font_size", 50)
 	box.add_child(title)
 
 	Profile.load_data()
@@ -55,30 +60,31 @@ func _ready() -> void:
 	var profile := Label.new()
 	profile.name = "Profile"
 	profile.text = _profile_text()
-	profile.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	profile.add_theme_font_size_override("font_size", 20)
+	profile.theme_type_variation = "ProfileLabel"
+	profile.add_theme_font_size_override("font_size", 16)
 	_dress_profile(profile)
 	box.add_child(profile)
 
 	var first_time: bool = int(Profile.data.get("matches", 0)) == 0   # Passo 106: a primeira partida é o treino, sem escolha
 	Services.match_def = PlanetDef.training() if first_time else PlanetDef.by_id(str(Profile.data.get("planet", "medio")))   # DD-143: o último planeta escolhido
-	var play := _add_button(box, "Play", "JOGAR", _play)
-	var planet := _add_button(box, "Planet", "", _cycle_planet)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
+	var play := _add_button(box, "Play", "JOGAR", _play, 64.0, 30)   # a única ação em âmbar: o olho vai direto para ela
+	play.theme_type_variation = "PrimaryButton"
+	var planet := _add_button(box, "Planet", "", _cycle_planet, 40.0, 14)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
 	planet.text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
 	planet.disabled = first_time
-	planet.add_theme_font_size_override("font_size", 18)
-	var dock := HBoxContainer.new()   # atalhos das telas do menu
+	var dock := GridContainer.new()   # atalhos das telas do menu (3 por linha)
 	dock.name = "Dock"
-	dock.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	dock.add_theme_constant_override("separation", 8)
+	dock.columns = 3
+	dock.add_theme_constant_override("h_separation", 8)
+	dock.add_theme_constant_override("v_separation", 8)
 	box.add_child(dock)
 	_add_dock(dock, "Profile", "PERFIL", ProfileScreen)
 	_add_dock(dock, "Civilizations", "CIVILIZAÇÕES", CivilizationsScreen)
 	_add_dock(dock, "Shop", "LOJA", ShopScreen)
 	_add_dock(dock, "Online", "ONLINE", OnlineScreen)
 	_add_dock(dock, "Events", "EVENTOS", EventsScreen)
-	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
-	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
+	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings, 36.0, 15).theme_type_variation = "GhostButton"
+	_add_button(box, "Quit", "SAIR", func(): get_tree().quit(), 36.0, 15).theme_type_variation = "GhostButton"
 	play.grab_focus()   # teclado / controle
 
 
@@ -146,13 +152,12 @@ func _dress_profile(label: Label) -> void:
 
 func _profile_text() -> String:
 	var title := Cosmetics.title_text()
-	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  %d XP  ·  %d moedas  ·  %d gemas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data.get("gems", 0), Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
+	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  %d XP  ·  %d partidas\n%d moedas  ·  %d gemas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["matches"], Profile.data["coins"], Profile.data.get("gems", 0), Profile.data["achievements"].size(), Achievements.LIST.size()]
 
 
 func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:
-	var button := _add_button(dock, button_name, label, func(): _open_screen(screen_class.new(), button_name))
-	button.custom_minimum_size = Vector2(150.0, 44.0)
-	button.add_theme_font_size_override("font_size", 16)
+	var button := _add_button(dock, button_name, label, func(): _open_screen(screen_class.new(), button_name), 40.0, 14)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
 ## Abre uma tela do menu por cima; o corpo do menu fica parado (sem foco nem cliques) até ela fechar.
@@ -170,12 +175,12 @@ func _open_screen(screen: MenuScreen, return_to: String) -> void:
 	add_child(screen)
 
 
-func _add_button(parent: Control, button_name: String, label: String, action: Callable) -> Button:
+func _add_button(parent: Control, button_name: String, label: String, action: Callable, height := 56.0, font_size := 24) -> Button:
 	var button := Button.new()
 	button.name = button_name
 	button.text = label
-	button.custom_minimum_size = Vector2(240.0, 56.0)
-	button.add_theme_font_size_override("font_size", 24)
+	button.custom_minimum_size = Vector2(0.0, height)
+	button.add_theme_font_size_override("font_size", font_size)
 	button.pressed.connect(action)
 	parent.add_child(button)
 	return button

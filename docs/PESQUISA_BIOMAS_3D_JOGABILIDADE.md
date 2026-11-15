@@ -1,0 +1,32 @@
+# Pesquisa 2: biomas, modelos 3D, jogabilidade e plataforma (2026-11-14)
+
+Continuação de `PESQUISA_DESIGN_E_PSICOLOGIA.md`. **[boa]** = fonte com autor/pesquisa; **[opinião]** = blog de prática; **[inferência]** = conclusão minha, sem fonte direta. Sites-espelho/IA descartados.
+
+## 1. Biomas
+- **Receita clássica (Whittaker):** dois campos de ruído — temperatura e umidade — e uma tabela que diz o bioma; elevação entra como 3º eixo (frio no alto). [Red Blob Games — terreno a partir de ruído](https://www.redblobgames.com/maps/terrain-from-noise/) **[boa]**; [Game Developer — mundos procedurais](https://www.gamedeveloper.com/programming/procedurally-generating-wrapping-world-maps-in-unity-c-part-4) **[opinião]**.
+- **Armadilhas:** ruído cru em [0,1] só cobre parte do diagrama (remapear); o diagrama sozinho não dá vizinhanças "de Terra" ([GameDev SE](https://backiee.wasmer.app/http_gamedev_stackexchange_com/questions/171446/how-can-i-get-old-minecraft-style-terrain-biome-selection)).
+- **Gameplay:** biomas "especiais" longe do ponto de partida, para ninguém nascer num bioma que ainda não sabe encarar ([r/gamedev](https://redlib.hbubli.cc/r/gamedev/duplicates/mapk93)) **[opinião]**.
+- **Esfera [inferência]:** amostrar o ruído em 3D sobre a esfera (sem emenda no polo) e tirar a latitude da normal da superfície.
+- **Super Mario Galaxy** (planetas pequenos e esféricos): cada galáxia se distingue por **textura, música ou mecânica nova — geralmente as três**; clareza + detalhe visual são os 2 pontos fortes ([Yale Daily News](https://yaledailynews.com/?p=122352), [GamesRadar](https://www.gamesradar.com/why-super-mario-galaxy-2-one-greatest-games-ever-made/)) **[opinião]**. Origem: o conceito nasceu da esfera com gravidade do Mario 128 ([Iwata Asks](https://iwataasks.nintendo.com/interviews/wii/super_mario_galaxy/1/1)) **[boa, primária]**.
+
+## 2. Criação e uso de modelos 3D
+- **Formato:** o Godot 4 trata **glTF 2.0** como formato recomendado; FBX é menos confiável ([guia indie](https://www.indiehackers.com/post/the-indie-developers-guide-to-free-3d-models-get-what-you-need-without-overspending-2026-XGtcSztGtbg14dMsZzds)) **[opinião]**.
+- **Orçamento de polígonos:** faixa normal para mobile estilizado é 5–20 mil por modelo ([Meshy](https://www.meshy.ai/features/low-poly)); as fontes divergem — **medir no celular do jogador, não confiar no papel** **[opinião]**. O "visual low-poly" vem das **faces chapadas e visíveis**, não da contagem.
+- **Limpeza de modelo gerado por IA:** decimar/remalhar no Blender, juntar vértices, fechar buracos ([StraySpark](https://www.strayspark.studio/blog/reduce-polycount-ai-3d-model-blender-decimate-vs-remesh)) **[opinião]**. (O Terraforge já usa Tripo para modelos.)
+- **Muitas coisas na tela:** `MultiMeshInstance3D` serve para floresta/grama; a prática é **um MultiMesh por bloco (chunk)** e LOD por distância ([doc oficial](https://docs.godotengine.org/en/4.5/classes/class_multimeshinstance3d.html) **[boa]**, [fórum Godot 4.7](https://forum.godotengine.org/t/best-approach-for-rendering-a-procedurally-generated-forest-with-thousands-of-trees-in-godot-4-7/141770) **[opinião]**). Não achei fonte sobre orçamento de draw calls em celular → **medir** (o projeto já tem os testes de carga 87–96).
+- **Procedural em código [inferência, e é o que cabe a mim]:** pinheiro = cones empilhados, cristal = prismas, cacto = cilindros, pedra = icosfera amassada; materiais chapados com a paleta do bioma. Não precisa de artista, é leve e combina com o visual estilizado. Os modelos "de verdade" (Tripo) entram por cima, no mesmo lugar (os 12 slots E01–E12), sem mexer no código.
+
+## 3. Jogabilidade (sensação)
+- **Game Feel (Swink):** sensação = resposta em tempo real + espaço simulado + polimento; responsividade = reduzir o atraso entre intenção, entrada e feedback; controle bom "some" ([resenha](https://lizengland.com/blog/review-game-feel-by-steve-swink/), [Game Developer — Princípios de sensação virtual](https://www.gamedeveloper.com/design/principles-of-virtual-sensation)) **[boa]**. Jogos "trapaceiam" a física para responder melhor.
+- **Do Paper.io 2** (ver pesquisa 1): risco = afastar-se da base; janela de oportunidade ao matar um rival; coroa no líder atrai caça; morte em 3 tempos.
+- **Sem fonte sobre toque em celular** (zona morta de joystick, alcance do polegar) → testar no aparelho de André; regra provisória: botões ≥ 44 unidades, ação principal ao alcance do polegar.
+
+## 4. Plataforma / jogo como serviço
+- Ritmo típico: **3–4 temporadas por ano + atualizações menores**; a regra de ouro do Roblox: **cada atualização reutiliza sistemas já prontos** (menos produção e menos bug) ([Roblox LiveOps](https://create.roblox.com/docs/production/game-design/liveops-essentials.md)) **[boa, oficial]**.
+- "Plataforma" de verdade = **conteúdo feito por jogadores** (Fortnite, Roblox, Minecraft) ([Game Wisdom](https://game-wisdom.com/critical/live-service-games), [Super Jump](https://www.superjumpmagazine.com/examining-live-service-design/)) **[opinião]**; só multiplayer sem conteúdo novo é "caminho rápido para jogo morto". Risco: prometer conteúdo que não dá para entregar ([FinalBoss](https://finalboss.io/live-service-launch-strategy-stop-betting-on-content-you-cannot-ship)) **[opinião]**.
+- **Para o Terraforge:** os **dados** (PlanetDef, Cosmetics, PlanetTheme) já são o motor de conteúdo — uma temporada = uma tabela nova, não código novo. Planeta/bioma/modo definidos por dados é a porta de entrada para conteúdo de comunidade no futuro (não agora).
+
+## 5. Decisões que saem daqui
+1. **O Terraforge tem 1 bioma pronto (Velho Oeste) e 5 civilizações-fantasma** (Alien, Floresta Encantada, Skate City, Piratas, Reino do Gelo: só cor chapada, "não jogáveis"). Maior ganho de variedade por esforço = **kit de bioma procedural** (DD-150): paleta de solo + props gerados em código para os slots de vegetação/rocha/decoração/marco, ligados à ficha `PlanetTheme`. As 5 viram jogáveis e cada uma tem cara própria; a arte do André/Tripo substitui slot a slot depois.
+2. **Bioma é a identidade visual da civilização; o tamanho vem do planeta** (PlanetDef, DD-143) → combinam livremente (6 biomas × 4+ tamanhos).
+3. **Jogabilidade (próximos passos, um por vez, com smoke):** coroa no líder + % de território no HUD; janela de oportunidade ao derrubar rival (território dele fica contestável); morte/captura com feedback em 3 tempos; opção "reduzir movimento".

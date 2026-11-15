@@ -13,6 +13,10 @@ var rewards: Object = null         # recompensas da partida (MatchRewards): last
 var match_def: PlanetDef = null    # planeta escolhido no menu (DD-143); null = padrões das cenas (testes, servidor)
 
 
+func _ready() -> void:
+	preload("res://scripts/ui/ui_theme.gd").apply(get_tree())   # Passo 109 (DD-149): uma cara só para todos os menus e o HUD
+
+
 func register_trail(trail: Object) -> void:
 	if not trails.has(trail):
 		trails.append(trail)

@@ -55,8 +55,9 @@ func _run() -> void:
 	# Geometria (bug: com set_anchors_preset o menu ficava no canto da tela, sem fundo): fundo cobre a tela e a caixa fica no centro
 	await process_frame
 	var screen: Vector2 = menu.get_viewport_rect().size
-	var box_center: Vector2 = menu.get_node("Box").get_global_rect().get_center()
-	if not _check(menu.get_child(0).size == screen and box_center.distance_to(screen * 0.5) < 2.0, "menu deve cobrir a tela e ficar centralizado (fundo %s, centro %s, tela %s)" % [menu.get_child(0).size, box_center, screen]): return
+	var box_rect: Rect2 = menu.get_node("Box").get_global_rect()
+	# Passo 109: a coluna de botões fica à esquerda (o planeta grande ocupa a direita), centrada na vertical e inteira na tela
+	if not _check(menu.get_child(0).size == screen and absf(box_rect.get_center().y - screen.y * 0.5) < 2.0 and box_rect.position.x >= 24.0 and box_rect.end.x <= screen.x * 0.55 and box_rect.position.y >= 0.0 and box_rect.end.y <= screen.y, "menu deve cobrir a tela e a coluna ficar à esquerda, centrada na vertical e inteira na tela (fundo %s, coluna %s, tela %s)" % [menu.get_child(0).size, box_rect, screen]): return
 
 	# 1. JOGAR leva à partida; os botões dos resultados ainda não aparecem
 	menu.approach_seconds = 0.0   # sem o mergulho (ele tem o smoke_approach)

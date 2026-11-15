@@ -4,6 +4,8 @@ extends Control
 ## `closed` avisa o dono (o menu) para tirar a tela; Esc também volta. As telas filhas montam o corpo em `build`.
 ## Uma coluna só, centralizada; se a janela for menor que o conteúdo, a tela rola (`scrolling_center`).
 
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+
 signal closed
 
 var title_text := ""
@@ -13,20 +15,21 @@ var back: Button
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var background := ColorRect.new()
-	background.color = Color(0.03, 0.05, 0.12)
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	add_child(UiTheme.backdrop())   # Passo 109: fundo em gradiente + conteúdo num cartão de vidro (o tema vem do Services)
 	var center := scrolling_center(self)
+	var card := PanelContainer.new()
+	card.name = "Card"
+	card.custom_minimum_size = Vector2(660.0, 0.0)
+	center.add_child(card)
 	var box := VBoxContainer.new()
 	box.name = "Box"
-	box.custom_minimum_size = Vector2(620.0, 0.0)
 	box.add_theme_constant_override("separation", 10)
-	center.add_child(box)
+	card.add_child(box)
 	var title := Label.new()
 	title.name = "Title"
 	title.text = title_text
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.theme_type_variation = "TitleLabel"
 	title.add_theme_font_size_override("font_size", 34)
 	box.add_child(title)
 	body = VBoxContainer.new()
@@ -39,7 +42,7 @@ func _ready() -> void:
 	back.text = "VOLTAR"
 	back.custom_minimum_size = Vector2(240.0, 48.0)
 	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.add_theme_font_size_override("font_size", 22)
+	back.add_theme_font_size_override("font_size", 20)
 	back.pressed.connect(close)
 	box.add_child(back)
 	back.grab_focus()

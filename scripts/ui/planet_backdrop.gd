@@ -15,8 +15,8 @@ const METEOR_GAP := Vector2(2.5, 7.0)     # s entre meteoros
 const METEOR_LIFE := 1.1
 const AURORA_GAP := Vector2(9.0, 20.0)    # s entre auroras
 const AURORA_SECONDS := 9.0
-const CAMERA_HOME := Vector3(0.0, 8.5, 45.0)   # vista do menu
-const LOOK_HOME := Vector3(0.0, 8.5, 0.0)
+const CAMERA_HOME := Vector3(-9.3, 1.0, 40.0)   # vista do menu (Passo 109): planeta grande, à direita; a coluna de botões fica à esquerda
+const LOOK_HOME := Vector3(-9.3, 1.0, 0.0)
 const CAMERA_DIVE := Vector3(0.0, 0.0, 10.7)   # entre as nuvens (r 10,4) e a atmosfera (r 11,3), olhando o chão
 
 const CLOUD_SHADER := """
@@ -107,7 +107,7 @@ func _ready() -> void:
 	camera.name = "Camera"
 	camera.fov = 40.0
 	_stage.add_child(camera)
-	camera.position = CAMERA_HOME   # planeta baixo na tela: o título e o perfil ficam acima dele
+	camera.position = CAMERA_HOME
 	camera.look_at(LOOK_HOME)
 	camera.current = true
 
