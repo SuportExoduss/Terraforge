@@ -1,7 +1,7 @@
 extends SceneTree
-## Teste de fumaça do Passo 41 (galeria de civilizações): o catálogo diz quem é jogável (só a que tem piso), a escolha
-## fica no perfil e recusa as "em breve", a tela mostra uma linha por civilização (as sem arte desabilitadas), e o
-## registro de fichas troca a civilização 1 pela escolhida (testado com fichas falsas).
+## Teste de fumaça do Passo 41 (galeria de civilizações; atualizado no Passo 110/DD-150): o catálogo diz quem é jogável
+## (piso de arte OU kit procedural: hoje as 6), a escolha fica no perfil e recusa id inválido, a tela mostra uma linha
+## por civilização (todas habilitadas, nenhuma "em breve"), e o registro de fichas troca a civilização 1 pela escolhida.
 ## Uso: godot_console --headless --path . -s res://tools/smoke_civilizations.gd
 
 const TEST_PROFILE := "user://profile_smoke_civs.json"
@@ -32,24 +32,27 @@ func _run() -> void:
 	DirAccess.remove_absolute(TEST_PROFILE)
 	profile.load_data()
 
-	# Catálogo: 6 civilizações, só a 1 (Velho Oeste) tem piso hoje
+	# Catálogo: 6 civilizações, as 6 jogáveis (a 1 por arte, as outras 5 por kit procedural)
 	if not _check(catalog.count() == 6, "6 civilizações no catálogo"): return
-	if not _check(catalog.is_playable(1), "civilização 1 jogável"): return
-	if not _check(not catalog.is_playable(2), "civilização 2 ainda em breve"): return
+	for i in range(1, 7):
+		if not _check(catalog.is_playable(i), "civilização %d jogável" % i): return
+	if not _check(not catalog.is_playable(0) and not catalog.is_playable(7), "id fora da faixa não é jogável"): return
 	if not _check(catalog.chosen() == 1, "padrão = civilização 1"): return
-	if not _check(not catalog.choose(2), "escolher civilização em breve é recusado"): return
 	if not _check(not catalog.choose(0) and not catalog.choose(7), "ids fora da faixa recusados"): return
+	if not _check(catalog.choose(4) and catalog.chosen() == 4, "escolher a 4 (Skate City) funciona"): return
 	if not _check(catalog.choose(1), "escolher a 1 funciona"): return
-	# escolha gravada que deixou de ser jogável volta para a 1
-	profile.data["civilization"] = 4
-	if not _check(catalog.chosen() == 1, "escolha não jogável cai na 1"): return
+	# escolha gravada fora da faixa (perfil adulterado) é limitada à faixa válida
+	profile.data["civilization"] = 99
+	if not _check(catalog.chosen() == 6, "escolha 99 é limitada à última civilização"): return
+	profile.data["civilization"] = 0
+	if not _check(catalog.chosen() == 1, "escolha 0 cai na 1"): return
 	profile.data["civilization"] = 1
 
 	# Persistência: o arquivo guarda a escolha
 	profile.load_data()
 	if not _check(int(profile.data.get("civilization", 0)) == 1, "escolha sobrevive a recarregar o perfil"): return
 
-	# Tela: uma linha por civilização, as sem arte desabilitadas, a escolhida marcada
+	# Tela: uma linha por civilização, todas habilitadas, a escolhida marcada
 	var screen = load("res://scripts/ui/civilizations_screen.gd").new()
 	root.add_child(screen)
 	await process_frame
@@ -60,8 +63,8 @@ func _run() -> void:
 		buttons.append(b)
 	if not _check(not buttons[0].disabled and buttons[0].button_pressed, "Civ1 habilitada e marcada"): return
 	for i in range(1, 6):
-		if not _check(buttons[i].disabled, "Civ%d desabilitada (em breve)" % (i + 1)): return
-		if not _check(buttons[i].text.contains("em breve"), "Civ%d avisa 'em breve'" % (i + 1)): return
+		if not _check(not buttons[i].disabled, "Civ%d habilitada" % (i + 1)): return
+		if not _check(not buttons[i].text.contains("em breve"), "Civ%d sem aviso 'em breve'" % (i + 1)): return
 	if not _check(screen.find_child("Swatch1", true, false) != null, "cor do solo da civilização 1"): return
 	# VOLTAR fecha a tela e avisa
 	var closed := [false]

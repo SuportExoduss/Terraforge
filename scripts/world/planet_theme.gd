@@ -6,6 +6,8 @@ extends Resource
 ## Os arquivos de textura são CAMINHOS (não Texture2D): o piso original tem 4096 px e não deve
 ## ocupar memória em jogo — a ferramenta tools/build_ground_atlas.gd o reduz para o atlas.
 
+const BiomeKit := preload("res://scripts/world/biome_kit.gd")
+
 @export var civilization_name := "Neutro"
 
 @export_group("Piso E00 (material completo)")
@@ -22,6 +24,11 @@ extends Resource
 @export_group("Kit de Terreno (DD-116)")
 ## Cor chapada do solo: o que o mapa de posse pinta (e o que vale para civilização sem textura).
 @export var soil_base := Color(0.55, 0.42, 0.28)
+
+@export_group("Kit procedural (DD-150)")
+## Nome do kit de props desenhado em código (scripts/world/biome_kit.gd): "alien", "floresta", "skate", "piratas" ou "gelo".
+## Preenche os slots E01-E12 que NÃO têm modelo de arte (o modelo de arte vence, slot a slot). Vazio = sem kit.
+@export var procedural_kit := ""
 
 @export_group("Death Biome (DD-122)")
 @export_file var dead_ground_texture_file := ""
@@ -70,9 +77,13 @@ const _SLOT_PROPS: Array[StringName] = [&"e01_vegetacao_alta", &"e02_vegetacao_m
 
 
 ## Modelo do slot `index` (0 = E01 ... 11 = E12), vivo ou morto. Pode ser null (slot vazio).
+## Sem modelo de arte no slot vivo, vale o kit procedural da ficha (DD-150); o morto sem arte fica null (o sistema escurece o vivo).
 func slot_model(index: int, dead: bool) -> PackedScene:
 	var prop := String(_SLOT_PROPS[index])
-	return get(prop.insert(3, "m") if dead else prop) as PackedScene   # "e01_x" -> "e01m_x"
+	var art := get(prop.insert(3, "m") if dead else prop) as PackedScene   # "e01_x" -> "e01m_x"
+	if art == null and not dead and procedural_kit != "":
+		return BiomeKit.scene(procedural_kit, index)
+	return art
 
 
 ## Biome DNA: densidade de revelação da categoria (vegetação E01-E03, rocha E04-E05, landmark sempre).

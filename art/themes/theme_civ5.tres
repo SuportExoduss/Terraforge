@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_g0wry")
-civilization_name = "Civ5"
-soil_base = Color(1, 0, 0, 1)
+civilization_name = "Piratas"
+soil_base = Color(0.95, 0.88, 0.66, 1)
+vegetation_density = 0.4
+rock_density = 0.5
+procedural_kit = "piratas"

@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_fk0vw")
-civilization_name = "Civ6"
-soil_base = Color(1, 0.98784786, 0, 1)
+civilization_name = "Reino do Gelo"
+soil_base = Color(0.78, 0.9, 0.98, 1)
+vegetation_density = 0.35
+rock_density = 0.6
+procedural_kit = "gelo"

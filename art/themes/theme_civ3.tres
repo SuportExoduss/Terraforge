@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_sgvsv")
-civilization_name = "Civ3"
-soil_base = Color(0, 1, 1, 1)
+civilization_name = "Floresta Encantada"
+soil_base = Color(0.24, 0.55, 0.28, 1)
+vegetation_density = 0.7
+rock_density = 0.4
+procedural_kit = "floresta"

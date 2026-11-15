@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_5mln2")
-civilization_name = "Civ2"
-soil_base = Color(1, 0, 1, 1)
+civilization_name = "Alien"
+soil_base = Color(0.34, 0.2, 0.55, 1)
+vegetation_density = 0.45
+rock_density = 0.55
+procedural_kit = "alien"

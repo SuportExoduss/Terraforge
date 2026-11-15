@@ -1,8 +1,8 @@
 class_name CivilizationsScreen
 extends MenuScreen
 ## Galeria das civilizações (Passo 41): uma linha por civilização com a cor do solo, o nome e o estado — a escolhida
-## fica marcada; as que ainda não têm arte aparecem "em breve" e não respondem. A escolha vale na partida (ver
-## PlanetThemeRegistry) e fica no perfil.
+## fica marcada; a que não for jogável aparece "em breve" e não responde (hoje as 6 jogam: arte ou kit procedural,
+## DD-150). A escolha vale na partida (ver PlanetThemeRegistry) e fica no perfil.
 
 var _buttons := {}   # id -> Button
 

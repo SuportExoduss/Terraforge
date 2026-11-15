@@ -4,5 +4,8 @@
 
 [resource]
 script = ExtResource("1_6jb3q")
-civilization_name = "Civ4"
-soil_base = Color(0, 0, 1, 1)
+civilization_name = "Skate City"
+soil_base = Color(0.42, 0.44, 0.54, 1)
+vegetation_density = 0.15
+rock_density = 0.35
+procedural_kit = "skate"
