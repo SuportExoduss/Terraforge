@@ -2,7 +2,7 @@ extends SceneTree
 ## Teste de fumaça do Passo 109 (DD-149, tema visual): (1) o Theme global está na janela raiz com as variações PrimaryButton/GhostButton/
 ## TitleLabel/CoinLabel/GemLabel/ProfileLabel; (2) contraste de texto >= 4,5:1 (WCAG) nas combinações principais; (3) o menu é uma coluna
 ## à esquerda com hierarquia: JOGAR é o único botão âmbar e o maior, o dock tem os 6 atalhos em grade (Missões entrou no Passo 115), CONFIGURAÇÕES e SAIR são discretos;
-## (4) as telas do menu ganham um cartão de vidro; (5) na loja o item EQUIPADO ganha borda âmbar e só o COMPRAR que dá para pagar é âmbar.
+## (4) as telas do menu ganham um cartão de vidro; (5) na loja o item EQUIPADO ganha borda âmbar e só o COMPRAR da linha ativa (mouse/foco) e que dá para pagar é âmbar (Passo 119).
 ## Uso: godot_console --headless --path . -s res://tools/smoke_theme.gd
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
@@ -107,7 +107,10 @@ func _run() -> void:
 	profile.data["coins"] = 100000
 	shop.call("_refresh")
 	var buy: Button = shop.find_child("Item_trail_" + other[0], true, false)
-	if not _check(buy.text.begins_with("COMPRAR") and buy.theme_type_variation == "PrimaryButton", "COMPRAR que dá para pagar é âmbar"): return
+	if not _check(buy.text.begins_with("COMPRAR") and not buy.disabled and buy.theme_type_variation == "", "COMPRAR que dá para pagar fica neutro em repouso (Passo 119)"): return
+	buy.mouse_entered.emit()
+	if not _check(buy.theme_type_variation == "PrimaryButton", "COMPRAR da linha sob o mouse que dá para pagar é âmbar"): return
+	buy.mouse_exited.emit()
 	profile.data["coins"] = 0
 	shop.call("_refresh")
 	if not _check(buy.disabled and buy.theme_type_variation == "", "sem saldo o COMPRAR não é âmbar"): return

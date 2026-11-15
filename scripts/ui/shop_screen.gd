@@ -9,6 +9,7 @@ var _rows := {}      # "categoria_id" -> Button
 var _cards := {}     # "categoria_id" -> PanelContainer (o cartão do item; borda âmbar quando equipado)
 var _pages := {}     # categoria -> VBoxContainer (uma por aba)
 var _preview := {}   # categoria -> id mostrado na prévia (o equipado, ou a linha em foco)
+var _hot := ""       # Passo 119: linha sob mouse/foco; só o COMPRAR dela fica âmbar (antes todos os que cabiam no saldo)
 
 
 func _init() -> void:
@@ -107,13 +108,24 @@ func _act(cat: String, id: String) -> void:
 
 func _show_item(cat: String, id: String) -> void:
 	_preview[cat] = id
+	_hot = cat + "_" + id
 	_update_preview()
+	_tint_buy()
 
 
 func _reset_preview() -> void:
 	for category: Array in Cosmetics.CATEGORIES:
 		_preview[category[0]] = Cosmetics.equipped(category[0])
+	_hot = ""
 	_update_preview()
+	_tint_buy()
+
+
+## DD-159: a única âmbar é a ação que o jogador está prestes a fazer; os outros COMPRAR ficam neutros (a tela não grita).
+func _tint_buy() -> void:
+	for key: String in _rows:
+		var button: Button = _rows[key]
+		button.theme_type_variation = "PrimaryButton" if key == _hot and button.text.begins_with("COMPRAR") and not button.disabled else ""
 
 
 func _update_preview() -> void:
@@ -138,8 +150,6 @@ func _refresh() -> void:
 			if not Cosmetics.is_owned(id, cat):
 				button.text = "COMPRAR  (%s)" % Cosmetics.price_text(item)
 				button.disabled = not Cosmetics.can_afford(item)
-				if not button.disabled:
-					button.theme_type_variation = "PrimaryButton"   # o único botão em âmbar da linha: dá para comprar agora
 			elif equipped:
 				button.text = "EQUIPADO"
 				button.disabled = true

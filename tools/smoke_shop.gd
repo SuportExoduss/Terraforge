@@ -72,6 +72,14 @@ func _run() -> void:
 	if not _check(b_ciano.text.begins_with("COMPRAR") and not b_ciano.disabled, "ciano (80) cabe nas 90 moedas"): return
 	if not _check(b_mag.text.begins_with("COMPRAR") and b_mag.disabled, "magenta (100) falta moeda"): return
 	if not _check(screen.find_child("Coins", true, false).text.contains("90"), "saldo mostrado"): return
+	# Passo 119 (DD-159): âmbar só no COMPRAR da linha sob mouse/foco, e só se der para comprar
+	if not _check(b_ciano.theme_type_variation == "", "COMPRAR que cabe no saldo fica neutro em repouso"): return
+	b_ciano.mouse_entered.emit()
+	if not _check(b_ciano.theme_type_variation == "PrimaryButton", "linha sob o mouse com saldo: âmbar"): return
+	b_mag.mouse_entered.emit()
+	if not _check(b_ciano.theme_type_variation == "" and b_mag.theme_type_variation == "", "só a linha ativa; sem saldo continua neutro"): return
+	b_mag.mouse_exited.emit()
+	if not _check(b_ciano.theme_type_variation == "" and b_mag.theme_type_variation == "", "ao sair, ninguém é âmbar"): return
 	b_ciano.pressed.emit()
 	if not _check(int(profile.data["coins"]) == 10 and cos.is_owned("ciano"), "apertar COMPRAR compra"): return
 	if not _check(b_ciano.text == "EQUIPAR" and screen.find_child("Coins", true, false).text.contains("10"), "vira EQUIPAR e o saldo atualiza"): return
