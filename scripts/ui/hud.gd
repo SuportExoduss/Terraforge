@@ -4,6 +4,8 @@ extends CanvasLayer
 ## analógico flutuante. Montado em código e dirigido só pelo EventBus (a UI não conhece o Gameplay);
 ## mostra apenas o jogador local — o placar dos adversários é da tela de resultados (6f).
 ## Passo 111 (DD-151): o domínio + vida ficam num cartão de vidro e o relógio numa pílula (mesma cara do menu, DD-149).
+## Passo 113 (DD-153): uma segunda pílula, ao lado do relógio, mostra a POSIÇÃO no ranking ("2º"; âmbar quando lidera) — UI-001 do GDMD.
+## Só a posição aparece: o domínio dos rivais continua escondido (o placar completo é da tela de resultados).
 ## ponytail: fonte padrão do Godot e quadrados no lugar de ícones de coração; arte final na fase de polimento.
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
@@ -35,6 +37,9 @@ var _clock: Label
 var _score: Label
 var _countdown: Label
 var _event: Label
+var _rank: Label                     # Passo 113: "1º", "2º"... dentro da pílula RankPill
+var _rank_pill: Panel
+var _scores: Dictionary = {}         # dono -> domínio (-1 = eliminado); só para contar quem está à frente
 var _drop := 0.0                    # Passo 111: quanto o texto maior empurra corações/aviso para baixo
 var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
 var _damage_flash: ColorRect         # Passo 74: clarão vermelho ao perder vida
@@ -71,6 +76,17 @@ func _ready() -> void:
 	pill.offset_right = 64.0 * ts
 	pill.offset_top = 8.0
 	pill.offset_bottom = 20.0 + 42.0 * ts
+	_rank_pill = _plate(root, "RankPill", Rect2(0.0, 8.0, 56.0 * ts, 12.0 + 42.0 * ts))
+	_rank_pill.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_rank_pill.offset_left = 72.0 * ts   # logo à direita do relógio (que vai de -64 a +64)
+	_rank_pill.offset_right = 128.0 * ts
+	_rank_pill.offset_top = 8.0
+	_rank_pill.offset_bottom = 20.0 + 42.0 * ts
+	_rank_pill.visible = false   # só aparece quando há pelo menos um rival conhecido
+	_rank = _label(_rank_pill, "RankLabel", 26, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
+	_rank.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_rank.clip_text = true   # sem isto o rótulo cresce além da pílula e o número escorrega para baixo
+	_rank.size = _rank_pill.size
 	_clock = _label(root, "ClockLabel", 30, Color.WHITE, Control.PRESET_TOP_WIDE, Vector2(0, 14))
 	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
 	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62.0 * Settings.text_scale()))   # desce junto com o relógio maior
@@ -92,6 +108,7 @@ func _ready() -> void:
 	EventBus.match_clock_changed.connect(_on_clock)
 	EventBus.match_ended.connect(_on_match_ended)
 	EventBus.territory_score_changed.connect(_on_score)
+	EventBus.civilization_eliminated.connect(_on_eliminated)
 	EventBus.health_changed.connect(_on_health)
 	EventBus.damage_taken.connect(_on_damage)
 	EventBus.respawn_countdown.connect(_on_respawn_countdown)
@@ -314,6 +331,28 @@ func _on_clock(seconds_remaining: int) -> void:
 func _on_score(owner_id: int, owned_fraction: float) -> void:
 	if owner_id == Civilization.PLAYER_ID:
 		_score.text = "Domínio: %s%%" % ("%.1f" % (owned_fraction * 100.0)).replace(".", ",")
+	if _scores.get(owner_id, 0.0) >= 0.0:   # eliminado não volta
+		_scores[owner_id] = owned_fraction
+	_refresh_rank()
+
+
+func _on_eliminated(owner_id: int) -> void:
+	_scores[owner_id] = -1.0
+	_refresh_rank()
+
+
+## Posição = 1 + quantos rivais têm mais domínio que o jogador (empate não ultrapassa). Eliminados ficam atrás de todos.
+func _refresh_rank() -> void:
+	if not _scores.has(Civilization.PLAYER_ID) or _scores.size() < 2:
+		return
+	var mine: float = _scores[Civilization.PLAYER_ID]
+	var rank := 1
+	for id in _scores:
+		if id != Civilization.PLAYER_ID and _scores[id] > mine:
+			rank += 1
+	_rank.text = "%dº" % rank
+	_rank.add_theme_color_override("font_color", AMBER if rank == 1 else Color.WHITE)
+	_rank_pill.visible = true
 
 
 func _on_health(owner_id: int, points: int, max_points: int) -> void:
