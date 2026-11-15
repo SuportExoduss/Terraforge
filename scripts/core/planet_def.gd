@@ -15,6 +15,8 @@ const BASE_SLOTS := 720
 @export var radius := BASE_RADIUS
 @export var bots := 3
 @export var duration_seconds := 600.0
+@export var calm := false       # Passo 106: bots mansos (nunca caçam rastro, saídas curtas)
+@export var tutorial := false   # Passo 106: a partida mostra as dicas de uma frase (TutorialCoach)
 
 
 func area_scale() -> float:
@@ -48,6 +50,15 @@ static func catalog() -> Array[PlanetDef]:
 		make("medio", "Médio", 100.0, 3, 600.0),   # o planeta de sempre (DD-111)
 		make("pequeno", "Pequeno", 60.0, 2, 240.0),   # partida rápida: porta de entrada e treino
 	]
+
+
+## Passo 106 (DD-146): a PRIMEIRA partida de quem nunca jogou. Fora do catálogo (o jogador não escolhe): planeta pequeno,
+## 1 bot manso e dicas na hora certa; vale enquanto `Profile.data["matches"]` for 0.
+static func training() -> PlanetDef:
+	var def := make("treino", "Treino", 60.0, 1, 180.0)
+	def.calm = true
+	def.tutorial = true
+	return def
 
 
 static func by_id(def_id: String) -> PlanetDef:

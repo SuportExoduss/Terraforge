@@ -57,12 +57,15 @@ func _ready() -> void:
 	profile.text = _profile_text()
 	profile.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	profile.add_theme_font_size_override("font_size", 20)
+	_dress_profile(profile)
 	box.add_child(profile)
 
-	Services.match_def = PlanetDef.by_id(str(Profile.data.get("planet", "medio")))   # DD-143: o último planeta escolhido
+	var first_time: bool = int(Profile.data.get("matches", 0)) == 0   # Passo 106: a primeira partida é o treino, sem escolha
+	Services.match_def = PlanetDef.training() if first_time else PlanetDef.by_id(str(Profile.data.get("planet", "medio")))   # DD-143: o último planeta escolhido
 	var play := _add_button(box, "Play", "JOGAR", _play)
 	var planet := _add_button(box, "Planet", "", _cycle_planet)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
-	planet.text = "PLANETA: " + Services.match_def.summary()
+	planet.text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
+	planet.disabled = first_time
 	planet.add_theme_font_size_override("font_size", 18)
 	var dock := HBoxContainer.new()   # atalhos das telas do menu
 	dock.name = "Dock"
@@ -136,8 +139,24 @@ func _open_settings() -> void:
 	add_child(panel)
 
 
+## Passo 107: o título equipado vai acima da linha do perfil e a moldura equipada vira a borda dela.
+func _dress_profile(label: Label) -> void:
+	var frame := Cosmetics.frame_color()
+	if frame.a <= 0.0:
+		label.remove_theme_stylebox_override("normal")
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(frame.r, frame.g, frame.b, 0.12)
+	style.border_color = frame
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(10)
+	style.set_content_margin_all(10.0)
+	label.add_theme_stylebox_override("normal", style)
+
+
 func _profile_text() -> String:
-	return "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
+	var title := Cosmetics.title_text()
+	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  %d XP  ·  %d moedas  ·  %d partidas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["coins"], Profile.data["matches"], Profile.data["achievements"].size(), Achievements.LIST.size()]
 
 
 func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:
@@ -155,7 +174,8 @@ func _open_screen(screen: MenuScreen, return_to: String) -> void:
 	screen.closed.connect(func():
 		screen.queue_free()
 		box.process_mode = Node.PROCESS_MODE_INHERIT
-		get_node("Box/Profile").text = _profile_text()   # a loja pode ter gastado moedas
+		get_node("Box/Profile").text = _profile_text()   # a loja pode ter gastado moedas ou trocado título e moldura
+		_dress_profile(get_node("Box/Profile"))
 		get_node("Box/Dock/" + return_to).grab_focus())
 	add_child(screen)
 

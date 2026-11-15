@@ -75,10 +75,16 @@ func _ready() -> void:
 	buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	buttons.add_theme_constant_override("separation", 12)
 	box.add_child(buttons)
-	_add_button(buttons, "PlayAgain", "JOGAR DE NOVO", func(): get_tree().reload_current_scene())
+	_add_button(buttons, "PlayAgain", "JOGAR DE NOVO", _play_again)
 	_add_button(buttons, "Menu", "MENU", _go_menu)
 
 	EventBus.match_state_changed.connect(_on_state)
+
+
+func _play_again() -> void:
+	if Services.match_def != null and Services.match_def.tutorial:   # Passo 106: depois do treino, o próximo é o planeta de verdade
+		Services.match_def = PlanetDef.by_id(str(Profile.data.get("planet", "medio")))
+	get_tree().reload_current_scene()
 
 
 func _go_menu() -> void:

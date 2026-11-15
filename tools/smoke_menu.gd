@@ -7,6 +7,10 @@ var _time := 0.0
 
 
 func _initialize() -> void:
+	Profile.path = "user://profile_smoke_menu.json"   # perfil próprio, de quem já jogou (a 1ª partida é o treino, Passo 106: smoke_tutorial)
+	Profile.data = Profile.defaults()
+	Profile.data["matches"] = 1
+	Profile.save()
 	var menu: Node = load("res://scenes/menu.tscn").instantiate()
 	root.add_child(menu)
 	current_scene = menu

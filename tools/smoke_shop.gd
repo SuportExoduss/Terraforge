@@ -62,10 +62,10 @@ func _run() -> void:
 	var screen = load("res://scripts/ui/shop_screen.gd").new()
 	root.add_child(screen)
 	await process_frame
-	var b_def = screen.find_child("Item_default", true, false)
-	var b_ouro = screen.find_child("Item_ouro", true, false)
-	var b_ciano = screen.find_child("Item_ciano", true, false)
-	var b_mag = screen.find_child("Item_magenta", true, false)
+	var b_def = screen.find_child("Item_trail_default", true, false)
+	var b_ouro = screen.find_child("Item_trail_ouro", true, false)
+	var b_ciano = screen.find_child("Item_trail_ciano", true, false)
+	var b_mag = screen.find_child("Item_trail_magenta", true, false)
 	if not _check(b_def != null and b_ouro != null and b_ciano != null and b_mag != null, "um botão por item"): return
 	if not _check(b_ouro.text == "EQUIPADO" and b_ouro.disabled, "ouro aparece EQUIPADO"): return
 	if not _check(b_def.text == "EQUIPAR" and not b_def.disabled, "Original aparece EQUIPAR"): return
@@ -75,7 +75,7 @@ func _run() -> void:
 	b_ciano.pressed.emit()
 	if not _check(int(profile.data["coins"]) == 10 and cos.is_owned("ciano"), "apertar COMPRAR compra"): return
 	if not _check(b_ciano.text == "EQUIPAR" and screen.find_child("Coins", true, false).text.contains("10"), "vira EQUIPAR e o saldo atualiza"): return
-	if not _check(b_mag.disabled and screen.find_child("Item_verde", true, false).disabled, "o resto continua sem saldo"): return
+	if not _check(b_mag.disabled and screen.find_child("Item_trail_verde", true, false).disabled, "o resto continua sem saldo"): return
 	b_ciano.pressed.emit()
 	if not _check(cos.equipped() == "ciano" and b_ciano.text == "EQUIPADO" and b_ouro.text == "EQUIPAR", "apertar EQUIPAR troca o equipado"): return
 	b_ouro.pressed.emit()   # volta para o ouro, que é o que a partida vai mostrar
@@ -93,7 +93,7 @@ func _run() -> void:
 	var opened = menu.get_node_or_null("Screen")
 	if not _check(opened != null and opened.title_text == "LOJA", "o botão abre a loja"): return
 	profile.data["coins"] = 500
-	opened.find_child("Item_magenta", true, false).pressed.emit()   # compra (100): sobram 400
+	opened.find_child("Item_trail_magenta", true, false).pressed.emit()   # compra (100): sobram 400
 	opened.back.pressed.emit()
 	await process_frame
 	await process_frame

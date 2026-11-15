@@ -85,6 +85,10 @@ func _ready() -> void:
 	EventBus.global_event_warning.connect(_on_event_warning)
 	EventBus.bonus_activated.connect(_on_bonus)
 	EventBus.bonus_stock_changed.connect(_on_stock)
+	if Services.match_def != null and Services.match_def.tutorial:   # Passo 106: a primeira partida ensina jogando
+		var coach := TutorialCoach.new()
+		coach.name = "Coach"
+		root.add_child(coach)
 
 
 func _unhandled_input(event: InputEvent) -> void:
