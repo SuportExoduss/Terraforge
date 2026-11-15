@@ -77,6 +77,7 @@ func _ready() -> void:
 	var planet := _add_button(box, "Planet", "", _cycle_planet, 40.0, 14)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
 	planet.text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
 	planet.disabled = first_time
+	get_node("Backdrop").set_biome(Services.match_def.biome)
 	_add_button(box, "Pass", "", func(): _open_screen(PassScreen.new(), "Pass"), 40.0, 14)   # Passo 123: faixa do passe de temporada
 	_refresh_pass_label()
 	var dock := GridContainer.new()   # atalhos das telas do menu (3 por linha)
@@ -108,6 +109,7 @@ func _cycle_planet() -> void:
 	Profile.data["planet"] = Services.match_def.id
 	Profile.save()
 	get_node("Box/Planet").text = "PLANETA: " + Services.match_def.summary()
+	get_node("Backdrop").set_biome(Services.match_def.biome)
 
 
 ## Primeiro clique (DD-007): a interface some, a câmera mergulha no planeta e a partida carrega em segundo plano;

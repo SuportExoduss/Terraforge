@@ -17,6 +17,15 @@ const BASE_SLOTS := 720
 @export var duration_seconds := 600.0
 @export var calm := false       # Passo 106: bots mansos (nunca caçam rastro, saídas curtas)
 @export var tutorial := false   # Passo 106: a partida mostra as dicas de uma frase (TutorialCoach)
+@export var biome := "deserto"   # Passo 124 (DD-164): aparência da terra neutra; só visual, nunca muda a regra
+
+## Passo 124: cada bioma é um par de cores da terra (escura -> clara, espalhadas pelas manchas do shader), a cor da água e o brilho
+## da atmosfera no menu. "deserto" não está aqui: é o visual de sempre (a textura do modelo + as manchas do Passo 121).
+const LOOKS := {
+	"gelo": {"dark": Color(0.55, 0.70, 0.86), "light": Color(0.96, 0.99, 1.0), "water": Color(0.10, 0.36, 0.55), "air": Color(0.55, 0.90, 1.0)},
+	"vulcao": {"dark": Color(0.07, 0.06, 0.06), "light": Color(0.30, 0.20, 0.17), "water": Color(0.95, 0.30, 0.05), "air": Color(1.0, 0.45, 0.2)},
+}
+const DEFAULT_AIR := Color(0.35, 0.65, 1.0)
 
 
 func area_scale() -> float:
@@ -49,7 +58,30 @@ static func catalog() -> Array[PlanetDef]:
 	return [
 		make("medio", "Médio", 100.0, 3, 600.0),   # o planeta de sempre (DD-111)
 		make("pequeno", "Pequeno", 60.0, 2, 240.0),   # partida rápida: porta de entrada e treino
+		_themed(make("gelo", "Gelo", 80.0, 3, 360.0), "gelo"),   # Passo 124: tamanho médio-pequeno, 6 min, terra branca e água gelada
+		_themed(make("vulcao", "Vulcão", 100.0, 3, 480.0), "vulcao"),   # tamanho do Médio, 8 min, terra de cinza e água de lava
 	]
+
+
+static func _themed(def: PlanetDef, biome_id: String) -> PlanetDef:
+	def.biome = biome_id
+	return def
+
+
+## Passo 124: entrega ao shader da superfície a aparência do bioma (a = 0 desliga: o deserto fica como era).
+static func apply_look(material: ShaderMaterial, def: PlanetDef) -> void:
+	var look: Dictionary = LOOKS.get(def.biome, {}) if def != null else {}
+	var on := 1.0 if not look.is_empty() else 0.0
+	var dark: Color = look.get("dark", Color.BLACK)
+	var water: Color = look.get("water", Color.BLACK)
+	material.set_shader_parameter("look_dark", Color(dark.r, dark.g, dark.b, on))
+	material.set_shader_parameter("look_light", look.get("light", Color.WHITE))
+	material.set_shader_parameter("look_water", Color(water.r, water.g, water.b, on))
+
+
+## Cor do brilho da atmosfera do planeta no menu.
+static func air_color(biome_id: String) -> Color:
+	return LOOKS.get(biome_id, {}).get("air", DEFAULT_AIR)
 
 
 ## Passo 106 (DD-146): a PRIMEIRA partida de quem nunca jogou. Fora do catálogo (o jogador não escolhe): planeta pequeno,

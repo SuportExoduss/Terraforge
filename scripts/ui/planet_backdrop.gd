@@ -153,6 +153,11 @@ func _build_planet() -> void:
 	_build_aurora(tilt)
 
 
+## Passo 124: o brilho da atmosfera mostra o bioma do planeta escolhido (azul = deserto/padrão, ciano = gelo, laranja = vulcão).
+func set_biome(biome_id: String) -> void:
+	_atmo_material.set_shader_parameter("tint", PlanetDef.air_color(biome_id))
+
+
 func _shell(radius: float, shader_code: String) -> MeshInstance3D:
 	var mesh := SphereMesh.new()
 	mesh.radius = radius

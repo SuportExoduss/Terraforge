@@ -18,6 +18,9 @@ uniform sampler2DArray ground_normal : filter_linear_mipmap, repeat_enable;
 
 uniform vec3 planet_center = vec3(0.0);
 uniform float terra_seed = 0.0;
+uniform vec4 look_dark : source_color = vec4(0.0);    // Passo 124: rgb = terra escura do bioma, a = 1 liga o visual temático
+uniform vec4 look_light : source_color = vec4(1.0);   // rgb = terra clara do bioma
+uniform vec4 look_water : source_color = vec4(0.0);   // rgb = cor da água do bioma
 
 // Uma posição por civilização (índice = id - 1), até 16.
 uniform vec4 ground_params[16];   // x = tiling, y = fatia do atlas (-1 sem textura), z = relevo, w = altura
@@ -112,6 +115,14 @@ void fragment() {
 		vec3 shade = mix(vec3(0.80, 0.86, 0.92), vec3(1.16, 0.98, 0.78), smoothstep(0.30, 0.70, macro)) * (0.9 + 0.2 * fine);
 		float land = 1.0 - smoothstep(0.0, 0.08, albedo.b - albedo.r);
 		albedo *= mix(vec3(1.0), shade, land);
+		// Passo 124 (DD-164): planeta temático. A terra neutra vira a paleta do bioma (escuro -> claro pelas mesmas manchas) e a água
+		// ganha a cor do bioma mantendo o brilho do modelo. a = 0 desliga (deserto).
+		if (look_dark.a > 0.5) {
+			float lum = dot(albedo, vec3(0.333));
+			vec3 ground = mix(look_dark.rgb, look_light.rgb, smoothstep(0.25, 0.75, macro)) * (0.88 + 0.24 * fine);
+			vec3 water = look_water.rgb * (0.7 + 0.6 * lum);
+			albedo = mix(water, ground, land);
+		}
 	}
 	vec3 shading_n = geo_n;
 

@@ -51,6 +51,10 @@ func _run() -> void:
 	planet_button.pressed.emit()
 	if not _check(planet_button.text.begins_with("PLANETA: Pequeno") and services.match_def.id == "pequeno" and services.match_def.radius < 100.0, "toque troca para o Pequeno"): return
 	planet_button.pressed.emit()
+	if not _check(planet_button.text.begins_with("PLANETA: Gelo") and services.match_def.biome == "gelo", "outro toque vai ao Gelo (Passo 124)"): return
+	planet_button.pressed.emit()
+	if not _check(planet_button.text.begins_with("PLANETA: Vulcão") and services.match_def.biome == "vulcao", "outro toque vai ao Vulcão (Passo 124)"): return
+	planet_button.pressed.emit()
 	if not _check(planet_button.text.begins_with("PLANETA: Médio") and services.match_def.id == "medio", "outro toque volta ao Médio"): return
 	# Geometria (bug: com set_anchors_preset o menu ficava no canto da tela, sem fundo): fundo cobre a tela e a caixa fica no centro
 	await process_frame

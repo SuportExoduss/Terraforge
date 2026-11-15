@@ -233,6 +233,7 @@ func _convert_materials(model: Node) -> void:
 				sm.set_shader_parameter("id_map", _ids_tex)
 				sm.set_shader_parameter("planet_center", _planet.center)
 				sm.set_shader_parameter("terra_seed", randf() * 100.0)
+				PlanetDef.apply_look(sm, Services.match_def)   # Passo 124: bioma do planeta escolhido (null = deserto)
 				converted[source] = sm
 				_materials.append(sm)
 			mi.set_surface_override_material(s, converted[source])
