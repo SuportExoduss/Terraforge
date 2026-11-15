@@ -19,7 +19,19 @@ func build(parent: VBoxContainer) -> void:
 	var level := Profile.level()
 	var start := level_start(level)
 	var next := level_start(level + 1)
-	parent.add_child(make_label("Nível %d" % level, 28, "Level"))
+	# Passo 120: nível+habilidade numa linha e barra+XP na outra, para o cartão caber em 540 px (VOLTAR não some)
+	var head := HBoxContainer.new()
+	head.name = "Head"
+	var level_label := make_label("Nível %d" % level, 28, "Level")
+	level_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(level_label)
+	var rating := make_label("Habilidade %d" % int(data["rating"]), 20, "Rating")   # sobe e desce com a colocação (Passo 53)
+	rating.size_flags_vertical = Control.SIZE_SHRINK_END
+	head.add_child(rating)
+	parent.add_child(head)
+	var xp_row := HBoxContainer.new()
+	xp_row.name = "XpRow"
+	xp_row.add_theme_constant_override("separation", 12)
 	var bar := ProgressBar.new()
 	bar.name = "XpBar"
 	bar.min_value = start
@@ -27,9 +39,11 @@ func build(parent: VBoxContainer) -> void:
 	bar.value = int(data["xp"])
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(0.0, 18.0)
-	parent.add_child(bar)
-	parent.add_child(make_label("%d / %d XP para o nível %d" % [int(data["xp"]), next, level + 1], 16, "Xp"))
-	parent.add_child(make_label("Habilidade %d" % int(data["rating"]), 20, "Rating"))   # sobe e desce com a colocação (Passo 53)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	xp_row.add_child(bar)
+	xp_row.add_child(make_label("%d / %d XP para o nível %d" % [int(data["xp"]), next, level + 1], 16, "Xp"))
+	parent.add_child(xp_row)
 	parent.add_child(make_label("%d moedas  ·  %d partidas  ·  %d vitórias  ·  melhor %d%% do planeta" % [
 			int(data["coins"]), int(data["matches"]), int(data["wins"]), roundi(float(data["best_percent"]) * 100.0)], 18, "Totals"))
 	parent.add_child(make_label("%d áreas fechadas  ·  %d cortes  ·  %d eliminações" % [
