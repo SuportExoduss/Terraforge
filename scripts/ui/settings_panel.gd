@@ -8,22 +8,23 @@ signal closed
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var background := ColorRect.new()
-	background.color = Color(0.03, 0.05, 0.12, 0.96)
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	add_child(preload("res://scripts/ui/ui_theme.gd").backdrop())   # Passo 112 (DD-149): mesmo fundo e cartão de vidro das outras telas
 
 	var center := MenuScreen.scrolling_center(self)
+	var card := PanelContainer.new()
+	card.name = "Card"
+	center.add_child(card)
 	var box := VBoxContainer.new()
 	box.name = "Box"
 	box.custom_minimum_size = Vector2(420.0, 0.0)
-	box.add_theme_constant_override("separation", 14)
-	center.add_child(box)
+	box.add_theme_constant_override("separation", 8)   # cabe nos 540 px do celular deitado
+	card.add_child(box)
 
 	var title := Label.new()
 	title.text = "CONFIGURAÇÕES"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 36)
+	title.theme_type_variation = "TitleLabel"
+	title.add_theme_font_size_override("font_size", 34)
 	box.add_child(title)
 
 	_add_slider(box, "Sfx", "EFEITOS", "sfx")
@@ -47,7 +48,7 @@ func _ready() -> void:
 		button.button_group = group
 		button.button_pressed = level == int(Settings.get_value("quality"))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 44.0)
+		button.custom_minimum_size = Vector2(0.0, 40.0)
 		button.pressed.connect(func(): Settings.set_value("quality", level))
 		row.add_child(button)
 
@@ -61,7 +62,8 @@ func _ready() -> void:
 	var back := Button.new()
 	back.name = "Back"
 	back.text = "VOLTAR"
-	back.custom_minimum_size = Vector2(240.0, 52.0)
+	back.custom_minimum_size = Vector2(240.0, 46.0)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	back.add_theme_font_size_override("font_size", 22)
 	back.pressed.connect(close)
 	box.add_child(back)
@@ -83,7 +85,7 @@ func _add_slider(parent: Control, node_name: String, label_text: String, key: St
 	slider.max_value = 1.0
 	slider.step = 0.05
 	slider.value = Settings.get_value(key)
-	slider.custom_minimum_size = Vector2(0.0, 32.0)
+	slider.custom_minimum_size = Vector2(0.0, 24.0)
 	slider.value_changed.connect(func(value: float): Settings.set_value(key, value, false))
 	slider.drag_ended.connect(func(_changed: bool): Profile.save())
 	parent.add_child(slider)

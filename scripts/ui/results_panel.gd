@@ -6,6 +6,7 @@ extends CanvasLayer
 ## Dois botões fecham o fluxo do cap. 04 (Resultados → Menu): JOGAR DE NOVO recarrega a partida, MENU volta ao início.
 ## ponytail: texto puro, sem pódio 3D.
 
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const FOCUS_DELAY := 0.6   # Passo 71: espera antes de dar foco ao JOGAR DE NOVO
 
 var _panel: PanelContainer
@@ -24,10 +25,14 @@ func _ready() -> void:
 	_panel.offset_top = 24.0   # celular deitado: só 540 px de altura
 	_panel.custom_minimum_size.x = 320.0
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.06, 0.13, 0.85)
+	style.bg_color = Color(UiTheme.GLASS, 0.9)   # Passo 112 (DD-149): mesma cara de vidro do menu e da HUD
+	style.set_border_width_all(1)
+	style.border_color = Color(UiTheme.LINE, 0.8)
 	style.set_corner_radius_all(14)
 	style.set_content_margin_all(16.0)
+	style.anti_aliasing = true
 	_panel.add_theme_stylebox_override("panel", style)
+	_panel.theme = UiTheme.build()   # filho de CanvasLayer não herda o tema da janela: aplica o mesmo tema do jogo aqui
 	add_child(_panel)
 
 	var box := VBoxContainer.new()
@@ -99,6 +104,8 @@ func _add_button(parent: Control, button_name: String, label: String, action: Ca
 	button.text = label
 	button.custom_minimum_size = Vector2(170.0, 48.0)   # alvo de toque confortável
 	button.pressed.connect(action)
+	if button_name == "PlayAgain":
+		button.theme_type_variation = "PrimaryButton"   # a ação principal é a única âmbar
 	parent.add_child(button)
 
 

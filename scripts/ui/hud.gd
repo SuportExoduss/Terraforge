@@ -114,6 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_match_ended() -> void:
 	_clock.text = ""   # o painel de resultados assume a tela
 	_stock_button.hide()
+	hide()   # Passo 112: sem os cartões de vidro aparecendo por trás do painel de resultados
 
 
 func _process(_delta: float) -> void:
