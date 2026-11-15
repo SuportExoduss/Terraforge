@@ -96,6 +96,13 @@ func _run() -> void:
 	if not _check(int(d["matches"]) == 1 and int(d["wins"]) == 1 and absf(float(d["best_percent"]) - 0.55) < 0.0001, "partidas/vitórias/melhor: %s" % d): return
 	if not _check(int(d["loops"]) == 2 and int(d["cuts"]) == 1 and int(d["kills"]) == 0, "totais do perfil: %s" % d): return
 
+	# Passo 115 (DD-155): a partida também avançou as 3 missões do dia (e isso foi gravado)
+	var daily_progress: Dictionary = d["daily"]["progress"]
+	var daily_want := {"play": 1, "loops": 2, "cuts": 1, "kills": 0, "percent": 55, "win": 1}   # "alive" depende do fim da partida
+	if not _check(daily_progress.size() == 3, "3 missões com progresso: %s" % daily_progress): return
+	for id: String in daily_progress:
+		if daily_want.has(id) and not _check(int(daily_progress[id]) == int(daily_want[id]), "missão %s = %s (esperado %s)" % [id, daily_progress[id], daily_want[id]]): return
+
 	# Tela de resultados mostra a recompensa
 	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("RECOMPENSAS") and text.contains("+%d XP" % xp_expected) and text.contains("+%d moedas" % coins_expected), "painel de recompensas:\n" + text): return

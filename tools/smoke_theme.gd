@@ -1,7 +1,7 @@
 extends SceneTree
 ## Teste de fumaça do Passo 109 (DD-149, tema visual): (1) o Theme global está na janela raiz com as variações PrimaryButton/GhostButton/
 ## TitleLabel/CoinLabel/GemLabel/ProfileLabel; (2) contraste de texto >= 4,5:1 (WCAG) nas combinações principais; (3) o menu é uma coluna
-## à esquerda com hierarquia: JOGAR é o único botão âmbar e o maior, o dock tem os 5 atalhos em grade, CONFIGURAÇÕES e SAIR são discretos;
+## à esquerda com hierarquia: JOGAR é o único botão âmbar e o maior, o dock tem os 6 atalhos em grade (Missões entrou no Passo 115), CONFIGURAÇÕES e SAIR são discretos;
 ## (4) as telas do menu ganham um cartão de vidro; (5) na loja o item EQUIPADO ganha borda âmbar e só o COMPRAR que dá para pagar é âmbar.
 ## Uso: godot_console --headless --path . -s res://tools/smoke_theme.gd
 
@@ -84,7 +84,7 @@ func _run() -> void:
 		if not _check(rect.position.x >= 0.0 and rect.end.x <= screen.x and rect.position.y >= 0.0 and rect.end.y <= screen.y, "botão %s fora da tela (%s)" % [button.name, rect]): return
 	if not _check(primary == 1, "só JOGAR é âmbar no menu (achei %d)" % primary): return
 	var dock = menu.get_node("Box/Dock")
-	if not _check(dock is GridContainer and dock.get_child_count() == 5 and dock.columns == 3, "dock: 5 atalhos em grade de 3 colunas"): return
+	if not _check(dock is GridContainer and dock.get_child_count() == 6 and dock.columns == 3, "dock: 6 atalhos em grade de 3 colunas"): return
 	if not _check(menu.get_node("Box/Settings").theme_type_variation == "GhostButton" and menu.get_node("Box/Quit").theme_type_variation == "GhostButton", "CONFIGURAÇÕES e SAIR são discretos"): return
 	if not _check(menu.get_node("Box/Title").theme_type_variation == "TitleLabel" and menu.get_node("Box/Profile").theme_type_variation == "ProfileLabel", "título e perfil usam as variações do tema"): return
 	var shade = menu.get_node_or_null("Shade")

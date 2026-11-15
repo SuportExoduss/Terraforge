@@ -4,6 +4,8 @@ extends Control
 ## ponytail: sem lobby nem matchmaking — a partida usa os padrões do MatchSetup (3 adversários); entram com o multiplayer.
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const DailyMissions := preload("res://scripts/core/daily_missions.gd")
+const MissionsScreen := preload("res://scripts/ui/missions_screen.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
@@ -83,6 +85,8 @@ func _ready() -> void:
 	_add_dock(dock, "Shop", "LOJA", ShopScreen)
 	_add_dock(dock, "Online", "ONLINE", OnlineScreen)
 	_add_dock(dock, "Events", "EVENTOS", EventsScreen)
+	_add_dock(dock, "Missions", "MISSÕES", MissionsScreen)
+	_refresh_missions_badge()
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings, 36.0, 15).theme_type_variation = "GhostButton"
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit(), 36.0, 15).theme_type_variation = "GhostButton"
 	play.grab_focus()   # teclado / controle
@@ -160,6 +164,12 @@ func _add_dock(dock: Control, button_name: String, label: String, screen_class: 
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 
+## Passo 115: "MISSÕES (2)" quando há missão pronta para resgatar.
+func _refresh_missions_badge() -> void:
+	var n := DailyMissions.claimable()
+	get_node("Box/Dock/Missions").text = "MISSÕES (%d)" % n if n > 0 else "MISSÕES"
+
+
 ## Abre uma tela do menu por cima; o corpo do menu fica parado (sem foco nem cliques) até ela fechar.
 func _open_screen(screen: MenuScreen, return_to: String) -> void:
 	get_node("Music").deepen()
@@ -171,6 +181,7 @@ func _open_screen(screen: MenuScreen, return_to: String) -> void:
 		box.process_mode = Node.PROCESS_MODE_INHERIT
 		get_node("Box/Profile").text = _profile_text()   # a loja pode ter gastado moedas ou trocado título e moldura
 		_dress_profile(get_node("Box/Profile"))
+		_refresh_missions_badge()   # resgatar na tela de missões muda o aviso
 		get_node("Box/Dock/" + return_to).grab_focus())
 	add_child(screen)
 

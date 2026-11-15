@@ -5,6 +5,8 @@ extends Node
 ## Também concede as conquistas (Achievements) cumpridas nesta partida.
 ## ponytail: o GDMD não fixa valores, então são constantes provisórias para balancear depois; sem passe de batalha.
 
+const DailyMissions := preload("res://scripts/core/daily_missions.gd")
+
 const XP_PARTICIPATION := 50
 const XP_PLACE := [100, 50, 25]     # 1º, 2º e 3º lugar
 const XP_PER_LOOP := 2              # por área conquistada
@@ -80,6 +82,7 @@ func _grant() -> void:
 	data["gems"] = int(data.get("gems", 0)) + gems
 	for id: String in fresh:
 		known[id] = Time.get_unix_time_from_system()
+	DailyMissions.record(snapshot)   # Passo 115 (DD-155): a partida também avança as missões do dia
 	Profile.save()
 	last = {"xp": xp, "coins": coins, "gems": gems, "level_before": level_before, "level": Profile.level(), "place": place,
 			"percent": percent, "new_achievements": fresh, "rating_before": rating_before, "rating": data["rating"]}
