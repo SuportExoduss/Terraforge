@@ -40,6 +40,14 @@ func _run() -> void:
 	if not _check(menu.name == "Menu" and menu.get_node("Box/Play").text == "JOGAR" and menu.get_node("Box/Quit").text == "SAIR", "menu com JOGAR e SAIR"): return
 	if not _check(menu.get_node("Box/Title").text == "TERRAFORGE", "título"): return
 	if not _check(menu.get_node("Box/Profile").text.begins_with("Nível ") and menu.get_node("Box/Profile").text.contains("conquistas "), "linha de perfil (nível/XP/moedas/conquistas)"): return
+	# Planeta (DD-143): o botão mostra o Médio, um toque vai ao Pequeno (e lembra no perfil), outro volta ao Médio
+	var planet_button: Button = menu.get_node("Box/Planet")
+	var services: Node = root.get_node("Services")
+	if not _check(planet_button.text.begins_with("PLANETA: Médio") and services.match_def.id == "medio", "botão de planeta começa no Médio"): return
+	planet_button.pressed.emit()
+	if not _check(planet_button.text.begins_with("PLANETA: Pequeno") and services.match_def.id == "pequeno" and services.match_def.radius < 100.0, "toque troca para o Pequeno"): return
+	planet_button.pressed.emit()
+	if not _check(planet_button.text.begins_with("PLANETA: Médio") and services.match_def.id == "medio", "outro toque volta ao Médio"): return
 	# Geometria (bug: com set_anchors_preset o menu ficava no canto da tela, sem fundo): fundo cobre a tela e a caixa fica no centro
 	await process_frame
 	var screen: Vector2 = menu.get_viewport_rect().size

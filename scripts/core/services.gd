@@ -10,6 +10,7 @@ var home_bases: Dictionary = {}    # id -> {position: Vector3, radius: float}
 var flow: Object = null            # máquina de estados da partida (MatchFlow): state, go(estado)
 var stats: Object = null           # apuração da partida (MatchStats): get_stat(id, chave), ranking(), dominance(id)
 var rewards: Object = null         # recompensas da partida (MatchRewards): last = XP/moedas concedidos
+var match_def: PlanetDef = null    # planeta escolhido no menu (DD-143); null = padrões das cenas (testes, servidor)
 
 
 func register_trail(trail: Object) -> void:

@@ -63,7 +63,7 @@ func _ready() -> void:
 		push_error("[EnvironmentSlotSystem] sem planeta (ponha este nó depois do Planet).")
 		set_process(false)
 		return
-	_generate(planet.radius)
+	_generate(planet.radius, Services.match_def.slot_count() if Services.match_def != null else SLOT_COUNT)
 	EventBus.civilization_eliminated.connect(func(id: int) -> void: _dead[id] = true)
 
 
@@ -119,13 +119,13 @@ func _process(delta: float) -> void:
 			_suppressed.erase(i)
 
 
-func _generate(radius: float) -> void:
+func _generate(radius: float, count: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = slot_seed
 	var min_dot := cos(MIN_SLOT_DISTANCE / radius)
 	_category_size.resize(WEIGHTS.size())
 	_category_size.fill(0)
-	for n in SLOT_COUNT:
+	for n in count:
 		var dir := Vector3.ZERO
 		for attempt in 40:
 			dir = Vector3(rng.randfn(), rng.randfn(), rng.randfn()).normalized()

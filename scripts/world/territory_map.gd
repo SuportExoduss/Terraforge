@@ -532,6 +532,8 @@ func _ensure_built() -> bool:
 		return false
 	var t0 := Time.get_ticks_usec()
 	_radius = Services.planet.radius
+	if Services.match_def != null:
+		cell_count = Services.match_def.cell_count()
 	_center_cache = Services.planet.center
 	_owners.resize(cell_count)
 	_mark.resize(cell_count)

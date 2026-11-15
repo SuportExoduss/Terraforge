@@ -59,7 +59,11 @@ func _ready() -> void:
 	profile.add_theme_font_size_override("font_size", 20)
 	box.add_child(profile)
 
+	Services.match_def = PlanetDef.by_id(str(Profile.data.get("planet", "medio")))   # DD-143: o último planeta escolhido
 	var play := _add_button(box, "Play", "JOGAR", _play)
+	var planet := _add_button(box, "Planet", "", _cycle_planet)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
+	planet.text = "PLANETA: " + Services.match_def.summary()
+	planet.add_theme_font_size_override("font_size", 18)
 	var dock := HBoxContainer.new()   # atalhos das telas do menu
 	dock.name = "Dock"
 	dock.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -73,6 +77,19 @@ func _ready() -> void:
 	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings)
 	_add_button(box, "Quit", "SAIR", func(): get_tree().quit())
 	play.grab_focus()   # teclado / controle
+
+
+## DD-143: passa para o próximo planeta do catálogo e lembra a escolha no perfil.
+func _cycle_planet() -> void:
+	var all := PlanetDef.catalog()
+	var next := 0
+	for n in all.size():
+		if all[n].id == Services.match_def.id:
+			next = (n + 1) % all.size()
+	Services.match_def = all[next]
+	Profile.data["planet"] = Services.match_def.id
+	Profile.save()
+	get_node("Box/Planet").text = "PLANETA: " + Services.match_def.summary()
 
 
 ## Primeiro clique (DD-007): a interface some, a câmera mergulha no planeta e a partida carrega em segundo plano;

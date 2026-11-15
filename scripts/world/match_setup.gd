@@ -19,6 +19,8 @@ var _cube_tilt := Basis(Vector3(-1, 0, 1).normalized(), acos(1.0 / sqrt(3.0)))
 
 
 func _ready() -> void:
+	if Services.match_def != null:
+		bot_count = Services.match_def.bots
 	var world := get_node(world_path)
 	var homes: Array[HomeTerritory] = [world.get_node("HomeBase") as HomeTerritory]
 	var runners: Array[PlanetRunner] = [world.get_node("Runner") as PlanetRunner]

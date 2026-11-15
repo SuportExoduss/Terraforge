@@ -24,6 +24,12 @@ var _has_colliders := false
 var _query := PhysicsRayQueryParameters3D.new()
 
 
+## O raio escolhido no menu (DD-143) vale antes de qualquer filho nascer.
+func _enter_tree() -> void:
+	if Services.match_def != null:
+		radius = Services.match_def.radius
+
+
 func _ready() -> void:
 	Services.planet = self
 	_normalize_model()

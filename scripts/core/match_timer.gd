@@ -13,6 +13,8 @@ var _ended := false
 
 func _ready() -> void:
 	add_to_group("match_timer")
+	if Services.match_def != null:
+		duration_seconds = Services.match_def.duration_seconds
 	_remaining = duration_seconds
 	EventBus.match_started.connect(func(): _running = true)
 

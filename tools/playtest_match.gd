@@ -2,7 +2,7 @@ extends SceneTree
 ## PLAYTEST: joga uma partida inteira (600 s) como a civilização 1, tentando dominar o máximo do planeta, contra 5 bots,
 ## e anota tudo que parece bug no log (linhas "BUG?", "OBS"). Não é um teste de passa/falha: é um relatório.
 ## Uso: godot_console --headless --quiet --path . --fixed-fps 60 -s res://tools/playtest_match.gd   (o log vai para PLAYTEST_LOG)   (900 s de timeout; 60 quadros = 1 s de jogo)
-## Variáveis: PLAYTEST_SECONDS (duração da partida, padrão 600), PLAYTEST_BOTS (padrão 5).
+## Variáveis: PLAYTEST_SECONDS (duração da partida, padrão 600), PLAYTEST_BOTS (padrão 5), PLAYTEST_PLANET (id do PlanetDef, ex.: pequeno; vale no lugar das duas anteriores).
 
 const SNAP_EVERY := 15.0          # segundos de jogo entre fotos do estado
 const NEAR_TRAIL := 1.0           # distância em que "encostou" no rastro (o corte vale em 1,5)
@@ -53,6 +53,8 @@ func _initialize() -> void:
 	var seconds := float(OS.get_environment("PLAYTEST_SECONDS")) if OS.get_environment("PLAYTEST_SECONDS") != "" else 600.0
 	var bots := int(OS.get_environment("PLAYTEST_BOTS")) if OS.get_environment("PLAYTEST_BOTS") != "" else 5
 	load("res://scripts/core/profile.gd").path = "user://profile_playtest.json"
+	if OS.get_environment("PLAYTEST_PLANET") != "":
+		root.get_node("Services").match_def = load("res://scripts/core/planet_def.gd").by_id(OS.get_environment("PLAYTEST_PLANET"))
 	_match = load("res://scenes/match.tscn").instantiate()
 	_match.get_node("MatchSetup").bot_count = bots
 	_match.get_node("MatchTimer").duration_seconds = seconds
@@ -295,7 +297,8 @@ func _snapshot() -> void:
 				_flag_once("parado_%d" % id, "civ %d parado ~%d s no campo em %s" % [id, int(SNAP_EVERY), str(r.global_position)])
 			_last_pos[id] = r.global_position
 			var rad: float = (r.global_position - _services.planet.center).length()
-			if rad < 90.0 or rad > 115.0 or is_nan(rad):
+			var base: float = _services.planet.radius   # a faixa acompanha o raio do planeta escolhido (DD-143)
+			if rad < base * 0.9 or rad > base * 1.15 or is_nan(rad):
 				_flag_once("fora_do_chao_%d" % id, "civ %d fora da faixa do chão: raio %.1f" % [id, rad])
 		else:
 			_last_pos.erase(id)
