@@ -27,7 +27,7 @@ func theme_of(civilization_id: int) -> PlanetTheme:
 
 ## A civilização escolhida no menu (Passo 41) assume o lugar da 1 (a do jogador): as duas trocam de ficha e de fatia do
 ## atlas. A troca é numa cópia do atlas, para o recurso em cache continuar intacto (chamar de novo não desfaz nada).
-## ponytail: o solo só sai certo se a civilização escolhida tem piso no atlas (é a regra de "jogável" do catálogo).
+## ponytail: civilização sem piso de arte tem fatia -1 no atlas: o shader pinta o solo chapado com `soil_base` (kit procedural, DD-150).
 func apply_choice(chosen: int) -> void:
 	var index := chosen - 1
 	if index <= 0 or index >= civilization_themes.size():
