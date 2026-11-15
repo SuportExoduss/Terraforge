@@ -29,6 +29,9 @@ const GO_SECONDS := 1.0
 const IMPACT_SECONDS := 1.2
 const CAUSE_SECONDS := 2.0
 const DAMAGE_FLASH_SECONDS := 0.4
+const GAIN_MIN := 0.004      # Passo 118: variação do domínio do jogador (0,4 ponto %) a partir da qual vira "+x%" flutuante
+const GAIN_SECONDS := 1.2
+const GAIN_GOOD := Color(0.55, 1.0, 0.7)
 const PULSE_SECONDS := 0.9   # Passo 76: período do pulso do último coração (~1 Hz, bem abaixo do limite de 3 Hz de brilho)
 const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
 const KNOB_RADIUS := 22.0
@@ -45,6 +48,10 @@ var _drop := 0.0                    # Passo 111: quanto o texto maior empurra co
 var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
 var _damage_flash: ColorRect         # Passo 74: clarão vermelho ao perder vida
 var _damage_tween: Tween
+var _gain: Label                     # Passo 118: "+3,2%" / "-1,1%" / "RASTRO CORTADO!" que sobe e some no meio da tela
+var _gain_tween: Tween
+var _gain_on := false                # só depois da largada (a conquista inicial da base não vira "+x%")
+var _mine := -1.0                    # último domínio do jogador (-1 = ainda desconhecido)
 var _hearts: Control
 var _low_life := false               # Passo 76: último coração em risco (1..4 pontos)
 var _joystick: Control
@@ -92,6 +99,7 @@ func _ready() -> void:
 	_score = _label(root, "ScoreLabel", 18, Color.WHITE, Control.PRESET_TOP_LEFT, Vector2(16, 18))
 	_event = _label(root, "EventLabel", 26, AMBER, Control.PRESET_TOP_WIDE, Vector2(0, 62.0 * Settings.text_scale()))   # desce junto com o relógio maior
 	_cause = _label(root, "CauseLabel", 18, FULL, Control.PRESET_TOP_LEFT, Vector2(16, 76.0 + _drop))   # sob os corações
+	_gain = _label(root, "GainLabel", 34, GAIN_GOOD, Control.PRESET_TOP_WIDE, Vector2(0, 150.0))
 	_countdown = _label(root, "CountdownLabel", 110, Color.WHITE, Control.PRESET_FULL_RECT, Vector2.ZERO)
 	_countdown.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_score.text = "Domínio: 0,0%"
@@ -108,6 +116,9 @@ func _ready() -> void:
 
 	EventBus.match_clock_changed.connect(_on_clock)
 	EventBus.match_ended.connect(_on_match_ended)
+	EventBus.match_started.connect(func() -> void: _gain_on = true)
+	EventBus.trail_cut.connect(_on_cut)
+	EventBus.civilization_killed.connect(_on_kill)
 	EventBus.territory_score_changed.connect(_on_score)
 	EventBus.civilization_eliminated.connect(_on_eliminated)
 	EventBus.health_changed.connect(_on_health)
@@ -332,9 +343,46 @@ func _on_clock(seconds_remaining: int) -> void:
 func _on_score(owner_id: int, owned_fraction: float) -> void:
 	if owner_id == Civilization.PLAYER_ID:
 		_score.text = "Domínio: %s%%" % ("%.1f" % (owned_fraction * 100.0)).replace(".", ",")
+		var delta := owned_fraction - _mine
+		if _gain_on and _mine >= 0.0 and absf(delta) >= GAIN_MIN:
+			var points := ("%.1f" % absf(delta * 100.0)).replace(".", ",")
+			_pop_gain(("+%s%%" if delta > 0.0 else "-%s%%") % points, GAIN_GOOD if delta > 0.0 else FULL, clampi(roundi(28.0 + absf(delta) * 160.0), 28, 56))
+		_mine = owned_fraction
 	if _scores.get(owner_id, 0.0) >= 0.0:   # eliminado não volta
 		_scores[owner_id] = owned_fraction
 	_refresh_rank()
+
+
+## Passo 118 (DD-158): cada conquista, perda, corte e eliminação do jogador aparece como texto grande que sobe e some
+## (tamanho = tamanho do feito). Um texto só: o mais novo substitui o anterior. "Reduzir movimento": o texto fica parado e só some.
+func _pop_gain(text: String, color: Color, size: int) -> void:
+	size = roundi(size * Settings.text_scale())
+	_gain.text = text
+	_gain.add_theme_color_override("font_color", color)
+	_gain.add_theme_font_size_override("font_size", size)
+	_gain.add_theme_constant_override("outline_size", maxi(3, size / 8))
+	_gain.modulate.a = 1.0
+	_gain.position.y = 150.0
+	_gain.pivot_offset = Vector2(_gain.size.x * 0.5, size * 0.6)
+	_gain.scale = Vector2.ONE
+	if _gain_tween:
+		_gain_tween.kill()
+	_gain_tween = create_tween()
+	if not Settings.reduced_motion():
+		_gain.scale = Vector2.ONE * 1.5
+		_gain_tween.tween_property(_gain, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_gain_tween.parallel().tween_property(_gain, "position:y", 110.0, GAIN_SECONDS)
+	_gain_tween.parallel().tween_property(_gain, "modulate:a", 0.0, GAIN_SECONDS * 0.5).set_delay(GAIN_SECONDS * 0.5)
+
+
+func _on_cut(_victim_id: int, attacker_id: int) -> void:
+	if _gain_on and attacker_id == Civilization.PLAYER_ID:
+		_pop_gain("RASTRO CORTADO!", AMBER, 32)
+
+
+func _on_kill(_victim_id: int, killer_id: int) -> void:
+	if _gain_on and killer_id == Civilization.PLAYER_ID:
+		_pop_gain("ELIMINOU!", AMBER, 44)
 
 
 func _on_eliminated(owner_id: int) -> void:
