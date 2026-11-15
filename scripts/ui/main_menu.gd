@@ -9,6 +9,7 @@ const Leagues := preload("res://scripts/core/leagues.gd")
 const MissionsScreen := preload("res://scripts/ui/missions_screen.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
 const PassScreen := preload("res://scripts/ui/pass_screen.gd")
+const PlanetScreen := preload("res://scripts/ui/planet_screen.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
@@ -74,10 +75,9 @@ func _ready() -> void:
 	Services.match_def = PlanetDef.training() if first_time else PlanetDef.by_id(str(Profile.data.get("planet", "medio")))   # DD-143: o último planeta escolhido
 	var play := _add_button(box, "Play", "JOGAR", _play, 64.0, 30)   # a única ação em âmbar: o olho vai direto para ela
 	play.theme_type_variation = "PrimaryButton"
-	var planet := _add_button(box, "Planet", "", _cycle_planet, 40.0, 14)   # um toque troca o planeta (Médio ↔ Pequeno ↔ ...)
-	planet.text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
+	var planet := _add_button(box, "Planet", "", func(): _open_screen(PlanetScreen.new(), "Planet"), 40.0, 14)   # Passo 125: abre a escolha de planeta
 	planet.disabled = first_time
-	get_node("Backdrop").set_biome(Services.match_def.biome)
+	_refresh_planet(first_time)
 	_add_button(box, "Pass", "", func(): _open_screen(PassScreen.new(), "Pass"), 40.0, 14)   # Passo 123: faixa do passe de temporada
 	_refresh_pass_label()
 	var dock := GridContainer.new()   # atalhos das telas do menu (3 por linha)
@@ -98,17 +98,9 @@ func _ready() -> void:
 	play.grab_focus()   # teclado / controle
 
 
-## DD-143: passa para o próximo planeta do catálogo e lembra a escolha no perfil.
-func _cycle_planet() -> void:
-	var all := PlanetDef.catalog()
-	var next := 0
-	for n in all.size():
-		if all[n].id == Services.match_def.id:
-			next = (n + 1) % all.size()
-	Services.match_def = all[next]
-	Profile.data["planet"] = Services.match_def.id
-	Profile.save()
-	get_node("Box/Planet").text = "PLANETA: " + Services.match_def.summary()
+## Passo 125: o botão mostra o planeta escolhido e o brilho da atmosfera do fundo acompanha o bioma.
+func _refresh_planet(first_time := false) -> void:
+	get_node("Box/Planet").text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
 	get_node("Backdrop").set_biome(Services.match_def.biome)
 
 
@@ -197,6 +189,7 @@ func _open_screen(screen: MenuScreen, return_to: String) -> void:
 		_dress_profile(get_node("Box/Profile"))
 		_refresh_missions_badge()   # resgatar na tela de missões muda o aviso
 		_refresh_pass_label()
+		_refresh_planet(Services.match_def.tutorial)   # a escolha de planeta pode ter mudado
 		box.find_child(return_to, true, false).grab_focus())
 	add_child(screen)
 

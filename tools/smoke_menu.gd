@@ -44,18 +44,23 @@ func _run() -> void:
 	if not _check(menu.name == "Menu" and menu.get_node("Box/Play").text == "JOGAR" and menu.get_node("Box/Quit").text == "SAIR", "menu com JOGAR e SAIR"): return
 	if not _check(menu.get_node("Box/Title").text == "TERRAFORGE", "título"): return
 	if not _check(menu.get_node("Box/Profile").text.begins_with("Nível ") and menu.get_node("Box/Profile").text.contains("conquistas "), "linha de perfil (nível/XP/moedas/conquistas)"): return
-	# Planeta (DD-143): o botão mostra o Médio, um toque vai ao Pequeno (e lembra no perfil), outro volta ao Médio
+	# Planeta (DD-143, Passo 125): o botão mostra o Médio e abre a tela de escolha; ESCOLHER grava no Services e no perfil
 	var planet_button: Button = menu.get_node("Box/Planet")
 	var services: Node = root.get_node("Services")
 	if not _check(planet_button.text.begins_with("PLANETA: Médio") and services.match_def.id == "medio", "botão de planeta começa no Médio"): return
-	planet_button.pressed.emit()
-	if not _check(planet_button.text.begins_with("PLANETA: Pequeno") and services.match_def.id == "pequeno" and services.match_def.radius < 100.0, "toque troca para o Pequeno"): return
-	planet_button.pressed.emit()
-	if not _check(planet_button.text.begins_with("PLANETA: Gelo") and services.match_def.biome == "gelo", "outro toque vai ao Gelo (Passo 124)"): return
-	planet_button.pressed.emit()
-	if not _check(planet_button.text.begins_with("PLANETA: Vulcão") and services.match_def.biome == "vulcao", "outro toque vai ao Vulcão (Passo 124)"): return
-	planet_button.pressed.emit()
-	if not _check(planet_button.text.begins_with("PLANETA: Médio") and services.match_def.id == "medio", "outro toque volta ao Médio"): return
+	for pick in [["pequeno", "Pequeno"], ["gelo", "Gelo"], ["vulcao", "Vulcão"], ["medio", "Médio"]]:
+		planet_button.pressed.emit()
+		await process_frame
+		var screen_node := menu.get_node_or_null("Screen")
+		if not _check(screen_node != null and screen_node.find_child("Grid", true, false).get_child_count() == 4, "o botão de planeta abre a tela com 4 cartões"): return
+		var card: Node = screen_node.find_child("P_%s" % pick[0], true, false)
+		card.find_child("Pick", true, false).pressed.emit()
+		if not _check(services.match_def.id == pick[0] and Profile.data.get("planet") == pick[0], "ESCOLHER %s grava o planeta" % pick[1]): return
+		await process_frame
+		screen_node.find_child("Back", true, false).pressed.emit()
+		await process_frame
+		await process_frame
+		if not _check(menu.get_node_or_null("Screen") == null and planet_button.text.begins_with("PLANETA: " + pick[1]), "ao voltar o botão mostra %s (%s)" % [pick[1], planet_button.text]): return
 	# Geometria (bug: com set_anchors_preset o menu ficava no canto da tela, sem fundo): fundo cobre a tela e a caixa fica no centro
 	await process_frame
 	var screen: Vector2 = menu.get_viewport_rect().size

@@ -18,6 +18,7 @@ const BASE_SLOTS := 720
 @export var calm := false       # Passo 106: bots mansos (nunca caçam rastro, saídas curtas)
 @export var tutorial := false   # Passo 106: a partida mostra as dicas de uma frase (TutorialCoach)
 @export var biome := "deserto"   # Passo 124 (DD-164): aparência da terra neutra; só visual, nunca muda a regra
+@export var blurb := ""          # Passo 125: uma frase de identidade para a tela de escolha de planeta
 
 ## Passo 124: cada bioma é um par de cores da terra (escura -> clara, espalhadas pelas manchas do shader), a cor da água e o brilho
 ## da atmosfera no menu. "deserto" não está aqui: é o visual de sempre (a textura do modelo + as manchas do Passo 121).
@@ -40,6 +41,10 @@ func slot_count() -> int:
 	return roundi(BASE_SLOTS * area_scale())
 
 
+func size_percent() -> int:   # Passo 125: tamanho em % da área do Médio (o que o jogador sente: mais chão = partida maior)
+	return roundi(area_scale() * 100.0)
+
+
 func summary() -> String:
 	return "%s · %d min · %d jogadores" % [display_name, roundi(duration_seconds / 60.0), bots + 1]
 
@@ -56,16 +61,27 @@ static func make(def_id: String, label: String, planet_radius: float, bot_count:
 
 static func catalog() -> Array[PlanetDef]:
 	return [
-		make("medio", "Médio", 100.0, 3, 600.0),   # o planeta de sempre (DD-111)
-		make("pequeno", "Pequeno", 60.0, 2, 240.0),   # partida rápida: porta de entrada e treino
-		_themed(make("gelo", "Gelo", 80.0, 3, 360.0), "gelo"),   # Passo 124: tamanho médio-pequeno, 6 min, terra branca e água gelada
-		_themed(make("vulcao", "Vulcão", 100.0, 3, 480.0), "vulcao"),   # tamanho do Médio, 8 min, terra de cinza e água de lava
+		_with(make("medio", "Médio", 100.0, 3, 600.0), "deserto", "O clássico: deserto e partida cheia."),   # o planeta de sempre (DD-111)
+		_with(make("pequeno", "Pequeno", 60.0, 2, 240.0), "deserto", "Partida rápida: dá para uma pausa de café."),   # porta de entrada e treino
+		_with(make("gelo", "Gelo", 80.0, 3, 360.0), "gelo", "Terra branca e água gelada. Tamanho médio."),   # Passo 124
+		_with(make("vulcao", "Vulcão", 100.0, 3, 480.0), "vulcao", "Cinza e lava: o planeta grande dos veteranos."),
 	]
 
 
-static func _themed(def: PlanetDef, biome_id: String) -> PlanetDef:
+static func _with(def: PlanetDef, biome_id: String, text: String) -> PlanetDef:
 	def.biome = biome_id
+	def.blurb = text
 	return def
+
+
+## Passo 125: as 3 cores que identificam o bioma na tela de escolha (terra escura, terra clara, água).
+static func swatch(biome_id: String) -> Array[Color]:
+	var look: Dictionary = LOOKS.get(biome_id, {})
+	var colors: Array[Color] = []
+	colors.append(look.get("dark", Color(0.62, 0.42, 0.24)))
+	colors.append(look.get("light", Color(0.88, 0.70, 0.46)))
+	colors.append(look.get("water", Color(0.16, 0.42, 0.74)))
+	return colors
 
 
 ## Passo 124: entrega ao shader da superfície a aparência do bioma (a = 0 desliga: o deserto fica como era).

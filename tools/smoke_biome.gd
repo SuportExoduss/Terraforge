@@ -31,6 +31,15 @@ func _initialize() -> void:
 	if all.size() != 4 or ids.size() != 4 or radii.size() < 3:
 		_fail("o catálogo deveria ter 4 planetas únicos e pelo menos 3 tamanhos (tem %d, %d ids, %d raios)" % [all.size(), ids.size(), radii.size()])
 		return
+	var percents := []
+	for def in all:   # Passo 125: a tela de escolha precisa de frase, tamanho em % e 3 cores por planeta
+		percents.append(def.size_percent())
+		if def.blurb == "" or def_script.swatch(def.biome).size() != 3:
+			_fail("planeta %s sem frase ou sem as 3 cores da tela de escolha" % def.id)
+			return
+	if percents != [100, 36, 64, 100] or def_script.swatch("gelo") == def_script.swatch("vulcao") or def_script.swatch("gelo") == def_script.swatch("deserto"):
+		_fail("tamanhos em %% ou cores de bioma errados: %s" % [percents])
+		return
 	var gelo: Resource = def_script.by_id("gelo")
 	var vulcao: Resource = def_script.by_id("vulcao")
 	if gelo.biome != "gelo" or gelo.radius != 80.0 or vulcao.biome != "vulcao" or vulcao.radius != 100.0 or def_script.by_id("medio").biome != "deserto" or def_script.by_id("pequeno").biome != "deserto":
