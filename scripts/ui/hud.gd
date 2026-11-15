@@ -39,6 +39,7 @@ var _countdown: Label
 var _event: Label
 var _rank: Label                     # Passo 113: "1º", "2º"... dentro da pílula RankPill
 var _rank_pill: Panel
+var _last_rank := 0                  # Passo 114: posição anterior, para piscar a pílula quando muda
 var _scores: Dictionary = {}         # dono -> domínio (-1 = eliminado); só para contar quem está à frente
 var _drop := 0.0                    # Passo 111: quanto o texto maior empurra corações/aviso para baixo
 var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
@@ -353,6 +354,25 @@ func _refresh_rank() -> void:
 	_rank.text = "%dº" % rank
 	_rank.add_theme_color_override("font_color", AMBER if rank == 1 else Color.WHITE)
 	_rank_pill.visible = true
+	if _last_rank != 0 and rank != _last_rank:
+		_pulse_rank(rank < _last_rank)
+	_last_rank = rank
+
+
+## Passo 114 (DD-154): subir de posição pisca a borda da pílula em âmbar, cair pisca em vermelho (a cor diz a boa/má notícia
+## sem texto novo na tela). Fora o "reduzir movimento", a pílula também dá um pulinho.
+func _pulse_rank(gained: bool) -> void:
+	var style := _rank_pill.get_theme_stylebox("panel") as StyleBoxFlat
+	var line := Color(UiTheme.LINE, 0.8)
+	style.border_color = AMBER if gained else FULL
+	style.set_border_width_all(3)
+	var tween := _rank_pill.create_tween()
+	tween.tween_method(func(t: float): style.border_color = (AMBER if gained else FULL).lerp(line, t), 0.0, 1.0, 0.9)
+	tween.tween_callback(func(): style.set_border_width_all(1))
+	if not Settings.reduced_motion():
+		_rank_pill.pivot_offset = _rank_pill.size * 0.5
+		_rank_pill.scale = Vector2.ONE * 1.18
+		_rank_pill.create_tween().tween_property(_rank_pill, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _on_health(owner_id: int, points: int, max_points: int) -> void:

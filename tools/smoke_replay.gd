@@ -48,6 +48,10 @@ func _run() -> void:
 		await process_frame
 	painter.paint_all_now()
 	var final_hash: int = hash(painter._own.get_data())
+	# Tomar a base da civilização 2 a faz se mudar (DD-100) e pousar de novo, conquistando um disco novo em instante variável:
+	# congela as bases para nenhuma conquista nova mexer no planeta depois da foto (era 1 falha em ~10 execuções).
+	for base in _match.find_children("*", "HomeTerritory", true, false):
+		base.set_process(false)
 	var blank := PackedByteArray()
 	blank.resize(painter._own.get_data().size())   # tudo zero = nenhum território
 	var empty_hash: int = hash(blank)
