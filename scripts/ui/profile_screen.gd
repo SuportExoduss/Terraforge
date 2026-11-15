@@ -4,6 +4,8 @@ extends MenuScreen
 ## de conquistas (feitas em destaque, as outras apagadas). Só lê o Profile; nada aqui altera o jogo.
 ## ponytail: sem gráfico de histórico nem ranking; só os totais que o perfil já guarda.
 
+const Leagues := preload("res://scripts/core/leagues.gd")
+
 
 func _init() -> void:
 	title_text = "PERFIL"
@@ -25,7 +27,9 @@ func build(parent: VBoxContainer) -> void:
 	var level_label := make_label("Nível %d" % level, 28, "Level")
 	level_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(level_label)
-	var rating := make_label("Habilidade %d" % int(data["rating"]), 20, "Rating")   # sobe e desce com a colocação (Passo 53)
+	var points := int(data["rating"])
+	var rating := make_label("Liga %s  ·  %d" % [Leagues.name_of(points), points], 20, "Rating")   # sobe e desce com a colocação (Passos 53 e 122)
+	rating.add_theme_color_override("font_color", Leagues.color_of(points))
 	rating.size_flags_vertical = Control.SIZE_SHRINK_END
 	head.add_child(rating)
 	parent.add_child(head)

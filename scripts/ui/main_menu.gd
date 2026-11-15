@@ -5,6 +5,7 @@ extends Control
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
+const Leagues := preload("res://scripts/core/leagues.gd")
 const MissionsScreen := preload("res://scripts/ui/missions_screen.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
@@ -156,7 +157,7 @@ func _dress_profile(label: Label) -> void:
 
 func _profile_text() -> String:
 	var title := Cosmetics.title_text()
-	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  %d XP  ·  %d partidas\n%d moedas  ·  %d gemas  ·  conquistas %d/%d" % [Profile.level(), Profile.data["xp"], Profile.data["matches"], Profile.data["coins"], Profile.data.get("gems", 0), Profile.data["achievements"].size(), Achievements.LIST.size()]
+	return ("" if title == "" else title.to_upper() + "\n") + "Nível %d  ·  Liga %s  ·  %d XP  ·  %d partidas\n%d moedas  ·  %d gemas  ·  conquistas %d/%d" % [Profile.level(), Leagues.name_of(int(Profile.data["rating"])), Profile.data["xp"], Profile.data["matches"], Profile.data["coins"], Profile.data.get("gems", 0), Profile.data["achievements"].size(), Achievements.LIST.size()]
 
 
 func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:

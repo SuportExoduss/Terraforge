@@ -1,7 +1,7 @@
 extends SceneTree
 ## Teste de fumaça do Passo 53 (nível de habilidade, Cap.03 P02 matchmaking): o perfil novo começa em 1000; a tabela
 ## rating_after sobe/desce conforme a colocação (nunca abaixo de 0); a apuração da partida grava o novo rating no perfil
-## salvo; a tela PERFIL mostra "Habilidade N".
+## salvo; a tela PERFIL mostra "Liga X  ·  N" (Passo 122).
 ## Uso: godot_console --headless --path . -s res://tools/smoke_rating.gd
 
 const TEST_PROFILE := "user://profile_smoke_rating.json"
@@ -70,7 +70,7 @@ func _run() -> void:
 	root.add_child(screen)
 	await process_frame
 	var label = screen.find_child("Rating", true, false)
-	if not _check(label != null and label.text == "Habilidade 1234", "a tela mostra a habilidade"): return
+	if not _check(label != null and label.text == "Liga Prata  ·  1234", "a tela mostra a liga e a habilidade"): return
 
 	screen.queue_free()
 	await process_frame
