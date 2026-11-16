@@ -79,6 +79,7 @@ func _grant() -> void:
 	data["kills"] += kills
 	var rating_before := int(data["rating"])
 	data["rating"] = Profile.rating_after(rating_before, place)
+	Profile.add_history(DailyMissions.today(), place, percent, int(data["rating"]) - rating_before)   # Passo 137 (DD-176)
 
 	# Conquistas: o que o snapshot cumpre menos o que o perfil já tem (guarda o instante em que saiu)
 	var snapshot := {"loops": loops, "converted": taken, "cuts": cuts, "kills": kills, "percent": percent,

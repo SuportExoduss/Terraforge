@@ -2,9 +2,10 @@ class_name ProfileScreen
 extends MenuScreen
 ## Tela do perfil (Passo 42): nível e barra de XP até o próximo nível, moedas, partidas e totais acumulados e a lista
 ## de conquistas (feitas em destaque, as outras apagadas). Só lê o Profile; nada aqui altera o jogo.
-## ponytail: sem gráfico de histórico nem ranking; só os totais que o perfil já guarda.
+## ponytail: sem gráfico nem ranking; só os totais e as últimas partidas (Passo 137) que o perfil já guarda.
 
 const Leagues := preload("res://scripts/core/leagues.gd")
+const DailyMissions := preload("res://scripts/core/daily_missions.gd")   # (só o número do dia)
 
 
 func _init() -> void:
@@ -14,6 +15,16 @@ func _init() -> void:
 ## XP em que o nível `level` começa (nível N começa em 100·(N-1)² XP, igual ao Profile.level).
 static func level_start(level: int) -> int:
 	return Profile.XP_PER_LEVEL_STEP * (level - 1) * (level - 1)
+
+
+## "Hoje  ·  1º lugar  ·  34% do planeta  ·  +25" (colocação 0 = nunca pontuou; dia em número do calendário, o JSON devolve float).
+static func history_line(entry: Dictionary) -> String:
+	var ago: int = DailyMissions.today() - int(entry.get("day", 0))
+	var when := "Hoje" if ago <= 0 else ("Ontem" if ago == 1 else "Há %d dias" % ago)
+	var place := int(entry.get("place", 0))
+	var delta := int(entry.get("delta", 0))
+	return "%s  ·  %s  ·  %d%% do planeta  ·  %s%d" % [when, "%dº lugar" % place if place > 0 else "Sem pontuar",
+			roundi(float(entry.get("percent", 0.0)) * 100.0), "+" if delta >= 0 else "−", absi(delta)]
 
 
 func build(parent: VBoxContainer) -> void:
@@ -52,6 +63,15 @@ func build(parent: VBoxContainer) -> void:
 			int(data["coins"]), int(data["matches"]), int(data["wins"]), roundi(float(data["best_percent"]) * 100.0)], 18, "Totals"))
 	parent.add_child(make_label("%d áreas fechadas  ·  %d cortes  ·  %d eliminações" % [
 			int(data["loops"]), int(data["cuts"]), int(data["kills"])], 18, "Totals2"))
+	parent.add_child(make_label("ÚLTIMAS PARTIDAS", 20, "HistoryTitle"))   # Passo 137 (DD-176)
+	var history: Array = data.get("history", [])
+	if history.is_empty():
+		parent.add_child(make_label("Jogue uma partida para ver o histórico aqui.", 14, "HistoryEmpty"))
+	for i in history.size():
+		var row := make_label(history_line(history[i]), 14, "H_%d" % i)
+		if int(history[i].get("place", 0)) == 1:
+			row.modulate = Color(1.0, 0.85, 0.35)   # vitória em destaque, igual às conquistas feitas
+		parent.add_child(row)
 	parent.add_child(make_label("CONQUISTAS  %d/%d" % [data["achievements"].size(), Achievements.LIST.size()], 20, "AchievementsTitle"))
 	var grid := GridContainer.new()
 	grid.name = "Achievements"
