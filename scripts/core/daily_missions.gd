@@ -67,12 +67,16 @@ static func claimable() -> int:
 	for m: Array in todays():
 		if is_done(m) and not is_claimed(m):
 			n += 1
+	if weekly_done() and not weekly_claimed():
+		n += 1   # Passo 136: a meta da semana também avisa no menu
 	return n
 
 
 ## Chamado pelo MatchRewards ao fechar uma partida (antes de gravar o perfil): soma o que a partida rendeu.
 static func record(snapshot: Dictionary) -> void:
 	var progress: Dictionary = state()["progress"]
+	var week_state := weekly_state()
+	week_state["wins"] = int(week_state["wins"]) + int(snapshot.get("won", 0))   # Passo 136
 	for m: Array in todays():
 		var got := _stat(snapshot, m[2])
 		var have := int(progress.get(m[0], 0))
@@ -121,6 +125,53 @@ static func _touch_streak() -> int:
 static func streak_days() -> int:
 	var s: Dictionary = Profile.data.get("streak", {})
 	return int(s.get("count", 0)) if int(s.get("last_day", -10)) >= today() - 1 else 0
+
+
+## Passo 135 (DD-174): a 1ª vitória de cada dia rende moedas a mais (MatchRewards paga); true enquanto hoje ainda não teve uma.
+const FIRST_WIN_COINS := 40
+
+
+static func first_win_ready() -> bool:
+	return int(Profile.data.get("first_win_day", -1)) != today()
+
+
+## Passo 136 (DD-175): META DA SEMANA — vencer 5 partidas de segunda a domingo rende GEMAS (uma vez por semana).
+## Dados: `Profile.data["weekly"] = {week, wins, claimed}`; a semana vira na segunda (a mesma conta da oferta da loja).
+const WEEKLY := ["week_win", "Vença 5 partidas nesta semana", "won", 5, 3]   # [id, texto, estatística, meta, gemas]
+
+
+static func week() -> int:
+	return floori((today() + 3) / 7.0)
+
+
+static func weekly_state() -> Dictionary:
+	var d: Dictionary = Profile.data.get("weekly", {})
+	if int(d.get("week", -1)) != week():
+		d = {"week": week(), "wins": 0, "claimed": false}
+		Profile.data["weekly"] = d
+	return d
+
+
+static func weekly_wins() -> int:
+	return mini(int(weekly_state()["wins"]), int(WEEKLY[3]))
+
+
+static func weekly_done() -> bool:
+	return weekly_wins() >= int(WEEKLY[3])
+
+
+static func weekly_claimed() -> bool:
+	return bool(weekly_state()["claimed"])
+
+
+## Resgata a meta da semana (pronta e ainda não resgatada): gemas. Grava o perfil.
+static func weekly_claim() -> bool:
+	if not weekly_done() or weekly_claimed():
+		return false
+	weekly_state()["claimed"] = true
+	Profile.data["gems"] = int(Profile.data.get("gems", 0)) + int(WEEKLY[4])
+	Profile.save()
+	return true
 
 
 ## Quantos dias faltam para o próximo prêmio de sequência (1..7).

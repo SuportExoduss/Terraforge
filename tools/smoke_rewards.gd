@@ -71,7 +71,7 @@ func _run() -> void:
 
 	var xp_expected: int = cfg.XP_PARTICIPATION + 2 * cfg.XP_PER_LOOP + 1 * cfg.XP_PER_CUT \
 			+ roundi(taken * 100.0 * cfg.XP_PER_PERCENT_TAKEN) + cfg.XP_SURVIVED + cfg.XP_PLACE[0]
-	var coins_expected: int = cfg.COINS_PARTICIPATION + roundi(0.55 * 100.0 * cfg.COINS_PER_PERCENT) + cfg.COINS_WIN
+	var coins_expected: int = cfg.COINS_PARTICIPATION + roundi(0.55 * 100.0 * cfg.COINS_PER_PERCENT) + cfg.COINS_WIN + cfg.FIRST_WIN_COINS   # (conta nova, 1ª vitória do dia: Passo 135)
 
 	# Fim da partida (pós-jogo instantâneo): a recompensa é concedida na apuração
 	_match.get_node("MatchFlow").pace = 0.0
@@ -111,6 +111,8 @@ func _run() -> void:
 	var text: String = _match.get_node("Results/Panel/Box/Columns/Side/Rewards").get_parsed_text()
 	if not _check(text.contains("RECOMPENSAS") and text.contains("+%d XP" % xp_expected) and text.contains("+%d moedas" % coins_expected), "painel de recompensas:\n" + text): return
 	if not _check(text.contains("+%d gemas" % gems_expected), "gemas no painel:" + text): return
+	if not _check(int(last.get("first_win_coins", 0)) == cfg.FIRST_WIN_COINS and text.contains("1ª vitória do dia: +%d moedas" % cfg.FIRST_WIN_COINS), "bônus da 1ª vitória no painel:
+" + text): return   # Passo 135
 	if not _check(text.contains("Missões do dia: "), "missões do dia no painel:\n" + text): return   # Passo 116
 	if not _check(text.contains("Nível %d" % last["level"]), "nível no painel:\n" + text): return
 	if not _check(text.contains("Passe: nível %d/20" % pass_tiers) and (pass_tiers == 0 or text.contains("Recompensa nova no PASSE")), "passe no painel:\n" + text): return   # Passo 123
