@@ -12,6 +12,7 @@ const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const Leagues := preload("res://scripts/core/leagues.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
 const FOCUS_DELAY := 0.6   # Passo 71: espera antes de dar foco ao JOGAR DE NOVO
+const MAX_ACHIEVEMENT_LINES := 4   # Passo 132: o painel cabe nos 540 px mesmo com muitas conquistas de uma vez
 const BACK_DELAY_MSEC := 1000   # Passo 128: logo que os resultados abrem, VOLTAR ainda não sai deles
 
 var _panel: PanelContainer
@@ -47,7 +48,8 @@ func _ready() -> void:
 	box.add_theme_constant_override("separation", 14)
 	_panel.add_child(box)
 
-	# Duas colunas (celular deitado, 960x540): ranking à esquerda; estatísticas e recompensas à direita.
+	# Duas colunas (celular deitado, 960x540): ranking e estatísticas à esquerda; recompensas à direita (Passo 132: antes as
+	# estatísticas ficavam sobre as recompensas e o painel estourava os 540 px quando vinham muitas conquistas de uma vez).
 	var columns := HBoxContainer.new()
 	columns.name = "Columns"
 	columns.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -57,6 +59,10 @@ func _ready() -> void:
 	side.name = "Side"
 	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	side.add_theme_constant_override("separation", 10)
+	var left := VBoxContainer.new()
+	left.name = "Left"
+	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left.add_theme_constant_override("separation", 10)
 
 	_text = RichTextLabel.new()
 	_text.name = "Ranking"
@@ -67,14 +73,15 @@ func _ready() -> void:
 	_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_text.add_theme_font_size_override("normal_font_size", 22)
 	_text.add_theme_font_size_override("bold_font_size", 22)
-	columns.add_child(_text)
+	left.add_child(_text)
+	columns.add_child(left)
 	columns.add_child(side)
 
 	_stats = _text.duplicate()   # mesmo estilo, fonte menor
 	_stats.name = "Stats"
 	_stats.add_theme_font_size_override("normal_font_size", 17)
 	_stats.add_theme_font_size_override("bold_font_size", 17)
-	side.add_child(_stats)
+	left.add_child(_stats)
 
 	_rewards = _stats.duplicate()
 	_rewards.name = "Rewards"
@@ -179,8 +186,17 @@ func _rewards_text() -> String:
 	lines.append(SeasonPass.result_line(int(last.get("pass_before", 0))))   # Passo 123 (DD-163)
 	if int(last.get("gems", 0)) > 0:
 		lines.append("+%d gemas" % last["gems"])
-	for id: String in last.get("new_achievements", []):
-		lines.append("CONQUISTA: [b]%s[/b]" % Achievements.title_of(id))
+	# Passo 132: quem volta depois do update pode ganhar várias de uma vez; os que dão título vêm primeiro e o resto
+	# vira "+N" (senão o painel estoura os 540 px do celular deitado).
+	var titled := {}
+	for title_id: String in last.get("new_titles", []):
+		titled[Cosmetics.achievement_of(Cosmetics.entry(title_id, "title"))] = true
+	var fresh: Array = last.get("new_achievements", []).duplicate()
+	fresh.sort_custom(func(a: String, b: String) -> bool: return titled.has(a) and not titled.has(b))
+	for id: String in fresh.slice(0, MAX_ACHIEVEMENT_LINES):
+		lines.append("CONQUISTA: [b]%s[/b]%s" % [Achievements.title_of(id), " — TÍTULO NOVO" if titled.has(id) else ""])
+	if fresh.size() > MAX_ACHIEVEMENT_LINES:
+		lines.append("+%d conquistas (veja no perfil)" % (fresh.size() - MAX_ACHIEVEMENT_LINES))
 	var ready := 0   # Passo 116 (DD-156): quanto da missão do dia a partida já adiantou (o resgate é no menu)
 	for m: Array in DailyMissions.todays():
 		ready += 1 if DailyMissions.is_done(m) else 0

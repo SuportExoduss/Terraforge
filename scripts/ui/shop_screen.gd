@@ -86,7 +86,18 @@ func _add_row(parent: VBoxContainer, cat: String, item: Array) -> void:
 	var name_label := make_label("%s  ·  %s" % [item[1], Cosmetics.rarity_name(item)], 22)
 	name_label.add_theme_color_override("font_color", rarity)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(name_label)
+	var source := Cosmetics.achievement_of(item)
+	if source == "":
+		row.add_child(name_label)
+	else:   # Passo 132: título de conquista: diz o que fazer para ganhar
+		var info := VBoxContainer.new()
+		info.name = "Info"
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		info.add_child(name_label)
+		var hint := make_label("Conquista: %s" % Achievements.description_of(source), 14, "Hint")
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.add_child(hint)
 	var button := Button.new()
 	button.name = "Item_%s_%s" % [cat, item[0]]
 	button.custom_minimum_size = Vector2(240.0, 48.0)
@@ -149,7 +160,7 @@ func _refresh() -> void:
 			_cards[cat + "_" + id].add_theme_stylebox_override("panel", UiTheme.card(Cosmetics.rarity_color(item), equipped))
 			button.theme_type_variation = ""
 			if not Cosmetics.is_owned(id, cat):
-				button.text = "SÓ NO PASSE" if Cosmetics.pass_only(item) else "COMPRAR  (%s)" % Cosmetics.price_text(item)
+				button.text = "SÓ NO PASSE" if Cosmetics.pass_only(item) else "SÓ POR CONQUISTA" if Cosmetics.unbuyable(item) else "COMPRAR  (%s)" % Cosmetics.price_text(item)
 				button.disabled = not Cosmetics.can_afford(item)
 			elif equipped:
 				button.text = "EQUIPADO"

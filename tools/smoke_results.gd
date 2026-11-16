@@ -7,6 +7,9 @@ var _time := 0.0
 
 
 func _initialize() -> void:
+	Profile.path = "user://profile_smoke_results.json"   # perfil próprio: o compartilhado acumula partidas e conquistas entre os testes
+	Profile.data = Profile.defaults()
+	Profile.save()
 	_match = load("res://scenes/match.tscn").instantiate()
 	_match.get_node("MatchSetup").skip_ceremony = true
 	_match.get_node("MatchSetup").bot_count = 0
@@ -34,7 +37,7 @@ func _run() -> void:
 	await bus.match_started
 	await process_frame
 	var panel: Control = _match.get_node("Results/Panel")
-	var text: RichTextLabel = _match.get_node("Results/Panel/Box/Columns/Ranking")
+	var text: RichTextLabel = _match.get_node("Results/Panel/Box/Columns/Left/Ranking")
 	if not _check(not panel.visible, "painel não deveria aparecer durante a partida"): return
 	if not _check(_match.get_node("Hud/Minimap").visible, "minimapa deveria estar visível durante a partida"): return
 
@@ -62,5 +65,6 @@ func _run() -> void:
 	print("painel %s em tela %s" % [rect, screen])
 	if not _check(screen == Vector2(960.0, 540.0), "tela de projeto deveria ser 960x540 (paisagem), é %s" % screen): return
 	if not _check(rect.position.y >= 0.0 and rect.end.y <= screen.y, "painel estoura a altura da tela: %s" % rect): return
+	DirAccess.remove_absolute(Profile.path)
 	print("OK")
 	quit(0)

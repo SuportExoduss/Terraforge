@@ -46,6 +46,13 @@ const CATALOG := {   # categoria -> [id, nome, preço (na moeda da raridade), va
 		["conquistador", "Conquistador de Mundos", 250, "Conquistador de Mundos", "epico"],
 		["lenda", "Lenda do Planeta", 50, "Lenda do Planeta", "lendario"],
 		["forjador", "Forjador de Mundos", 0, "Forjador de Mundos", "lendario", "passe"],
+		# Passo 132 (DD-170): o 6º campo é o id da conquista que dá o título (não se compra; só olhar, nunca poder)
+		["campeao", "Campeão", 0, "Campeão", "raro", "champion"],
+		["tesoura", "Tesoura Afiada", 0, "Tesoura Afiada", "raro", "scissors"],
+		["mestre_cartografo", "Mestre Cartógrafo", 0, "Mestre Cartógrafo", "epico", "master_cartographer"],
+		["imbativel", "Imbatível", 0, "Imbatível", "epico", "unbeatable"],
+		["platinado", "Platinado", 0, "Platinado", "epico", "platinum"],
+		["lenda_viva", "Lenda Viva", 0, "Lenda Viva", "lendario", "legend"],
 	],
 }
 const TINT_ALPHA := 0.55   # quanto da cor cobre o modelo da cerca
@@ -79,13 +86,23 @@ static func price_text(item: Array) -> String:
 	return "%d gemas" % item[2] if currency(item) == "gems" else "%d" % item[2]
 
 
-## Item exclusivo do passe de temporada: não se compra, só se resgata (SeasonPass).
-static func pass_only(item: Array) -> bool:
+## Item que não se compra: o 6º campo diz de onde vem, "passe" (SeasonPass) ou o id de uma conquista (Achievements).
+static func unbuyable(item: Array) -> bool:
 	return item.size() > 5
 
 
+## Exclusivo do passe de temporada: só se resgata (SeasonPass).
+static func pass_only(item: Array) -> bool:
+	return item.size() > 5 and item[5] == "passe"
+
+
+## Id da conquista que dá o item ("" se não vem de conquista).
+static func achievement_of(item: Array) -> String:
+	return String(item[5]) if item.size() > 5 and item[5] != "passe" else ""
+
+
 static func can_afford(item: Array) -> bool:
-	return not pass_only(item) and int(Profile.data.get(currency(item), 0)) >= int(item[2])
+	return not unbuyable(item) and int(Profile.data.get(currency(item), 0)) >= int(item[2])
 
 
 static func owned(cat := "trail") -> Array:
@@ -105,7 +122,7 @@ static func equipped(cat := "trail") -> String:
 ## Compra com a moeda do item (moedas ou gemas); falha se o item não existe, já é seu ou falta saldo.
 static func buy(id: String, cat := "trail") -> bool:
 	var item := entry(id, cat)
-	if item.is_empty() or is_owned(id, cat) or not can_afford(item):   # can_afford já recusa o exclusivo do passe
+	if item.is_empty() or is_owned(id, cat) or not can_afford(item):   # can_afford já recusa o exclusivo do passe e o da conquista
 		return false
 	var wallet := currency(item)
 	Profile.data[wallet] = int(Profile.data.get(wallet, 0)) - int(item[2])

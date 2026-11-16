@@ -77,15 +77,21 @@ func _grant() -> void:
 
 	# Conquistas: o que o snapshot cumpre menos o que o perfil já tem (guarda o instante em que saiu)
 	var snapshot := {"loops": loops, "converted": taken, "cuts": cuts, "kills": kills, "percent": percent,
-			"alive": 1 if alive else 0, "won": 1 if place == 1 else 0, "matches": data["matches"]}
+			"alive": 1 if alive else 0, "won": 1 if place == 1 else 0, "matches": data["matches"],
+			"total_wins": data["wins"], "total_loops": data["loops"], "total_cuts": data["cuts"], "total_kills": data["kills"],
+			"level": Profile.level(), "rating": data["rating"]}   # Passo 132: a carreira também conta
 	var known: Dictionary = data["achievements"]
 	var fresh := Achievements.earned(snapshot).filter(func(id: String) -> bool: return not known.has(id))
 	var gems: int = fresh.size() * GEMS_PER_ACHIEVEMENT   # Passo 108 (DD-148): GEMAS vêm de conquistas novas (e, depois, de missões e do passe)
 	data["gems"] = int(data.get("gems", 0)) + gems
+	var titles := []   # Passo 132 (DD-170): algumas conquistas dão um título de perfil
 	for id: String in fresh:
 		known[id] = Time.get_unix_time_from_system()
+		for item: Array in Cosmetics.items("title"):
+			if Cosmetics.achievement_of(item) == id and Cosmetics.grant(item[0], "title"):
+				titles.append(item[0])
 	DailyMissions.record(snapshot)   # Passo 115 (DD-155): a partida também avança as missões do dia
 	SeasonPass.add_xp(xp)   # Passo 123 (DD-163): e o passe de temporada (mesmo XP da partida)
 	Profile.save()
 	last = {"xp": xp, "coins": coins, "gems": gems, "level_before": level_before, "level": Profile.level(), "place": place,
-			"percent": percent, "new_achievements": fresh, "rating_before": rating_before, "rating": data["rating"], "pass_before": pass_before}
+			"percent": percent, "new_achievements": fresh, "new_titles": titles, "rating_before": rating_before, "rating": data["rating"], "pass_before": pass_before}

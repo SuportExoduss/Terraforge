@@ -46,7 +46,7 @@ func _run() -> void:
 			if not _check(cos.rarity_name(item) != "", "%s/%s: sem nome de raridade" % [cat, item[0]]): return
 		for a in items:   # raridade maior nunca é mais barata que uma menor (na mesma moeda)
 			for b in items:
-				if not cos.pass_only(a) and not cos.pass_only(b) and cos.currency(a) == cos.currency(b) and rank[a[4]] > rank[b[4]] and not _check(int(a[2]) >= int(b[2]), "%s: %s (%s) mais barato que %s (%s)" % [cat, a[0], a[4], b[0], b[4]]): return
+				if not cos.unbuyable(a) and not cos.unbuyable(b) and cos.currency(a) == cos.currency(b) and rank[a[4]] > rank[b[4]] and not _check(int(a[2]) >= int(b[2]), "%s: %s (%s) mais barato que %s (%s)" % [cat, a[0], a[4], b[0], b[4]]): return
 		if not _check(cos.equipped(cat) == "default", "%s: começa no padrão" % cat): return
 		for item in items:   # só o lendário custa gemas; o resto, moedas
 			if not _check(cos.currency(item) == ("gems" if item[4] == "lendario" else "coins"), "%s/%s: moeda pela raridade" % [cat, item[0]]): return

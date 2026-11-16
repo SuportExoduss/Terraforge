@@ -77,7 +77,7 @@ func _run() -> void:
 	if not _check(_seen == [5, 6, 7, 8], "pós-jogo em ordem: %s" % str(_seen)): return
 	await process_frame
 	if not _check(panel.visible, "RESULTS mostra o painel"): return
-	if not _check(_match.get_node("Results/Panel/Box/Columns/Ranking").get_parsed_text().contains("RESULTADO FINAL"), "apuração feita (TALLY)"): return
+	if not _check(_match.get_node("Results/Panel/Box/Columns/Left/Ranking").get_parsed_text().contains("RESULTADO FINAL"), "apuração feita (TALLY)"): return
 
 	# MENU (STATE-013) e a regra "nada é pulado": um MatchFlow solto percorre toda a ordem
 	flow.go(9)
