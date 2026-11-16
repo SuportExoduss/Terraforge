@@ -36,7 +36,7 @@ func _ready() -> void:
 	_label.position = Vector2(8.0, 8.0)
 	_label.visible = false
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label.add_theme_font_size_override("font_size", 14)
+	_label.add_theme_font_size_override("font_size", 22 if OS.has_feature("mobile") else 14)
 	layer.add_child(_label)
 	add_child(layer)
 
@@ -44,6 +44,13 @@ func _ready() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_F3:
+		toggle_overlay()
+
+
+## Celular não tem F3: um toque com 4 dedos liga/desliga o painel (o jogo não usa 4 dedos).
+func _input(event: InputEvent) -> void:
+	var touch := event as InputEventScreenTouch
+	if touch != null and touch.pressed and touch.index == 3:
 		toggle_overlay()
 
 

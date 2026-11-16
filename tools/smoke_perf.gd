@@ -58,6 +58,14 @@ func _run() -> void:
 	_check(meter._label.visible and meter._label.text.contains("FPS"), "o painel deve mostrar o relatório")
 	meter._unhandled_key_input(key)
 	_check(not meter.overlay_visible and not meter._label.visible, "F3 de novo esconde o painel")
+	var touch := InputEventScreenTouch.new()   # celular: 4 dedos fazem o papel do F3, 1 dedo não
+	touch.pressed = true
+	touch.index = 0
+	meter._input(touch)
+	_check(not meter.overlay_visible, "1 dedo não liga o painel")
+	touch.index = 3
+	meter._input(touch)
+	_check(meter.overlay_visible, "4 dedos ligam o painel")
 	meter.free()
 
 	# 1b. Resolução adaptativa (celular): lento abaixa um passo (piso 50%), folgado e calmo devolve (teto = a da qualidade)
