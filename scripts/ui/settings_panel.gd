@@ -60,6 +60,14 @@ func _ready() -> void:
 	reduce.toggled.connect(func(on: bool): Settings.set_value("reduce_motion", 1.0 if on else 0.0))
 	box.add_child(reduce)
 
+	var tips := CheckButton.new()   # Passo 131: quem já sabe jogar desliga as dicas das primeiras partidas
+	tips.name = "Tips"
+	tips.text = "DICAS NAS PRIMEIRAS PARTIDAS"
+	tips.custom_minimum_size = Vector2(0.0, 48.0)
+	tips.button_pressed = Settings.tips_on()
+	tips.toggled.connect(func(on: bool): Settings.set_value("tips", 1.0 if on else 0.0))
+	box.add_child(tips)
+
 	MenuScreen.pinned_back(self, close).grab_focus()   # Passo 129: preso na base da tela
 
 

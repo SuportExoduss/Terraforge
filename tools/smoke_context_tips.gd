@@ -104,7 +104,7 @@ func _run() -> void:
 	training.queue_free()
 	await _frames(2)
 
-	# 4. A HUD só cria o Coach no treino ou nas primeiras partidas
+	# 4. A HUD só cria o Coach no treino ou nas primeiras partidas (e só se as DICAS estiverem ligadas)
 	var services: Node = root.get_node("Services")
 	var normal: Resource = load("res://scripts/core/planet_def.gd").by_id("medio")
 	var training_def: Resource = load("res://scripts/core/planet_def.gd").training()
@@ -115,9 +115,13 @@ func _run() -> void:
 		["normal, 7 partidas (a última)", normal, 7, true, true],
 		["normal, 8 partidas (já conhece)", normal, 8, false, false],
 		["normal, 40 partidas", normal, 40, false, false],
+		["normal, 3 partidas, DICAS desligadas", normal, 3, false, false, 0.0],
+		["treino, DICAS desligadas (o treino ensina sempre)", training_def, 0, true, false, 0.0],
 	]
 	for case in cases:
 		_fresh_profile(case[2])
+		if case.size() > 5:
+			Profile.data["settings"] = {"tips": case[5]}   # Passo 131: o jogador desligou as dicas nas configurações
 		services.match_def = case[1]
 		var hud: CanvasLayer = load("res://scripts/ui/hud.gd").new()
 		root.add_child(hud)

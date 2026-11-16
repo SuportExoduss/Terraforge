@@ -136,7 +136,7 @@ func _ready() -> void:
 	EventBus.global_event_warning.connect(_on_event_warning)
 	EventBus.bonus_activated.connect(_on_bonus)
 	EventBus.bonus_stock_changed.connect(_on_stock)
-	if Services.match_def != null and (Services.match_def.tutorial or int(Profile.data.get("matches", 0)) < TutorialCoach.MEMORY_MATCHES):
+	if Services.match_def != null and (Services.match_def.tutorial or (Settings.tips_on() and int(Profile.data.get("matches", 0)) < TutorialCoach.MEMORY_MATCHES)):
 		var coach := TutorialCoach.new()   # Passo 106: a primeira partida ensina jogando; Passo 130: as próximas, dicas de contexto (uma vez na vida)
 		coach.name = "Coach"
 		coach.remember = not Services.match_def.tutorial

@@ -104,6 +104,13 @@ func _run() -> void:
 	low.pressed.emit()
 	_check(int(_settings.get_value("quality")) == 0 and is_equal_approx(root.scaling_3d_scale, 0.7), "o botão de qualidade deve aplicar")
 	_check(int(_saved("quality")) == 0, "o botão de qualidade deve salvar")
+	# Passo 131: DICAS (padrão ligadas; o botão liga/desliga e salva)
+	var tips: CheckButton = panel.find_child("Tips", true, false)
+	_check(tips != null and tips.button_pressed and _settings.tips_on() and tips.custom_minimum_size.y >= 48.0, "DICAS vêm ligadas (padrão) e com altura de dedo")
+	tips.button_pressed = false
+	_check(not _settings.tips_on() and is_equal_approx(_saved("tips"), 0.0), "desligar as DICAS aplica e salva")
+	tips.button_pressed = true
+	_check(_settings.tips_on() and is_equal_approx(_saved("tips"), 1.0), "religar as DICAS aplica e salva")
 	panel.find_child("Back", true, false).pressed.emit()
 	_check(_closed, "VOLTAR deve avisar que fechou")
 	panel.free()
