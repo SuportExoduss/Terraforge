@@ -6,6 +6,8 @@ extends TextureRect
 ## mostra a textura e fala com o resto pelo EventBus.
 ## ponytail: o minimapa mostra a cena inteira (sem camada própria para ícones); ícones/filtros no polimento.
 
+const SafeArea := preload("res://scripts/core/safe_area.gd")
+
 const MINI_SIZE := 150.0
 const EXPANDED_SIZE := 420.0
 const MARGIN := 12.0
@@ -21,6 +23,7 @@ var _down_msec := 0
 func _ready() -> void:
 	texture = ($SubViewport as SubViewport).get_texture()
 	_layout()
+	get_viewport().size_changed.connect(_layout)   # Passo 129: a área segura muda quando a tela gira
 	EventBus.match_ended.connect(hide)   # o painel de resultados assume a tela
 
 
@@ -58,9 +61,10 @@ func _layout() -> void:
 		offset_top = -EXPANDED_SIZE * 0.5
 		offset_bottom = EXPANDED_SIZE * 0.5
 	else:
+		var inset := SafeArea.insets(self)   # Passo 129: fora do entalhe; o botão II do HUD acompanha pela raiz recuada
 		set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		offset_left = -MINI_SIZE - MARGIN
-		offset_right = -MARGIN
-		offset_top = MARGIN
-		offset_bottom = MARGIN + MINI_SIZE
+		offset_left = -MINI_SIZE - MARGIN - inset.z
+		offset_right = -MARGIN - inset.z
+		offset_top = MARGIN + inset.y
+		offset_bottom = MARGIN + inset.y + MINI_SIZE
 	modulate.a = EXPANDED_ALPHA if _expanded else 1.0

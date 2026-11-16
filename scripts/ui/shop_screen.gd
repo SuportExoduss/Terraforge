@@ -47,6 +47,7 @@ func build(parent: VBoxContainer) -> void:
 		tab.name = "Tab_" + cat
 		tab.text = String(category[1])
 		tab.toggle_mode = true
+		tab.custom_minimum_size = Vector2(0.0, 48.0)   # Passo 129: altura de dedo
 		tab.button_group = group
 		tab.add_theme_font_size_override("font_size", 16)
 		tab.pressed.connect(func(): _show_tab(cat))
@@ -88,7 +89,7 @@ func _add_row(parent: VBoxContainer, cat: String, item: Array) -> void:
 	row.add_child(name_label)
 	var button := Button.new()
 	button.name = "Item_%s_%s" % [cat, item[0]]
-	button.custom_minimum_size = Vector2(240.0, 40.0)
+	button.custom_minimum_size = Vector2(240.0, 48.0)
 	button.pressed.connect(func(): _act(cat, item[0]))
 	for hover: Signal in [button.focus_entered, button.mouse_entered]:
 		hover.connect(func(): _show_item(cat, item[0]))

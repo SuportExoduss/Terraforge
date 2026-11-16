@@ -47,7 +47,7 @@ func build(parent: VBoxContainer) -> void:
 	host_button = Button.new()
 	host_button.name = "Host"
 	host_button.text = "CRIAR SALA (2 VAGAS)"
-	host_button.custom_minimum_size = Vector2(300.0, 44.0)
+	host_button.custom_minimum_size = Vector2(300.0, 48.0)
 	host_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	host_button.add_theme_font_size_override("font_size", 18)
 	host_button.pressed.connect(_host)

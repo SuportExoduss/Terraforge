@@ -7,6 +7,7 @@ extends CanvasLayer
 ## ponytail: texto puro, sem pódio 3D.
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const SafeArea := preload("res://scripts/core/safe_area.gd")
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const Leagues := preload("res://scripts/core/leagues.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
@@ -27,7 +28,7 @@ func _ready() -> void:
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_panel.offset_top = 24.0   # celular deitado: só 540 px de altura
+	_panel.offset_top = 24.0 + SafeArea.insets(self).y   # celular deitado: só 540 px de altura (e o entalhe, se houver)
 	_panel.custom_minimum_size.x = 320.0
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(UiTheme.GLASS, 0.9)   # Passo 112 (DD-149): mesma cara de vidro do menu e da HUD

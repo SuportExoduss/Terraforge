@@ -85,7 +85,7 @@ func _run() -> void:
 	if not _check(primary == 1, "só JOGAR é âmbar no menu (achei %d)" % primary): return
 	var dock = menu.get_node("Box/Dock")
 	if not _check(dock is GridContainer and dock.get_child_count() == 6 and dock.columns == 3, "dock: 6 atalhos em grade de 3 colunas"): return
-	if not _check(menu.get_node("Box/Settings").theme_type_variation == "GhostButton" and menu.get_node("Box/Quit").theme_type_variation == "GhostButton", "CONFIGURAÇÕES e SAIR são discretos"): return
+	if not _check(menu.get_node("Box/Footer/Settings").theme_type_variation == "GhostButton" and menu.get_node("Box/Footer/Quit").theme_type_variation == "GhostButton", "CONFIGURAÇÕES e SAIR são discretos"): return
 	if not _check(menu.get_node("Box/Title").theme_type_variation == "TitleLabel" and menu.get_node("Box/Profile").theme_type_variation == "ProfileLabel", "título e perfil usam as variações do tema"): return
 	var shade = menu.get_node_or_null("Shade")
 	if not _check(shade != null and shade.get_index() > menu.get_node("Backdrop").get_index() and shade.get_index() < menu.get_node("Box").get_index(), "sombra lateral entre o planeta e os botões"): return

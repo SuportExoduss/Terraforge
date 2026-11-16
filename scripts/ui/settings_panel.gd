@@ -48,26 +48,19 @@ func _ready() -> void:
 		button.button_group = group
 		button.button_pressed = level == int(Settings.get_value("quality"))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 40.0)
+		button.custom_minimum_size = Vector2(0.0, 48.0)
 		button.pressed.connect(func(): Settings.set_value("quality", level))
 		row.add_child(button)
 
 	var reduce := CheckButton.new()
 	reduce.name = "ReduceMotion"
 	reduce.text = "REDUZIR MOVIMENTO (sem meteoros, auroras e relâmpagos)"
+	reduce.custom_minimum_size = Vector2(0.0, 48.0)   # Passo 129: altura de dedo
 	reduce.button_pressed = Settings.reduced_motion()
 	reduce.toggled.connect(func(on: bool): Settings.set_value("reduce_motion", 1.0 if on else 0.0))
 	box.add_child(reduce)
 
-	var back := Button.new()
-	back.name = "Back"
-	back.text = "VOLTAR"
-	back.custom_minimum_size = Vector2(240.0, 46.0)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.add_theme_font_size_override("font_size", 22)
-	back.pressed.connect(close)
-	box.add_child(back)
-	back.grab_focus()
+	MenuScreen.pinned_back(self, close).grab_focus()   # Passo 129: preso na base da tela
 
 
 func close() -> void:
@@ -91,7 +84,7 @@ func _add_slider(parent: Control, node_name: String, label_text: String, key: St
 	slider.max_value = 1.0
 	slider.step = 0.05
 	slider.value = Settings.get_value(key)
-	slider.custom_minimum_size = Vector2(0.0, 24.0)
+	slider.custom_minimum_size = Vector2(0.0, 32.0)
 	slider.value_changed.connect(func(value: float): Settings.set_value(key, value, false))
 	slider.drag_ended.connect(func(_changed: bool): Profile.save())
 	parent.add_child(slider)

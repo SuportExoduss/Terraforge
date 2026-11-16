@@ -32,7 +32,7 @@ func build(parent: VBoxContainer) -> void:
 		button.disabled = not playable
 		button.button_pressed = id == chosen
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.custom_minimum_size = Vector2(0.0, 44.0)
+		button.custom_minimum_size = Vector2(0.0, 48.0)
 		button.add_theme_font_size_override("font_size", 22)
 		button.pressed.connect(func(): CivilizationCatalog.choose(id))
 		row.add_child(button)

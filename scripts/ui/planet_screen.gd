@@ -50,7 +50,7 @@ func _add_card(parent: Control, def: PlanetDef) -> void:
 	pick.name = "Pick"
 	pick.text = "ESCOLHIDO" if chosen else "ESCOLHER"
 	pick.disabled = chosen
-	pick.custom_minimum_size = Vector2(0.0, 44.0)
+	pick.custom_minimum_size = Vector2(0.0, 48.0)
 	pick.pressed.connect(func():
 		Services.match_def = def
 		Profile.data["planet"] = def.id

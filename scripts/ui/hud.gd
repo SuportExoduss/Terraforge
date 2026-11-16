@@ -9,6 +9,7 @@ extends CanvasLayer
 ## ponytail: fonte padrão do Godot e quadrados no lugar de ícones de coração; arte final na fase de polimento.
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const SafeArea := preload("res://scripts/core/safe_area.gd")
 
 const HEARTS := 5   # 4 normais + 1 do bônus Vida Extra (SYS-005), escondido até existir
 const BASE_POINTS := 16
@@ -47,6 +48,7 @@ var _last_rank := 0                  # Passo 114: posição anterior, para pisca
 var _scores: Dictionary = {}         # dono -> domínio (-1 = eliminado); só para contar quem está à frente
 var _drop := 0.0                    # Passo 111: quanto o texto maior empurra corações/aviso para baixo
 var _cause: Label                    # Passo 72: "-2 RASTRO CORTADO" ao perder vida
+var _root: Control                   # Passo 129: encolhido pela área segura (entalhe / barra de gestos)
 var _damage_flash: ColorRect         # Passo 74: clarão vermelho ao perder vida
 var _damage_tween: Tween
 var _gain: Label                     # Passo 118: "+3,2%" / "-1,1%" / "RASTRO CORTADO!" que sobe e some no meio da tela
@@ -69,6 +71,7 @@ func _ready() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE   # o HUD nunca engole o toque de direção
 	add_child(root)
+	_root = root
 
 	_damage_flash = ColorRect.new()   # primeiro filho: os textos ficam por cima do clarão
 	_damage_flash.name = "DamageFlash"
@@ -116,6 +119,8 @@ func _ready() -> void:
 	_joystick.visible = false
 	_joystick.draw.connect(_draw_joystick)
 	root.add_child(_joystick)
+	_apply_insets()
+	get_viewport().size_changed.connect(_apply_insets)
 
 	EventBus.match_clock_changed.connect(_on_clock)
 	EventBus.match_ended.connect(_on_match_ended)
@@ -135,6 +140,21 @@ func _ready() -> void:
 		var coach := TutorialCoach.new()
 		coach.name = "Coach"
 		root.add_child(coach)
+
+
+## Passo 129 (DD-168): textos e botões ficam dentro da área segura; o clarão de dano e o analógico (que desenha em
+## coordenadas da tela) continuam cobrindo a tela inteira, então andam na contramão do recuo da raiz.
+func _apply_insets() -> void:
+	var inset := SafeArea.insets(self)
+	_root.offset_left = inset.x
+	_root.offset_top = inset.y
+	_root.offset_right = -inset.z
+	_root.offset_bottom = -inset.w
+	for full_screen: Control in [_damage_flash, _joystick]:
+		full_screen.offset_left = -inset.x
+		full_screen.offset_top = -inset.y
+		full_screen.offset_right = inset.z
+		full_screen.offset_bottom = inset.w
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -10,9 +10,11 @@ const MissionsScreen := preload("res://scripts/ui/missions_screen.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
 const PassScreen := preload("res://scripts/ui/pass_screen.gd")
 const PlanetScreen := preload("res://scripts/ui/planet_screen.gd")
+const SafeArea := preload("res://scripts/core/safe_area.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
+const TOUCH_MIN := 48.0   # Passo 129: altura mínima de um botão para o dedo (≈ 6 mm no celular de 6")
 const EXIT_WINDOW_MSEC := 2000   # Passo 128: dois VOLTAR dentro disto saem do jogo
 
 var approach_seconds := 1.8   # duração do mergulho no planeta ao clicar JOGAR
@@ -45,11 +47,14 @@ func _ready() -> void:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.anchor_top = 0.5
 	box.anchor_bottom = 0.5
-	box.offset_left = 48.0
-	box.offset_right = 448.0
+	var inset := SafeArea.insets(self)   # Passo 129: a coluna fica na área segura (entalhe à esquerda, barra de gestos embaixo)
+	box.offset_left = 48.0 + inset.x
+	box.offset_right = 448.0 + inset.x
+	box.offset_top = (inset.y - inset.w) * 0.5
+	box.offset_bottom = box.offset_top
 	box.grow_horizontal = Control.GROW_DIRECTION_END
 	box.grow_vertical = Control.GROW_DIRECTION_BOTH
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 8)   # com os botões de 48 px a coluna ainda cabe nos 540 px
 	add_child(box)
 
 	var title := Label.new()
@@ -80,10 +85,10 @@ func _ready() -> void:
 	Services.match_def = PlanetDef.training() if first_time else PlanetDef.by_id(str(Profile.data.get("planet", "medio")))   # DD-143: o último planeta escolhido
 	var play := _add_button(box, "Play", "JOGAR", _play, 64.0, 30)   # a única ação em âmbar: o olho vai direto para ela
 	play.theme_type_variation = "PrimaryButton"
-	var planet := _add_button(box, "Planet", "", func(): _open_screen(PlanetScreen.new(), "Planet"), 40.0, 14)   # Passo 125: abre a escolha de planeta
+	var planet := _add_button(box, "Planet", "", func(): _open_screen(PlanetScreen.new(), "Planet"), TOUCH_MIN, 14)   # Passo 125: abre a escolha de planeta
 	planet.disabled = first_time
 	_refresh_planet(first_time)
-	_add_button(box, "Pass", "", func(): _open_screen(PassScreen.new(), "Pass"), 40.0, 14)   # Passo 123: faixa do passe de temporada
+	_add_button(box, "Pass", "", func(): _open_screen(PassScreen.new(), "Pass"), TOUCH_MIN, 14)   # Passo 123: faixa do passe de temporada
 	_refresh_pass_label()
 	var dock := GridContainer.new()   # atalhos das telas do menu (3 por linha)
 	dock.name = "Dock"
@@ -98,8 +103,17 @@ func _ready() -> void:
 	_add_dock(dock, "Events", "EVENTOS", EventsScreen)
 	_add_dock(dock, "Missions", "MISSÕES", MissionsScreen)
 	_refresh_missions_badge()
-	_add_button(box, "Settings", "CONFIGURAÇÕES", _open_settings, 36.0, 15).theme_type_variation = "GhostButton"
-	_add_button(box, "Quit", "SAIR", func(): get_tree().quit(), 36.0, 15).theme_type_variation = "GhostButton"
+	var footer := HBoxContainer.new()   # Passo 129: CONFIGURAÇÕES e SAIR lado a lado: os dois com altura de dedo e a coluna cabe em 540 px
+	footer.name = "Footer"
+	footer.add_theme_constant_override("separation", 8)
+	box.add_child(footer)
+	var settings := _add_button(footer, "Settings", "CONFIGURAÇÕES", _open_settings, TOUCH_MIN, 15)
+	settings.theme_type_variation = "GhostButton"
+	settings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	settings.size_flags_stretch_ratio = 2.0
+	var quit := _add_button(footer, "Quit", "SAIR", func(): get_tree().quit(), TOUCH_MIN, 15)
+	quit.theme_type_variation = "GhostButton"
+	quit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play.grab_focus()   # teclado / controle
 
 
@@ -161,8 +175,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-		hint.offset_top = -64.0
-		hint.offset_bottom = -24.0
+		var inset := SafeArea.insets(self)
+		hint.offset_top = -64.0 - inset.w   # acima da barra de gestos
+		hint.offset_bottom = -24.0 - inset.w
 		hint.add_theme_font_size_override("font_size", 20)
 		hint.add_theme_color_override("font_outline_color", Color.BLACK)   # lê sobre o planeta
 		hint.add_theme_constant_override("outline_size", 6)
@@ -185,7 +200,7 @@ func _open_settings() -> void:
 	panel.name = "SettingsPanel"
 	panel.closed.connect(func():
 		panel.queue_free()
-		get_node("Box/Settings").grab_focus())
+		get_node("Box/Footer/Settings").grab_focus())
 	add_child(panel)
 
 
@@ -200,7 +215,7 @@ func _profile_text() -> String:
 
 
 func _add_dock(dock: Control, button_name: String, label: String, screen_class: GDScript) -> void:
-	var button := _add_button(dock, button_name, label, func(): _open_screen(screen_class.new(), button_name), 40.0, 14)
+	var button := _add_button(dock, button_name, label, func(): _open_screen(screen_class.new(), button_name), TOUCH_MIN, 14)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 

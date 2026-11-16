@@ -5,6 +5,9 @@ extends Control
 ## Uma coluna só, centralizada; se a janela for menor que o conteúdo, a tela rola (`scrolling_center`).
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const SafeArea := preload("res://scripts/core/safe_area.gd")
+const BACK_SIZE := Vector2(240.0, 52.0)   # Passo 129: VOLTAR preso na base da tela, com altura de dedo
+const BACK_GAP := 10.0
 
 signal closed
 
@@ -37,14 +40,7 @@ func _ready() -> void:
 	body.add_theme_constant_override("separation", 6)
 	box.add_child(body)
 	build(body)
-	back = Button.new()
-	back.name = "Back"
-	back.text = "VOLTAR"
-	back.custom_minimum_size = Vector2(240.0, 48.0)
-	back.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	back.add_theme_font_size_override("font_size", 20)
-	back.pressed.connect(close)
-	box.add_child(back)
+	back = pinned_back(self, close)
 	back.grab_focus()
 
 
@@ -54,6 +50,11 @@ static func scrolling_center(parent: Control) -> CenterContainer:
 	var scroll := ScrollContainer.new()
 	scroll.name = "Scroll"
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var inset := SafeArea.insets(parent)   # Passo 129: a rolagem fica dentro da área segura e termina acima do VOLTAR preso
+	scroll.offset_left = inset.x
+	scroll.offset_top = inset.y
+	scroll.offset_right = -inset.z
+	scroll.offset_bottom = -(inset.w + BACK_SIZE.y + 2.0 * BACK_GAP)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.follow_focus = true   # Tab/setas levam o botão focado para dentro da vista
 	parent.add_child(scroll)
@@ -62,6 +63,25 @@ static func scrolling_center(parent: Control) -> CenterContainer:
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(center)
 	return center
+
+
+## Passo 129: o VOLTAR fica preso na base da tela (a rolagem acaba acima dele): nunca some quando o conteúdo é mais alto
+## que a tela e respeita a barra de gestos do celular. Também usado pelo SettingsPanel.
+static func pinned_back(parent: Control, action: Callable) -> Button:
+	var inset := SafeArea.insets(parent)
+	var button := Button.new()
+	button.name = "Back"
+	button.text = "VOLTAR"
+	button.custom_minimum_size = BACK_SIZE
+	button.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	button.offset_left = -BACK_SIZE.x * 0.5
+	button.offset_right = BACK_SIZE.x * 0.5
+	button.offset_top = -inset.w - BACK_GAP - BACK_SIZE.y
+	button.offset_bottom = -inset.w - BACK_GAP
+	button.add_theme_font_size_override("font_size", 22)
+	button.pressed.connect(action)
+	parent.add_child(button)
+	return button
 
 
 ## Cada tela monta o seu conteúdo aqui.

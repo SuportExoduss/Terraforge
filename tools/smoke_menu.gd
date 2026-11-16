@@ -41,7 +41,7 @@ func _settle() -> void:
 func _run() -> void:
 	await process_frame
 	var menu := current_scene
-	if not _check(menu.name == "Menu" and menu.get_node("Box/Play").text == "JOGAR" and menu.get_node("Box/Quit").text == "SAIR", "menu com JOGAR e SAIR"): return
+	if not _check(menu.name == "Menu" and menu.get_node("Box/Play").text == "JOGAR" and menu.get_node("Box/Footer/Quit").text == "SAIR", "menu com JOGAR e SAIR"): return
 	if not _check(menu.get_node("Box/Title").text == "TERRAFORGE", "título"): return
 	if not _check(menu.get_node("Box/Profile").text.begins_with("Nível ") and menu.get_node("Box/Profile").text.contains("conquistas "), "linha de perfil (nível/XP/moedas/conquistas)"): return
 	# Planeta (DD-143, Passo 125): o botão mostra o Médio e abre a tela de escolha; ESCOLHER grava no Services e no perfil
