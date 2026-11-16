@@ -60,6 +60,14 @@ func _ready() -> void:
 	reduce.toggled.connect(func(on: bool): Settings.set_value("reduce_motion", 1.0 if on else 0.0))
 	box.add_child(reduce)
 
+	var haptics := CheckButton.new()   # Passo 133: vibração do celular
+	haptics.name = "Haptics"
+	haptics.text = "VIBRAÇÃO"
+	haptics.custom_minimum_size = Vector2(0.0, 48.0)
+	haptics.button_pressed = Settings.haptics_on()
+	haptics.toggled.connect(func(on: bool): Settings.set_value("haptics", 1.0 if on else 0.0))
+	box.add_child(haptics)
+
 	var tips := CheckButton.new()   # Passo 131: quem já sabe jogar desliga as dicas das primeiras partidas
 	tips.name = "Tips"
 	tips.text = "DICAS NAS PRIMEIRAS PARTIDAS"

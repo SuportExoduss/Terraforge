@@ -5,7 +5,7 @@ extends RefCounted
 ## resolução 3D e no antisserrilhado da janela principal.
 ## ponytail: só o que já existe para ajustar; controles, idioma e acessibilidade entram quando houver o que escolher.
 
-const DEFAULTS := {"sfx": 1.0, "music": 0.8, "quality": 2, "turn": 0.5, "reduce_motion": 0.0, "text": 0.0, "tips": 1.0}   # turn: 0..1 no controle = giro de 50% a 150% (0.5 = 100%); reduce_motion: 0 = desligado, 1 = ligado; text: 0..1 = texto da HUD de 100% a 150%
+const DEFAULTS := {"sfx": 1.0, "music": 0.8, "quality": 2, "turn": 0.5, "reduce_motion": 0.0, "text": 0.0, "tips": 1.0, "haptics": 1.0}   # turn: 0..1 no controle = giro de 50% a 150% (0.5 = 100%); reduce_motion: 0 = desligado, 1 = ligado; text: 0..1 = texto da HUD de 100% a 150%
 const QUALITY_NAMES := ["BAIXA", "MÉDIA", "ALTA"]
 const QUALITY_SCALE := [0.7, 0.85, 1.0]                                                       # resolução 3D relativa
 const QUALITY_MSAA := [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X]
@@ -39,6 +39,11 @@ static func reduced_motion() -> bool:
 ## Passo 131: dicas de contexto das primeiras partidas ligadas (padrão) ou desligadas; o treino ensina sempre.
 static func tips_on() -> bool:
 	return float(get_value("tips")) >= 0.5
+
+
+## Passo 133: vibração do celular ligada (padrão) ou desligada.
+static func haptics_on() -> bool:
+	return float(get_value("haptics")) >= 0.5
 
 
 ## Muda um ajuste e aplica na hora; `save = false` enquanto o jogador arrasta um controle (salva ao soltar).

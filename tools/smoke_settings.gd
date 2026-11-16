@@ -111,6 +111,11 @@ func _run() -> void:
 	_check(not _settings.tips_on() and is_equal_approx(_saved("tips"), 0.0), "desligar as DICAS aplica e salva")
 	tips.button_pressed = true
 	_check(_settings.tips_on() and is_equal_approx(_saved("tips"), 1.0), "religar as DICAS aplica e salva")
+	var haptics: CheckButton = panel.find_child("Haptics", true, false)   # Passo 133
+	_check(haptics != null and haptics.button_pressed and _settings.haptics_on() and haptics.custom_minimum_size.y >= 48.0, "VIBRAÇÃO vem ligada (padrão) e com altura de dedo")
+	haptics.button_pressed = false
+	_check(not _settings.haptics_on() and is_equal_approx(_saved("haptics"), 0.0), "desligar a VIBRAÇÃO aplica e salva")
+	haptics.button_pressed = true
 	panel.find_child("Back", true, false).pressed.emit()
 	_check(_closed, "VOLTAR deve avisar que fechou")
 	panel.free()

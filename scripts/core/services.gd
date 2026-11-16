@@ -15,6 +15,7 @@ var match_def: PlanetDef = null    # planeta escolhido no menu (DD-143); null = 
 
 func _ready() -> void:
 	preload("res://scripts/ui/ui_theme.gd").apply(get_tree())   # Passo 109 (DD-149): uma cara só para todos os menus e o HUD
+	preload("res://scripts/core/haptics.gd").connect_events(EventBus)   # Passo 133 (DD-172): vibração nos momentos que importam
 
 
 func register_trail(trail: Object) -> void:
