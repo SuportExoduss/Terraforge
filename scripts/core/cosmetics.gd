@@ -82,8 +82,44 @@ static func currency(item: Array) -> String:
 	return "gems" if item[4] == "lendario" else "coins"
 
 
-static func price_text(item: Array) -> String:
-	return "%d gemas" % item[2] if currency(item) == "gems" else "%d" % item[2]
+## Passo 134 (DD-173): OFERTA DA SEMANA. Um item à venda (de qualquer categoria) fica 25% mais barato por semana, o mesmo para
+## todos, trocando na segunda-feira. Só preço: o item é o mesmo e não dá poder (DD-144). Comprou a oferta? Ela some até a próxima.
+const OFFER_DISCOUNT := 0.25
+const DailyMissions := preload("res://scripts/core/daily_missions.gd")   # (só o número do dia)
+static var offer_off := false   # os testes de preço cheio ligam isto para não depender da data de hoje
+
+
+## Semana que começa na segunda-feira (o dia 0 do calendário, 1970-01-01, foi quinta-feira).
+static func week_of(day: int) -> int:
+	return floori((day + 3) / 7.0)
+
+
+## [categoria, id] do item em oferta (`day` = dia do calendário; -1 = hoje), ou [] se não há (já é do jogador).
+static func weekly_offer(day := -1) -> Array:
+	if offer_off:
+		return []
+	var pool := []
+	for category: Array in CATEGORIES:
+		for item: Array in items(category[0]):
+			if not unbuyable(item) and int(item[2]) > 0:
+				pool.append([category[0], item[0]])
+	var pick: Array = pool[week_of(DailyMissions.today() if day < 0 else day) % pool.size()]
+	return [] if is_owned(pick[1], pick[0]) else pick
+
+
+static func is_on_offer(item: Array, cat: String) -> bool:
+	return cat != "" and weekly_offer() == [cat, item[0]]
+
+
+## Preço de verdade (na moeda do item): o da tabela, ou 25% menos se é a oferta da semana. Sem `cat` nunca há desconto.
+static func price_of(item: Array, cat := "") -> int:
+	if is_on_offer(item, cat):
+		return maxi(1, roundi(int(item[2]) * (1.0 - OFFER_DISCOUNT)))
+	return int(item[2])
+
+
+static func price_text(item: Array, cat := "") -> String:
+	return "%d gemas" % price_of(item, cat) if currency(item) == "gems" else "%d" % price_of(item, cat)
 
 
 ## Item que não se compra: o 6º campo diz de onde vem, "passe" (SeasonPass) ou o id de uma conquista (Achievements).
@@ -101,8 +137,8 @@ static func achievement_of(item: Array) -> String:
 	return String(item[5]) if item.size() > 5 and item[5] != "passe" else ""
 
 
-static func can_afford(item: Array) -> bool:
-	return not unbuyable(item) and int(Profile.data.get(currency(item), 0)) >= int(item[2])
+static func can_afford(item: Array, cat := "") -> bool:
+	return not unbuyable(item) and int(Profile.data.get(currency(item), 0)) >= price_of(item, cat)
 
 
 static func owned(cat := "trail") -> Array:
@@ -122,10 +158,10 @@ static func equipped(cat := "trail") -> String:
 ## Compra com a moeda do item (moedas ou gemas); falha se o item não existe, já é seu ou falta saldo.
 static func buy(id: String, cat := "trail") -> bool:
 	var item := entry(id, cat)
-	if item.is_empty() or is_owned(id, cat) or not can_afford(item):   # can_afford já recusa o exclusivo do passe e o da conquista
+	if item.is_empty() or is_owned(id, cat) or not can_afford(item, cat):   # can_afford já recusa o exclusivo do passe e o da conquista
 		return false
 	var wallet := currency(item)
-	Profile.data[wallet] = int(Profile.data.get(wallet, 0)) - int(item[2])
+	Profile.data[wallet] = int(Profile.data.get(wallet, 0)) - price_of(item, cat)   # (antes de virar do jogador: a oferta some ao comprar)
 	Profile.data["owned_%ss" % cat] = owned(cat) + [id]
 	Profile.save()
 	return true

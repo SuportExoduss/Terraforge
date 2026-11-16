@@ -9,6 +9,7 @@ var _rows := {}      # "categoria_id" -> Button
 var _cards := {}     # "categoria_id" -> PanelContainer (o cartão do item; borda âmbar quando equipado)
 var _pages := {}     # categoria -> VBoxContainer (uma por aba)
 var _preview := {}   # categoria -> id mostrado na prévia (o equipado, ou a linha em foco)
+var _deals := {}     # "categoria_id" -> Label "OFERTA -25%" (aparece só na linha da oferta da semana, Passo 134)
 var _hot := ""       # Passo 119: linha sob mouse/foco; só o COMPRAR dela fica âmbar (antes todos os que cabiam no saldo)
 
 
@@ -28,6 +29,11 @@ func build(parent: VBoxContainer) -> void:
 	gems.theme_type_variation = "GemLabel"
 	wallet.add_child(gems)
 	parent.add_child(wallet)
+	var offer := make_label("", 16, "Offer")   # Passo 134: a oferta da semana, à vista em qualquer aba
+	offer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	offer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	offer.add_theme_color_override("font_color", UiTheme.FORGE)
+	parent.add_child(offer)
 	var preview := make_label("", 20, "Preview")   # como o perfil e a cerca ficariam
 	preview.theme_type_variation = "ProfileLabel"
 	preview.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -98,6 +104,13 @@ func _add_row(parent: VBoxContainer, cat: String, item: Array) -> void:
 		var hint := make_label("Conquista: %s" % Achievements.description_of(source), 14, "Hint")
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info.add_child(hint)
+	var deal := make_label("OFERTA
+-25%", 14, "Deal")
+	deal.add_theme_color_override("font_color", UiTheme.FORGE)
+	deal.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	deal.visible = false
+	row.add_child(deal)
+	_deals[cat + "_" + item[0]] = deal
 	var button := Button.new()
 	button.name = "Item_%s_%s" % [cat, item[0]]
 	button.custom_minimum_size = Vector2(240.0, 48.0)
@@ -151,6 +164,12 @@ func _update_preview() -> void:
 func _refresh() -> void:
 	body.get_node("Wallet/Coins").text = "Moedas: %d" % int(Profile.data["coins"])
 	body.get_node("Wallet/Gems").text = "Gemas: %d" % int(Profile.data.get("gems", 0))
+	var offer: Array = Cosmetics.weekly_offer()   # [] = sem oferta (já é do jogador)
+	var offer_label: Label = body.get_node("Offer")
+	offer_label.visible = not offer.is_empty()
+	if not offer.is_empty():
+		var offered := Cosmetics.entry(offer[1], offer[0])
+		offer_label.text = "OFERTA DA SEMANA -25%%: %s — de %s por %s (troca na segunda)" % [offered[1], Cosmetics.price_text(offered), Cosmetics.price_text(offered, offer[0])]
 	for category: Array in Cosmetics.CATEGORIES:
 		var cat: String = category[0]
 		for item: Array in Cosmetics.items(cat):
@@ -159,9 +178,10 @@ func _refresh() -> void:
 			var equipped: bool = Cosmetics.is_owned(id, cat) and Cosmetics.equipped(cat) == id
 			_cards[cat + "_" + id].add_theme_stylebox_override("panel", UiTheme.card(Cosmetics.rarity_color(item), equipped))
 			button.theme_type_variation = ""
+			_deals[cat + "_" + id].visible = not Cosmetics.is_owned(id, cat) and Cosmetics.is_on_offer(item, cat)
 			if not Cosmetics.is_owned(id, cat):
-				button.text = "SÓ NO PASSE" if Cosmetics.pass_only(item) else "SÓ POR CONQUISTA" if Cosmetics.unbuyable(item) else "COMPRAR  (%s)" % Cosmetics.price_text(item)
-				button.disabled = not Cosmetics.can_afford(item)
+				button.text = "SÓ NO PASSE" if Cosmetics.pass_only(item) else "SÓ POR CONQUISTA" if Cosmetics.unbuyable(item) else "COMPRAR  (%s)" % Cosmetics.price_text(item, cat)
+				button.disabled = not Cosmetics.can_afford(item, cat)
 			elif equipped:
 				button.text = "EQUIPADO"
 				button.disabled = true

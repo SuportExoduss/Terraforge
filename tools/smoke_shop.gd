@@ -30,6 +30,7 @@ func _tinted(trail: Node) -> Array:
 func _run() -> void:
 	var profile = load("res://scripts/core/profile.gd")
 	var cos = load("res://scripts/core/cosmetics.gd")
+	cos.offer_off = true   # Passo 134: preço cheio, sem depender da oferta da semana de hoje
 	profile.path = TEST_PROFILE
 	DirAccess.remove_absolute(TEST_PROFILE)
 	profile.load_data()
