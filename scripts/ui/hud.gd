@@ -35,6 +35,7 @@ const GAIN_GOOD := Color(0.55, 1.0, 0.7)
 const PULSE_SECONDS := 0.9   # Passo 76: período do pulso do último coração (~1 Hz, bem abaixo do limite de 3 Hz de brilho)
 const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
 const KNOB_RADIUS := 22.0
+const PAUSE_SIZE := 52.0
 
 var _clock: Label
 var _score: Label
@@ -59,6 +60,7 @@ var _bonus_column: VBoxContainer
 var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
 var _bonus_rows: Dictionary = {}     # nome do bônus -> linha (Top/Chip + Top/Bonus)
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
+var _pause_at := 0                   # Passo 127: ms de parede em que a pausa abriu (os relógios dos bônus são de parede)
 
 
 func _ready() -> void:
@@ -106,6 +108,7 @@ func _ready() -> void:
 
 	_build_hearts(root)
 	_build_bonus_column(root)
+	_build_pause_button(root)
 	_joystick = Control.new()
 	_joystick.name = "Joystick"
 	_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -116,6 +119,7 @@ func _ready() -> void:
 
 	EventBus.match_clock_changed.connect(_on_clock)
 	EventBus.match_ended.connect(_on_match_ended)
+	EventBus.match_pause_changed.connect(_on_pause_changed)
 	EventBus.match_started.connect(func() -> void: _gain_on = true)
 	EventBus.trail_cut.connect(_on_cut)
 	EventBus.civilization_killed.connect(_on_kill)
@@ -248,6 +252,33 @@ func _build_bonus_column(parent: Control) -> void:
 	_stock_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
 	_stock_button.pressed.connect(func(): EventBus.bonus_use_requested.emit(Civilization.PLAYER_ID))
 	_bonus_column.add_child(_stock_button)
+
+
+# Passo 127: "II" (pausa) à esquerda do minimapa; 52 px de lado cabem num dedo e o toque nele não vira direção.
+func _build_pause_button(parent: Control) -> void:
+	var button := Button.new()
+	button.name = "PauseButton"
+	button.text = "II"
+	button.focus_mode = Control.FOCUS_NONE   # ESPAÇO/ENTER não podem acionar a pausa por foco
+	button.add_theme_font_size_override("font_size", 24)
+	button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	button.offset_left = -MinimapView.MINI_SIZE - MinimapView.MARGIN - 8.0 - PAUSE_SIZE
+	button.offset_right = -MinimapView.MINI_SIZE - MinimapView.MARGIN - 8.0
+	button.offset_top = MinimapView.MARGIN
+	button.offset_bottom = MinimapView.MARGIN + PAUSE_SIZE
+	button.button_down.connect(TouchSteering.set_ui_pointer_held.bind(true))
+	button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
+	button.pressed.connect(EventBus.match_pause_requested.emit)
+	parent.add_child(button)
+
+
+func _on_pause_changed(paused: bool) -> void:
+	if paused:
+		_pause_at = Time.get_ticks_msec()
+		return
+	var span := Time.get_ticks_msec() - _pause_at   # o tempo parado não gasta o bônus que aparece na ficha
+	for entry in _bonus_until.values():
+		entry["until_ms"] += span
 
 
 # Estoque do jogador: mostra o próximo a ser usado e quantos há guardados.

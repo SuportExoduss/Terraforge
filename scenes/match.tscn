@@ -33,6 +33,7 @@
 [ext_resource type="Script" path="res://scripts/world/first_conquest_burst.gd" id="31"]
 [ext_resource type="Script" path="res://scripts/world/stampede_event.gd" id="32"]
 [ext_resource type="Script" path="res://scripts/world/leader_crown.gd" id="33"]
+[ext_resource type="Script" path="res://scripts/ui/pause_panel.gd" id="34"]
 
 [node name="Match" type="Node"]
 
@@ -123,6 +124,9 @@ target_path = NodePath("../../../../Main/Runner")
 
 [node name="Results" type="CanvasLayer" parent="."]
 script = ExtResource("10")
+
+[node name="Pause" type="CanvasLayer" parent="."]
+script = ExtResource("34")
 
 [node name="Perf" type="Node" parent="."]
 script = ExtResource("28")

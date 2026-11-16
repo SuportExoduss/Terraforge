@@ -16,6 +16,8 @@ signal global_event_warning(event_name: String, seconds_remaining: int)
 signal health_changed(owner_id: int, points: int, max_points: int)
 signal match_state_changed(state: int)   # MatchFlow.State: a máquina de estados da partida avançou
 signal match_clock_changed(seconds_remaining: int)
+signal match_pause_requested   # Passo 127: o jogador pediu a pausa (botão II da HUD) ou voltou (ESC / botão voltar do Android)
+signal match_pause_changed(paused: bool)   # a pausa abriu/fechou (a HUD acerta os relógios de parede dos bônus)
 signal match_started
 signal match_ended
 signal minimap_dragged(delta_pixels: Vector2)
