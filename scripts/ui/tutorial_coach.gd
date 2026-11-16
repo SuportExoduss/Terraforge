@@ -1,11 +1,15 @@
 class_name TutorialCoach
 extends Control
 ## Passo 106 (DD-146): o treino da PRIMEIRA partida. Dicas de UMA frase, cada uma só uma vez, na hora em que o jogador precisa
-## dela (um evento do jogo, ou um tempo sem ter feito a coisa). Só existe na partida do treino (`PlanetDef.tutorial`); a HUD o cria.
+## dela (um evento do jogo, ou um tempo sem ter feito a coisa). A HUD o cria no treino (`PlanetDef.tutorial`).
+## Passo 130 (DD-169): também nas primeiras partidas normais (`remember`): cada dica sai UMA VEZ NA VIDA (o perfil guarda as vistas em
+## `tips_seen`) e só as de contexto (as de largada e de lembrete são do treino). Passadas MEMORY_MATCHES partidas, a HUD nem o cria.
 ## ponytail: texto fixo em português na própria cena; vira tabela de tradução quando houver mais de um idioma.
 
 const SHOW_SECONDS := 6.0
 const NUDGE_SECONDS := 14.0   # sem fechar um circuito até aqui: lembra como se faz
+const MEMORY_MATCHES := 8   # a partir da 9ª partida o jogador já conhece o jogo: as dicas de contexto não saem mais
+const TRAINING_ONLY := ["steer", "loop"]   # a largada e o lembrete do circuito são do treino
 const TIPS := {
 	"steer": "Arraste para os lados (ou use as setas) para virar. Seu corredor anda sozinho e deixa um rastro: a sua cerca.",
 	"loop": "Saia da sua terra, faça uma curva e VOLTE para ela: o rastro fecha um circuito e tudo que ficou dentro vira seu.",
@@ -13,8 +17,14 @@ const TIPS := {
 	"hurt": "Cada dano tira um pedaço de coração. Rastro longo e exposto é arriscado: feche o circuito e volte para casa.",
 	"event": "Um evento vai atingir o planeta. Afaste-se do ponto marcado!",
 	"bonus": "Você guardou um bônus! Toque no botão ou aperte ESPAÇO para usar.",
+	"cut": "Você cortou o rastro de um rival: ele perde vida! O seu rastro também pode ser cortado.",
+	"lowhp": "Vida quase no fim! Feche o circuito e volte para a sua terra antes de levar outro golpe.",
+	"anchor": "Tomaram a terra onde a sua cerca nasceu: o rastro evaporou, sem dano. Saia de novo de uma terra sua.",
+	"fallen": "Sua base foi tomada e o inimigo herdou o seu império! A sua nave decola: recomece de lá.",
+	"conquer": "Você tomou uma base e herdou o império inteiro dela!",
 }
 
+var remember := false   # partida normal: as dicas que o perfil já registrou não voltam; as novas ficam registradas
 var shown: Array[String] = []   # ids das dicas já mostradas (os testes leem)
 var _label: Label
 var _panel: PanelContainer
@@ -53,6 +63,10 @@ func _ready() -> void:
 	EventBus.damage_taken.connect(func(victim: int, _points: int, _cause: String): if victim == Civilization.PLAYER_ID: tip("hurt"))
 	EventBus.global_event_warning.connect(func(_name: String, seconds: int): if seconds > 0: tip("event"))
 	EventBus.bonus_stock_changed.connect(func(owner: int, kinds: Array): if owner == Civilization.PLAYER_ID and not kinds.is_empty(): tip("bonus"))
+	EventBus.trail_cut.connect(func(_victim: int, attacker: int): if attacker == Civilization.PLAYER_ID: tip("cut"))
+	EventBus.health_changed.connect(func(owner: int, points: int, _max: int): if owner == Civilization.PLAYER_ID and points == 1: tip("lowhp"))
+	EventBus.trail_anchor_lost.connect(func(owner: int): if owner == Civilization.PLAYER_ID: tip("anchor"))
+	EventBus.base_fallen.connect(_on_base_fallen)
 
 
 func _process(delta: float) -> void:
@@ -63,6 +77,13 @@ func _process(delta: float) -> void:
 		tip("loop")
 
 
+func _on_base_fallen(owner: int, conqueror: int) -> void:
+	if owner == Civilization.PLAYER_ID:
+		tip("fallen")
+	elif conqueror == Civilization.PLAYER_ID:
+		tip("conquer")
+
+
 func _on_claimed(owner: int, new_cells: int) -> void:
 	if owner == Civilization.PLAYER_ID and new_cells > 0:
 		_closed_loop = true
@@ -71,8 +92,14 @@ func _on_claimed(owner: int, new_cells: int) -> void:
 
 ## Mostra a dica `id` se ainda não saiu. Uma nova troca a anterior na hora (o que acabou de acontecer vale mais).
 func tip(id: String) -> void:
-	if shown.has(id) or not TIPS.has(id):
+	if shown.has(id) or not TIPS.has(id) or (remember and TRAINING_ONLY.has(id)):
 		return
+	var seen: Array = Profile.data.get("tips_seen", [])
+	if remember and seen.has(id):
+		return
+	if not seen.has(id):   # o treino também registra: quem já viu na largada não revê na partida normal
+		seen.append(id)
+		Profile.data["tips_seen"] = seen
 	shown.append(id)
 	_label.text = TIPS[id]
 	if _tween != null:

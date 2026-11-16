@@ -17,7 +17,8 @@ static var data := {}
 
 static func defaults() -> Dictionary:
 	return {"xp": 0, "coins": 0, "gems": 0, "matches": 0, "wins": 0, "best_percent": 0.0,
-			"loops": 0, "cuts": 0, "kills": 0, "achievements": {}, "rating": RATING_START, "planet": "medio"}
+			"loops": 0, "cuts": 0, "kills": 0, "achievements": {}, "rating": RATING_START, "planet": "medio",
+			"tips_seen": []}   # Passo 130: ids das dicas de contexto que o jogador já viu (texto, não número: o JSON troca 5 por 5.0)
 
 
 ## Habilidade (cap. 03 parte 02, matchmaking): sobe ou desce conforme a colocação final (1 = primeiro, 0 = nunca pontuou).
