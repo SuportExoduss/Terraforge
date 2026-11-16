@@ -47,6 +47,10 @@ var _category := PackedInt32Array()
 var _ordinal := PackedInt32Array()       # vaga do slot dentro do multimesh da categoria dele
 var _category_size := PackedInt32Array()
 var _base_radius := PackedFloat32Array() # raio do terreno SEM a camada do bioma (0 = ainda não medido)
+var _solid := PackedInt32Array()         # índices dos slots de categoria sólida (SOLID_RADIUS > 0)
+var _put_version := PackedInt32Array()   # TerritoryPainter.version na última vez que o slot foi posto no chão
+var _warm: Array[Vector2i] = []          # (dono, categoria) cujo grupo vivo ainda será montado, um por quadro
+var _warmed := false
 var _key := PackedInt32Array()           # grupo em que o slot está hoje (-1 = vazio)
 var _age := PackedFloat32Array()
 var _growing: Array[int] = []
@@ -83,23 +87,29 @@ func push_out(point: Vector3, body_radius: float) -> Vector3:
 	if planet == null:
 		return Vector3.ZERO
 	var height := (point - planet.center).length()
+	if height < 0.001:
+		return Vector3.ZERO
+	var up := (point - planet.center) / height
+	var half_inv_sq := 0.5 / (height * height)
 	var total := Vector3.ZERO
-	for i in _dirs.size():
-		var reach := SOLID_RADIUS[_category[i]]
-		if _key[i] < 0 or reach <= 0.0:
+	for i in _solid:   # só as categorias sólidas (~30% dos slots)
+		if _key[i] < 0:
+			continue
+		var reach := SOLID_RADIUS[_category[i]] + body_radius
+		if _dirs[i].dot(up) <= 1.0 - reach * reach * half_inv_sq:   # corda² = 2h²(1-cos): descarta o longe sem raiz quadrada
 			continue
 		var diff := point - (planet.center + _dirs[i] * height)
 		var d := diff.length()
-		if d < reach + body_radius:
-			total += (diff / d if d > 0.01 else Vector3.RIGHT) * (reach + body_radius - d)
+		if d < reach:
+			total += (diff / d if d > 0.01 else Vector3.RIGHT) * (reach - d)
 	return total
 
 
 ## SYS-007 + eventos: os obstáculos num raio somem por `seconds` e depois voltam (crescendo, como em DD-117).
 func suppress_around(center: Vector3, radius: float, seconds: float) -> void:
 	var planet := Services.planet
-	for i in _dirs.size():
-		if SOLID_RADIUS[_category[i]] > 0.0 				and (planet.center + _dirs[i] * (center - planet.center).length()).distance_to(center) <= radius:
+	for i in _solid:
+		if (planet.center + _dirs[i] * (center - planet.center).length()).distance_to(center) <= radius:
 			_suppressed[i] = seconds
 
 
@@ -109,6 +119,14 @@ func _process(delta: float) -> void:
 	if planet == null or not planet.surface_ready or Services.themes == null \
 			or map == null or not map.has_method("get_owner_at"):
 		return
+	if not _warmed:
+		_start_warm()
+	elif not _warm.is_empty():   # um grupo por quadro: nenhum modelo é montado pela primeira vez no meio da jogada
+		var next: Vector2i = _warm.pop_back()
+		var theme := Services.themes.theme_of(next.x)
+		var warm_key := _group_key(next.x, next.y, false)
+		if theme != null and not _groups.has(warm_key):
+			_groups[warm_key] = _build_group(theme, next.y, false)
 	for i in CHECKS_PER_FRAME:
 		_refresh(_cursor, planet, map)
 		_cursor = (_cursor + 1) % _dirs.size()
@@ -117,6 +135,17 @@ func _process(delta: float) -> void:
 		_suppressed[i] -= delta
 		if _suppressed[i] <= 0.0:
 			_suppressed.erase(i)
+
+
+# Fila de montagem dos grupos vivos das civilizações da partida (a 1 primeiro: pop_back tira do fim).
+func _start_warm() -> void:
+	_warmed = true
+	var civs := Services.themes.civilization_themes.size()
+	if Services.match_def != null:
+		civs = mini(civs, Services.match_def.bots + 1)
+	for owner_id in range(civs, 0, -1):
+		for category in range(WEIGHTS.size() - 1, -1, -1):
+			_warm.append(Vector2i(owner_id, category))
 
 
 func _generate(radius: float, count: int) -> void:
@@ -149,6 +178,11 @@ func _generate(radius: float, count: int) -> void:
 	_key.fill(-1)
 	_age.resize(_dirs.size())
 	_age.fill(0.0)
+	_put_version.resize(_dirs.size())
+	_put_version.fill(-1)
+	for i in _dirs.size():
+		if SOLID_RADIUS[_category[i]] > 0.0:
+			_solid.append(i)
 
 
 func _too_close(dir: Vector3, min_dot: float) -> bool:
@@ -162,8 +196,8 @@ func _refresh(i: int, planet: Planet, map: Object) -> void:
 	var owner_id: int = map.get_owner_at(planet.center + _dirs[i] * planet.radius)
 	var key := _wanted_key(i, owner_id)
 	if key == _key[i]:
-		if key >= 0 and _age[i] >= GROW_SECONDS:
-			_put(i, planet, 1.0)   # o bioma pode ter terminado de subir depois da revelação
+		if key >= 0 and _age[i] >= GROW_SECONDS and _put_version[i] != _paint_version(planet):
+			_put(i, planet, 1.0)   # o bioma subiu depois da revelação (só se a pintura mexeu desde a última vez)
 		return
 	_hide(i)
 	if key < 0:
@@ -188,10 +222,19 @@ func _wanted_key(i: int, owner_id: int) -> int:
 	if theme == null or _roll[i] > theme.density_of(_category[i]):
 		return -1
 	var dead := _dead.has(owner_id)
-	var key := (owner_id * PlanetTheme.SLOT_COUNT + _category[i]) * 2 + (1 if dead else 0)
+	var key := _group_key(owner_id, _category[i], dead)
 	if not _groups.has(key):
 		_groups[key] = _build_group(theme, _category[i], dead)
 	return key if _groups[key] != null else -1
+
+
+# Chave do grupo (dono, categoria, vivo/morto).
+func _group_key(owner_id: int, category: int, dead: bool) -> int:
+	return (owner_id * PlanetTheme.SLOT_COUNT + category) * 2 + (1 if dead else 0)
+
+
+func _paint_version(planet: Planet) -> int:
+	return planet.painter.version if planet.painter != null else 0
 
 
 # O slot deixa de mostrar o que mostrava: o modelo antigo ENCOLHE (LEAVE_SECONDS) e só então some.
@@ -226,6 +269,7 @@ func _grow(delta: float, planet: Planet) -> void:
 
 # Põe o slot no chão (terreno + camada do bioma, DD-121), em pé, girado, com `grow` de 0 a 1 (DD-117).
 func _put(i: int, planet: Planet, grow: float) -> void:
+	_put_version[i] = _paint_version(planet)
 	_put_key(i, _key[i], planet, grow)
 
 

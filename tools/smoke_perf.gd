@@ -60,6 +60,27 @@ func _run() -> void:
 	_check(not meter.overlay_visible and not meter._label.visible, "F3 de novo esconde o painel")
 	meter.free()
 
+	# 1b. Resolução adaptativa (celular): lento abaixa um passo (piso 50%), folgado e calmo devolve (teto = a da qualidade)
+	var gov = load("res://scripts/core/perf_meter.gd")
+	_check(is_equal_approx(gov.next_scale(0.85, 0.85, 30.0, false), 0.80), "quadro lento (30 ms) abaixa a resolução um passo")
+	_check(is_equal_approx(gov.next_scale(0.50, 0.85, 40.0, false), 0.50), "a resolução nunca passa do piso de 50%")
+	_check(is_equal_approx(gov.next_scale(0.70, 0.85, 12.0, true), 0.75), "quadro folgado e calmo devolve um passo")
+	_check(is_equal_approx(gov.next_scale(0.70, 0.85, 12.0, false), 0.70), "sem calma (caiu há pouco) não sobe")
+	_check(is_equal_approx(gov.next_scale(0.85, 0.85, 12.0, true), 0.85), "a resolução nunca passa do teto da qualidade")
+	_check(is_equal_approx(gov.next_scale(0.70, 0.85, 20.0, true), 0.70), "entre FAST e SLOW fica onde está")
+	var governed: Node = gov.new()   # a fiação: um quadro lento de verdade derruba a resolução da janela; ao sair, a escolhida volta
+	governed.governor_on = true
+	governed.set_process(false)
+	root.add_child(governed)
+	await process_frame
+	var scale_before := root.scaling_3d_scale
+	governed._govern(2.5)
+	_check(root.scaling_3d_scale < scale_before, "_govern abaixa a resolução 3D da janela (%.2f -> %.2f)" % [scale_before, root.scaling_3d_scale])
+	governed.free()
+	_check(is_equal_approx(root.scaling_3d_scale, scale_before), "ao sair, a resolução escolhida volta (%.2f)" % root.scaling_3d_scale)
+	var settings = load("res://scripts/core/settings.gd")   # load(): `Settings` direto compilaria antes dos autoloads
+	_check(settings.default_quality() == (1 if OS.has_feature("mobile") else settings.DEFAULTS["quality"]), "qualidade padrão: MÉDIA no celular, a do projeto no PC")
+
 	# 3 e 4. Partida: medidor colhendo quadros, oclusor do planeta
 	var before := _nodes()
 	var match_scene: Node = load("res://scenes/match.tscn").instantiate()

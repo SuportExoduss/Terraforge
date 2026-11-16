@@ -82,6 +82,24 @@ func _run() -> void:
 	print("obstáculos sólidos=%d, menor corredor=%.2f" % [solids.size(), worst])
 	if not _check(worst >= 2.0, "dois obstáculos fecham a rota (corredor %.2f)" % worst): return
 
+	# 1b. push_out otimizado (só sólidos + corda²) dá o MESMO deslocamento da conta direta sobre todos os slots
+	var worst_diff := 0.0
+	for n in 60:
+		var probe_dir: Vector3 = _slots._dirs[solids[n % solids.size()]].rotated(Vector3.UP, 0.004 * n).normalized()
+		var probe: Vector3 = planet.center + probe_dir * (planet.get_surface_radius(probe_dir) + 0.1 * (n % 3))
+		var expected := Vector3.ZERO
+		var height: float = (probe - planet.center).length()
+		for k in _slots._dirs.size():
+			var r: float = _slots.SOLID_RADIUS[_slots._category[k]]
+			if _slots._key[k] < 0 or r <= 0.0:
+				continue
+			var diff: Vector3 = probe - (planet.center + _slots._dirs[k] * height)
+			var d := diff.length()
+			if d < r + 0.6:
+				expected += (diff / d if d > 0.01 else Vector3.RIGHT) * (r + 0.6 - d)
+		worst_diff = maxf(worst_diff, (_slots.push_out(probe, 0.6) - expected).length())
+	if not _check(worst_diff < 0.001, "push_out difere da conta direta em %.4f" % worst_diff): return
+
 	# 2. Colisão: corredor perto do centro do obstáculo é empurrado para a borda
 	var target: int = solids[0]
 	var dir: Vector3 = _slots._dirs[target]

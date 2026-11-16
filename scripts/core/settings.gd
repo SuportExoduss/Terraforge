@@ -13,7 +13,12 @@ const QUALITY_MSAA := [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4
 
 static func get_value(key: String) -> Variant:
 	var saved: Dictionary = Profile.data.get("settings", {})
-	return saved.get(key, DEFAULTS[key])
+	return saved.get(key, default_quality() if key == "quality" else DEFAULTS[key])
+
+
+## Celular começa em MÉDIA (resolução 85%, MSAA 2X): ALTA (4X, 100%) pesa demais na GPU de um aparelho comum.
+static func default_quality() -> int:
+	return 1 if OS.has_feature("mobile") else DEFAULTS["quality"]
 
 
 ## Passo 55 (UI-006): multiplicador da direção do jogador, de 0,5 a 1,5.

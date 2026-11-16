@@ -11,7 +11,8 @@ var _seconds := 25.0
 var _frames := 0
 var _taken: Array = []        # nós assumidos (na ordem da árvore)
 var _total := {}              # "caminho:função" -> [µs somados, pior µs, chamadas]
-var _worst_frames: Array = [] # [µs do quadro, nome do mais caro]
+var _worst_frames: Array = [] # [µs do quadro, nome do mais caro, nº do quadro]
+var _marks := {}              # nº do quadro -> eventos do EventBus que aconteceram nele
 
 
 func _initialize() -> void:
@@ -23,6 +24,10 @@ func _initialize() -> void:
 	_match.get_node("MatchSetup").bot_count = 5
 	_match.get_node("MatchTimer").duration_seconds = _seconds + 60.0
 	root.add_child(_match)
+	var bus: Node = root.get_node("EventBus")
+	for sig in ["territory_loop_closed", "territory_loop_claimed", "global_event_active_changed", "global_event_warning", "weather_changed", "civilization_killed", "base_fallen", "trail_cut", "obstacles_cleared", "bonus_activated", "radial_damage", "match_state_changed"]:
+		bus.connect(sig, func(a = null, _b = null, _c = null, _d = null, _e = null, _f = null) -> void: _marks[_frames] = _marks.get(_frames, "") + " " + sig + ("" if a == null or a is PackedVector3Array else "(%s)" % str(a)))
+
 	node_added.connect(func(n): _adopt.call_deferred(n))
 	for n in _match.find_children("*", "", true, false):
 		_adopt(n)
@@ -71,7 +76,7 @@ func _process(delta: float) -> bool:
 			if us > worst_us:
 				worst_us = us
 				worst_name = key
-	_worst_frames.append([frame_us, worst_name])
+	_worst_frames.append([frame_us, worst_name, _frames])
 	if _frames >= _seconds * 60.0:
 		_report()
 		quit()
@@ -101,10 +106,19 @@ func _report() -> void:
 	_worst_frames.sort_custom(func(a, b): return a[0] > b[0])
 	_say("--- piores quadros de script (ms · o mais caro dentro dele)")
 	for f in _worst_frames.slice(0, 12):
-		_say("  %6.1f  %s" % [f[0] / 1000.0, f[1]])
+		_say("  %6.1f  %s  (quadro %d)%s" % [f[0] / 1000.0, f[1], f[2], _around(f[2])])
 	var over := 0
 	for f in _worst_frames:
 		if f[0] > 12000:
 			over += 1
 	_say("quadros de script acima de 12 ms: %d de %d" % [over, _frames])
 	_say("FIM")
+
+
+## Eventos do EventBus perto de um quadro (2 antes, 1 depois): o que provavelmente causou o pico.
+func _around(frame: int) -> String:
+	var out := ""
+	for k in range(frame - 2, frame + 2):
+		if _marks.has(k):
+			out += "  [%+d:%s ]" % [k - frame, _marks[k]]
+	return out

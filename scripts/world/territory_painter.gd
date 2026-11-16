@@ -34,6 +34,7 @@ var _queue: Array = []           # conquistas na ordem lógica: {owner, cells, s
 var _dead := {}                  # id -> true (Death Biome, DD-122)
 var _dirty := false
 var _since_upload := 0.0
+var version := 0                 # sobe a cada carimbo: quem mediu a elevação sabe se o chão mudou desde então
 
 
 func _ready() -> void:
@@ -168,6 +169,7 @@ func _stamp_range(wave: Dictionary, to: int, lead: bool) -> void:
 	for i in range(from, to):
 		_stamp((cells[i] - center).normalized(), radius, own_color, id_color)
 	wave[key] = to
+	version += 1
 	_dirty = true
 
 
