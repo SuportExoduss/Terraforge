@@ -11,11 +11,13 @@ const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const Leagues := preload("res://scripts/core/leagues.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
 const FOCUS_DELAY := 0.6   # Passo 71: espera antes de dar foco ao JOGAR DE NOVO
+const BACK_DELAY_MSEC := 1000   # Passo 128: logo que os resultados abrem, VOLTAR ainda não sai deles
 
 var _panel: PanelContainer
 var _text: RichTextLabel
 var _stats: RichTextLabel   # "SUAS ESTATÍSTICAS" (apuração, MatchStats)
 var _rewards: RichTextLabel # "RECOMPENSAS" (XP, moedas, nível, conquistas: MatchRewards)
+var _shown_msec := 0
 
 
 func _ready() -> void:
@@ -89,6 +91,13 @@ func _ready() -> void:
 	EventBus.match_state_changed.connect(_on_state)
 
 
+func _unhandled_input(event: InputEvent) -> void:   # Passo 128: ESC / botão voltar do Android = MENU
+	if _panel.visible and event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		if Time.get_ticks_msec() - _shown_msec >= BACK_DELAY_MSEC:
+			_go_menu()
+
+
 func _play_again() -> void:
 	if Services.match_def != null and Services.match_def.tutorial:   # Passo 106: depois do treino, o próximo é o planeta de verdade
 		Services.match_def = PlanetDef.by_id(str(Profile.data.get("planet", "medio")))
@@ -119,6 +128,7 @@ func _on_state(state: int) -> void:
 	elif state == MatchFlow.State.RESULTS:
 		_rewards.text = _rewards_text()   # a concessão já aconteceu na apuração
 		_panel.visible = true
+		_shown_msec = Time.get_ticks_msec()
 		# Passo 71 (DD-038): ENTER já joga de novo. O foco vem com atraso: quem acabou de pular o replay com ENTER/ESPAÇO
 		# não reinicia a partida sem querer antes de ver o resultado.
 		get_tree().create_timer(FOCUS_DELAY).timeout.connect(func() -> void:

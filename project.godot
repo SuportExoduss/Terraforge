@@ -5,11 +5,13 @@ config_version=5
 config/name="Terraforge"
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
+config/quit_on_go_back=false
 config/icon="res://icon.svg"
 
 [autoload]
 EventBus="*res://scripts/core/event_bus.gd"
 Services="*res://scripts/core/services.gd"
+BackButton="*res://scripts/core/back_button.gd"
 
 [display]
 window/size/viewport_width=960

@@ -10,6 +10,10 @@ var _time := 0.0
 
 
 func _initialize() -> void:
+	Profile.path = "user://profile_smoke_approach.json"   # perfil próprio, de quem já jogou: não suja o profile_headless.json dos outros testes
+	Profile.data = Profile.defaults()
+	Profile.data["matches"] = 1
+	Profile.save()
 	var menu: Node = load("res://scenes/menu.tscn").instantiate()
 	root.add_child(menu)
 	current_scene = menu

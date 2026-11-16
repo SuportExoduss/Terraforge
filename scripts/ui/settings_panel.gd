@@ -75,6 +75,12 @@ func close() -> void:
 	closed.emit()
 
 
+func _unhandled_input(event: InputEvent) -> void:   # Passo 128: ESC / botão voltar do Android
+	if event.is_action_pressed("ui_cancel"):
+		accept_event()
+		close()
+
+
 func _add_slider(parent: Control, node_name: String, label_text: String, key: String) -> void:
 	var label := Label.new()
 	label.text = label_text

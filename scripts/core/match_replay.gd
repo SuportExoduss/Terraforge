@@ -81,6 +81,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	var skip: bool = (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed
 	if event is InputEventKey and event.pressed and not event.echo:
 		skip = event.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE]
+	elif event is InputEventAction:   # Passo 128: o botão voltar do Android chega como ui_cancel
+		skip = event.is_action_pressed("ui_cancel")
 	if skip:
 		get_viewport().set_input_as_handled()
 		Services.flow.skip_replay()

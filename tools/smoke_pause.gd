@@ -34,6 +34,10 @@ func _frames(count: int) -> void:
 
 
 func _run() -> void:
+	Profile.path = "user://profile_smoke_pause.json"   # perfil próprio, de quem já jogou: não suja o profile_headless.json dos outros testes
+	Profile.data = Profile.defaults()
+	Profile.data["matches"] = 1
+	Profile.save()
 	_bus = root.get_node("EventBus")
 	var services: Node = root.get_node("Services")
 	var match_scene: Node = load("res://scenes/match.tscn").instantiate()

@@ -13,8 +13,13 @@ const PlanetScreen := preload("res://scripts/ui/planet_screen.gd")
 const MENU_SCENE := "res://scenes/menu.tscn"
 const MATCH_SCENE := "res://scenes/match.tscn"
 
+const EXIT_WINDOW_MSEC := 2000   # Passo 128: dois VOLTAR dentro disto saem do jogo
+
 var approach_seconds := 1.8   # duração do mergulho no planeta ao clicar JOGAR
+var quit_action: Callable = _quit_game   # o teste troca (sair de verdade encerraria o teste)
 var _launching := false
+var _back_msec := -100000
+var _hint_tween: Tween
 
 
 func _ready() -> void:
@@ -136,6 +141,42 @@ func _play() -> void:
 		get_tree().change_scene_to_packed(scene)
 	else:
 		get_tree().change_scene_to_file(MATCH_SCENE)   # a carga falhou: tenta do jeito simples (e mostra o erro)
+
+
+## Passo 128: VOLTAR/ESC aqui avisa e, repetido em 2 s, sai. As telas abertas por cima tratam o próprio voltar antes (e engolem o evento).
+func _unhandled_input(event: InputEvent) -> void:
+	if _launching or not event.is_action_pressed("ui_cancel"):
+		return
+	get_viewport().set_input_as_handled()
+	var now := Time.get_ticks_msec()
+	if now - _back_msec <= EXIT_WINDOW_MSEC:
+		quit_action.call()
+		return
+	_back_msec = now
+	var hint := get_node_or_null("ExitHint") as Label
+	if hint == null:
+		hint = Label.new()
+		hint.name = "ExitHint"
+		hint.text = "TOQUE VOLTAR DE NOVO PARA SAIR"
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		hint.offset_top = -64.0
+		hint.offset_bottom = -24.0
+		hint.add_theme_font_size_override("font_size", 20)
+		hint.add_theme_color_override("font_outline_color", Color.BLACK)   # lê sobre o planeta
+		hint.add_theme_constant_override("outline_size", 6)
+		add_child(hint)
+	hint.modulate.a = 1.0
+	if _hint_tween != null:
+		_hint_tween.kill()
+	_hint_tween = create_tween()
+	_hint_tween.tween_interval(EXIT_WINDOW_MSEC / 1000.0 - 0.4)
+	_hint_tween.tween_property(hint, "modulate:a", 0.0, 0.4)
+
+
+func _quit_game() -> void:
+	get_tree().quit()
 
 
 func _open_settings() -> void:
