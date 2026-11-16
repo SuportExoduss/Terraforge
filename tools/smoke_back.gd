@@ -46,7 +46,7 @@ func _run() -> void:
 	var back: Node = root.get_node_or_null("BackButton")
 	_check(back != null, "o autoload BackButton deve existir")
 	var probe := Node.new()
-	probe.set_script(load("res://tools/smoke_back_probe.gd"))
+	probe.set_script(load("res://tools/probe_back.gd"))
 	root.add_child(probe)
 	probe.hit.connect(func() -> void: _seen += 1)
 	root.propagate_notification(Node.NOTIFICATION_WM_GO_BACK_REQUEST)   # é assim que o Android avisa
