@@ -7,6 +7,7 @@ extends Node
 
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
+const Leagues := preload("res://scripts/core/leagues.gd")
 
 const XP_PARTICIPATION := 50
 const XP_PLACE := [100, 50, 25]     # 1º, 2º e 3º lugar
@@ -79,6 +80,9 @@ func _grant() -> void:
 	data["kills"] += kills
 	var rating_before := int(data["rating"])
 	data["rating"] = Profile.rating_after(rating_before, place)
+	var promo := Leagues.promotion_gems(int(data["league_best"]), int(data["rating"]))   # Passo 139 (DD-178)
+	data["league_best"] = maxi(int(data["league_best"]), Leagues.index_of(int(data["rating"])))
+	data["gems"] = int(data.get("gems", 0)) + promo
 	Profile.add_history(DailyMissions.today(), place, percent, int(data["rating"]) - rating_before)   # Passo 137 (DD-176)
 
 	# Conquistas: o que o snapshot cumpre menos o que o perfil já tem (guarda o instante em que saiu)
@@ -101,4 +105,4 @@ func _grant() -> void:
 	Profile.save()
 	last = {"xp": xp, "coins": coins, "gems": gems, "level_before": level_before, "level": Profile.level(), "place": place,
 			"percent": percent, "new_achievements": fresh, "new_titles": titles, "rating_before": rating_before, "rating": data["rating"], "pass_before": pass_before,
-			"first_win_coins": FIRST_WIN_COINS if first_win else 0}
+			"first_win_coins": FIRST_WIN_COINS if first_win else 0, "promo_gems": promo}

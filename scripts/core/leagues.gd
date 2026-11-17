@@ -15,6 +15,9 @@ const TIERS := [
 	["Lenda", 2100, Color(0.86, 0.58, 1.0)],
 ]
 
+# Passo 139 (DD-178): gemas pela PRIMEIRA vez que o jogador chega em cada liga (índice = liga); só cosmético/meta, sem poder.
+const PROMOTION_GEMS := [0, 3, 5, 8, 12, 20]
+
 
 ## Índice da liga (0 = Bronze) para essa habilidade.
 static func index_of(rating: int) -> int:
@@ -60,3 +63,12 @@ static func result_line(before: int, after: int) -> String:
 		return line + "\nCaiu para a Liga %s" % TIERS[la][0]
 	var need := to_next(after)
 	return line + "  ·  %s" % TIERS[la][0] + ("" if need == 0 else "\nFaltam %d para %s" % [need, TIERS[la + 1][0]])
+
+
+## Gemas de promoção: soma das ligas acima de `best` (a mais alta já premiada) até a liga dessa habilidade.
+## Cair e subir de novo não paga outra vez (quem chama grava o novo `best`); perfil antigo recebe o que já tinha alcançado.
+static func promotion_gems(best: int, rating: int) -> int:
+	var total := 0
+	for i in range(best + 1, index_of(rating) + 1):
+		total += int(PROMOTION_GEMS[i])
+	return total

@@ -185,6 +185,8 @@ func _rewards_text() -> String:
 	if int(last.get("first_win_coins", 0)) > 0:   # Passo 135 (DD-174)
 		lines.append("1ª vitória do dia: +%d moedas" % last["first_win_coins"])
 	lines.append(Leagues.result_line(int(last.get("rating_before", last.get("rating", 0))), int(last.get("rating", 0))))   # Passo 122 (DD-162)
+	if int(last.get("promo_gems", 0)) > 0:   # Passo 139 (DD-178)
+		lines.append("Bônus de promoção: +%d gemas" % last["promo_gems"])
 	lines.append(SeasonPass.result_line(int(last.get("pass_before", 0))))   # Passo 123 (DD-163)
 	if int(last.get("gems", 0)) > 0:
 		lines.append("+%d gemas" % last["gems"])
