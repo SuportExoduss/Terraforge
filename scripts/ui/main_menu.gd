@@ -221,7 +221,7 @@ func _add_dock(dock: Control, button_name: String, label: String, screen_class: 
 
 ## Passo 115: "MISSÕES (2)" quando há missão pronta para resgatar.
 func _refresh_missions_badge() -> void:
-	var n := DailyMissions.claimable()
+	var n := DailyMissions.badge()   # Passo 140: conta também o presente do dia
 	get_node("Box/Dock/Missions").text = "MISSÕES (%d)" % n if n > 0 else "MISSÕES"
 
 

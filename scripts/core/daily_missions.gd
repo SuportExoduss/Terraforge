@@ -174,6 +174,46 @@ static func weekly_claim() -> bool:
 	return true
 
 
+## Passo 140 (DD-179): PRESENTE DO DIA — abrir a tela de missões e pegar o presente de hoje (sem precisar jogar) rende moedas; 7 dias
+## seguidos completam o calendário (o 7º traz também gemas) e ele recomeça. Faltar um dia volta ao dia 1. Só moedas/gemas, sem poder.
+## Dados: `Profile.data["gift"] = {count, last_day}` (count = dias seguidos pegos).
+const GIFT_COINS := [10, 15, 20, 25, 30, 40, 60]
+const GIFT_GEMS := 2   # a mais, no 7º dia
+
+
+static func gift_ready() -> bool:
+	return int(Profile.data.get("gift", {}).get("last_day", -10)) != today()
+
+
+## Dias seguidos já pegos (0 se ontem passou em branco).
+static func gift_run() -> int:
+	var g: Dictionary = Profile.data.get("gift", {})
+	return int(g.get("count", 0)) if int(g.get("last_day", -10)) >= today() - 1 else 0
+
+
+## Posição (0..6) no calendário: o presente que está na vez, ou o que acabou de ser pego hoje.
+static func gift_slot() -> int:
+	return (gift_run() if gift_ready() else gift_run() - 1) % GIFT_COINS.size()
+
+
+## Pega o presente de hoje (uma vez por dia). Grava o perfil.
+static func gift_claim() -> bool:
+	if not gift_ready():
+		return false
+	var slot := gift_slot()
+	Profile.data["coins"] = int(Profile.data["coins"]) + int(GIFT_COINS[slot])
+	if slot == GIFT_COINS.size() - 1:
+		Profile.data["gems"] = int(Profile.data.get("gems", 0)) + GIFT_GEMS
+	Profile.data["gift"] = {"count": gift_run() + 1, "last_day": today()}
+	Profile.save()
+	return true
+
+
+## O número do aviso do menu: missões prontas + o presente do dia, se ainda não foi pego.
+static func badge() -> int:
+	return claimable() + (1 if gift_ready() else 0)
+
+
 ## Quantos dias faltam para o próximo prêmio de sequência (1..7).
 static func days_to_streak_prize() -> int:
 	return STREAK_PERIOD - streak_days() % STREAK_PERIOD
