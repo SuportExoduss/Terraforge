@@ -120,18 +120,26 @@ func ability_kind(id: int) -> String:
 ## Dispara a habilidade do corredor `id`; false se ainda recarrega, ele não está em campo ou ela não teria efeito (sem alvo / vida cheia).
 func use_ability(id: int) -> bool:
 	if _ability_cd.has(id):
+		_deny(id, "RECARREGANDO · %d s" % ceili(_ability_cd[id]))
 		return false
 	var runner := _runner_of(id)
 	if runner == null or not runner.is_active_in_field():
 		return false
 	var kind := ability_kind(id)
 	if not _cast(kind, runner):
+		_deny(id, "VIDA CHEIA" if kind == "heal" else "SEM RIVAL AO ALCANCE")
 		return false
 	_ability_cd[id] = ability_cooldown
 	EventBus.ability_used.emit(id, kind)
 	EventBus.ability_charging.emit(id, ability_cooldown, kind)
 	GameLog.say("[Gameplay] Civilização %d usou a habilidade %s." % [id, kind])
 	return true
+
+
+## Passo 159: o pedido do JOGADOR que não saiu avisa o porquê (antes ficava mudo e parecia que a tecla não funcionava). Bots não avisam.
+func _deny(id: int, reason: String) -> void:
+	if id == Civilization.PLAYER_ID:
+		EventBus.ability_failed.emit(id, ability_kind(id), reason)
 
 
 func _cast(kind: String, runner: PlanetRunner) -> bool:

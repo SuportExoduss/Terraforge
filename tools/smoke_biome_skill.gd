@@ -15,6 +15,7 @@ var _planet: Node
 var _time := 0.0
 var _used: Array = []       # ability_used(id, habilidade)
 var _charging: Array = []   # ability_charging(id, recarga, habilidade), desde a largada
+var _failed: Array = []     # ability_failed(id, habilidade, motivo): Passo 159
 
 
 func _initialize() -> void:
@@ -27,6 +28,7 @@ func _initialize() -> void:
 	_bus = root.get_node("EventBus")
 	_bus.ability_used.connect(func(id, kind): _used.append([id, kind]))
 	_bus.ability_charging.connect(func(id, cd, kind): _charging.append([id, cd, kind]))
+	_bus.ability_failed.connect(func(id, kind, why): _failed.append([id, kind, why]))   # Passo 159
 	_run()
 
 
@@ -155,7 +157,10 @@ func _run() -> void:
 	for kind in ["lasso", "emp", "cannon", "heal"]:
 		skills._kinds[1] = kind
 		skills._ability_cd.erase(1)
+		_failed.clear()
 		if not _check(not skills.use_ability(1) and skills.ability_ready(1) and _used.is_empty(), "%s sem alvo / vida cheia não gasta a carga" % kind): return
+		var why := "VIDA CHEIA" if kind == "heal" else "SEM RIVAL AO ALCANCE"   # Passo 159: e o jogador é avisado do porquê
+		if not _check(_failed == [[1, kind, why]], "%s sem alvo avisa '%s' (%s)" % [kind, why, _failed]): return
 
 	# 5a. Laço: só o rival mais próximo, a metade da velocidade
 	_near(b, runner, 10.0)

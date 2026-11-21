@@ -1,6 +1,6 @@
 extends SceneTree
 ## Teste de fumaça do Passo 60 (Cap.03 P08 INTERFACE): o botão da HUD mostra o próximo bônus guardado e o contador;
-## ESPAÇO e o toque no botão usam o bônus (outra tecla não); o toque no botão não vira direção; o botão some ao esvaziar.
+## a tecla E e o toque no botão usam o bônus (outra tecla não); o toque no botão não vira direção; o botão some ao esvaziar.
 ## Uso: godot_console --headless --path . -s res://tools/smoke_bonus_use.gd
 
 const SPEED := 0   # = BonusSystem.Kind (a classe não é citada: no modo -s ela compilaria antes dos autoloads)
@@ -66,12 +66,13 @@ func _run() -> void:
 	await process_frame
 	if not _check(button.visible and button.text.contains("VELOCIDADE") and button.text.contains("[2]"), "botão: '%s'" % button.text): return
 
-	# 2. Outra tecla e eco do ESPAÇO não usam; ESPAÇO usa o primeiro (Velocidade)
+	# 2. Outra tecla e eco do E não usam; E (letra, Passo 159) usa o primeiro (Velocidade)
 	hud._unhandled_input(_key(KEY_A))
-	hud._unhandled_input(_key(KEY_SPACE, true))
-	if not _check(bonuses.stock_of(1).size() == 2 and runner.speed_multiplier == 1.0, "só ESPAÇO (sem eco) deve usar"): return
-	hud._unhandled_input(_key(KEY_SPACE))
-	if not _check(absf(runner.speed_multiplier - 1.4) < 0.001, "ESPAÇO deveria ligar a Velocidade (%.2f)" % runner.speed_multiplier): return
+	hud._unhandled_input(_key(KEY_SPACE))   # o ESPAÇO deixou de ser a tecla do bônus
+	hud._unhandled_input(_key(KEY_E, true))
+	if not _check(bonuses.stock_of(1).size() == 2 and runner.speed_multiplier == 1.0, "só E (sem eco) deve usar"): return
+	hud._unhandled_input(_key(KEY_E))
+	if not _check(absf(runner.speed_multiplier - 1.4) < 0.001, "E deveria ligar a Velocidade (%.2f)" % runner.speed_multiplier): return
 	if not _check(button.visible and button.text.contains("CONGELAMENTO") and button.text.contains("[1]"), "botão depois: '%s'" % button.text): return
 
 	# 3. Toque no botão: não vira direção enquanto pressionado; ao soltar usa o item e o botão some
@@ -82,9 +83,9 @@ func _run() -> void:
 	if not _check(not TouchSteering.is_ui_pointer_held, "soltou: o ponteiro volta ao jogo"): return
 	if not _check(bonuses.stock_of(1).is_empty() and not button.visible, "estoque vazio: botão some"): return
 
-	# 4. Sem estoque, ESPAÇO não faz nada (e não quebra)
-	hud._unhandled_input(_key(KEY_SPACE))
-	if not _check(bonuses.stock_of(1).is_empty(), "ESPAÇO sem estoque"): return
+	# 4. Sem estoque, E não faz nada (e não quebra)
+	hud._unhandled_input(_key(KEY_E))
+	if not _check(bonuses.stock_of(1).is_empty(), "E sem estoque"): return
 
-	print("OK: botão da HUD mostra próximo+contador; ESPAÇO e toque usam o bônus; toque no botão não vira direção")
+	print("OK: botão da HUD mostra próximo+contador; a tecla E e o toque usam o bônus; toque no botão não vira direção")
 	quit(0)

@@ -5,7 +5,7 @@ extends Node
 signal base_fallen(owner_id: int, conqueror_id: int)
 signal base_relocated(owner_id: int, new_position: Vector3)
 signal bonus_activated(owner_id: int, kind: String, seconds: float)   # seconds = 0 -> efeito instantâneo
-signal bonus_use_requested(owner_id: int)   # o dono pediu o próximo bônus guardado (ESPAÇO ou toque na HUD)
+signal bonus_use_requested(owner_id: int)   # o dono pediu o próximo bônus guardado (a tecla de bônus, E, ou toque na HUD)
 signal bonus_stock_changed(owner_id: int, kinds: Array)   # estoque de bônus guardados (nomes, na ordem de uso)
 signal bonus_drop_requested(center: Vector3, count: int)
 signal civilization_eliminated(owner_id: int)
@@ -30,6 +30,7 @@ signal sprint_requested(owner_id: int)   # DD-182: pedido de sprint (botão da H
 signal sprint_used(owner_id: int, cooldown_seconds: float)   # DD-182: sprint ligado; a carga volta em `cooldown_seconds`
 signal ability_requested(owner_id: int)   # DD-183: pedido da habilidade do bioma (botão da HUD / E)
 signal ability_used(owner_id: int, ability_id: String)   # DD-183: habilidade disparada (som, efeitos)
+signal ability_failed(owner_id: int, ability_id: String, reason: String)   # Passo 159: o jogador pediu a habilidade e ela não saiu (recarregando, sem rival ao alcance, vida cheia); `reason` é o texto da HUD
 signal ability_charging(owner_id: int, cooldown_seconds: float, ability_id: String)   # DD-183: a carga volta em `cooldown_seconds` (na largada e a cada uso)
 signal territory_cells_claimed(owner_id: int, cell_positions: PackedVector3Array, cell_spacing: float)
 signal territory_cells_converted(conqueror_id: int, planet_fraction: float)   # parte do planeta tomada de OUTRAS civilizações

@@ -75,7 +75,7 @@ var _stock_kind := ""
 var _stock_count := 0
 var _ability_name := ""
 var _pause_button: Button           # Passo 156: tamanho e posição acompanham os Ajustes e a tela (_layout_actions)
-var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
+var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou a tecla de bônus (E) usa
 var _bonus_rows: Dictionary = {}     # nome do bônus -> linha (Top/Chip + Top/Bonus)
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
 var _pause_at := 0                   # Passo 127: ms de parede em que a pausa abriu (os relógios dos bônus são de parede)
@@ -162,6 +162,7 @@ func _ready() -> void:
 	EventBus.bonus_stock_changed.connect(_on_stock)
 	EventBus.sprint_used.connect(_on_sprint_used)
 	EventBus.ability_charging.connect(_on_ability_charging)
+	EventBus.ability_failed.connect(_on_ability_failed)
 	if Services.match_def != null and (Services.match_def.tutorial or (Settings.tips_on() and int(Profile.data.get("matches", 0)) < TutorialCoach.MEMORY_MATCHES)):
 		var coach := TutorialCoach.new()   # Passo 106: a primeira partida ensina jogando; Passo 130: as próximas, dicas de contexto (uma vez na vida)
 		coach.name = "Coach"
@@ -429,6 +430,12 @@ func _on_ability_charging(owner_id: int, cooldown: float, ability_id: String) ->
 	_ability_left = cooldown
 	_ability_total = cooldown
 	_refresh_ability()
+
+
+## Passo 159: a habilidade foi pedida e não saiu: o texto do porquê sobe na tela, na cor dela.
+func _on_ability_failed(owner_id: int, ability_id: String, reason: String) -> void:
+	if owner_id == Civilization.PLAYER_ID:
+		_pop_gain(reason, CivilizationCatalog.ability_named(ability_id).get("color", UiTheme.INK), 34)
 
 
 func _refresh_ability() -> void:

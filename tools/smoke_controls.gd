@@ -1,6 +1,6 @@
 extends SceneTree
 ## Teste de fumaça do Passo 156 (DD-195): CONFIGURAÇÃO DE CONTROLES. (1) Settings: tamanho dos botões 60%–140% (padrão 100%), tecla de cada
-## ação (padrão ALT / SHIFT / ESPAÇO, no PC), troca sem duplicar, teclas proibidas recusadas, tudo salvo e restaurável; (2) ControlLayout: o tamanho
+## ação (padrão ALT / SHIFT / E, no PC), troca sem duplicar, teclas proibidas recusadas, tudo salvo e restaurável; (2) ControlLayout: o tamanho
 ## cresce/encolhe com o ajuste, corrige pela densidade do toque e nunca passa da fatia da tela; (3) o painel de Ajustes: controle de tamanho
 ## com botão de amostra, clique-e-aperte para trocar a tecla, ESC cancela, proibida é ignorada, restaurar; (4) na partida: os botões da HUD
 ## seguem o tamanho, NÃO se sobrepõem (nem ao minimapa/pausa/bônus) e ficam dentro da tela em várias telas, e SÓ a tecla nova aciona o sprint.
@@ -54,8 +54,8 @@ func _run() -> void:
 
 	# 1. Settings
 	if not _check(is_equal_approx(S.button_scale(), 1.0), "tamanho padrão = 100%"): return
-	if not _check(S.key_for("sprint") == KEY_ALT and S.key_for("ability") == KEY_SHIFT and S.key_for("bonus") == KEY_SPACE and S.key_for("left") == KEY_LEFT and S.key_for("right") == KEY_RIGHT and S.key_for("map") == KEY_M, "teclas padrão ALT / SHIFT / ESPAÇO / ← / → / M"): return
-	if not _check(S.key_label("sprint") == "ALT" and S.key_label("ability") == "SHIFT" and S.key_label("bonus") == "ESPAÇO" and S.key_label("left") == "←" and S.key_label("map") == "M", "nomes padrão (%s %s %s %s %s)" % [S.key_label("sprint"), S.key_label("ability"), S.key_label("bonus"), S.key_label("left"), S.key_label("map")]): return
+	if not _check(S.key_for("sprint") == KEY_ALT and S.key_for("ability") == KEY_SHIFT and S.key_for("bonus") == KEY_E and S.key_for("left") == KEY_LEFT and S.key_for("right") == KEY_RIGHT and S.key_for("map") == KEY_M, "teclas padrão ALT / SHIFT / E / ← / → / M"): return
+	if not _check(S.key_label("sprint") == "ALT" and S.key_label("ability") == "SHIFT" and S.key_label("bonus") == "E" and S.key_label("left") == "←" and S.key_label("map") == "M", "nomes padrão (%s %s %s %s %s)" % [S.key_label("sprint"), S.key_label("ability"), S.key_label("bonus"), S.key_label("left"), S.key_label("map")]): return
 	S.set_value("btn_size", 0.0)
 	if not _check(is_equal_approx(S.button_scale(), 0.6), "tamanho mínimo = 60%"): return
 	S.set_value("btn_size", 5.0)
@@ -65,16 +65,16 @@ func _run() -> void:
 	if not _check(S.set_key("sprint", KEY_Q) and S.key_for("sprint") == KEY_Q and S.key_label("sprint") == "Q".to_upper(), "troca o SPRINT para Q"): return
 	if not _check(S.set_key("ability", KEY_Q) and S.key_for("ability") == KEY_Q and S.key_for("sprint") == KEY_SHIFT, "habilidade pega o Q; o SPRINT, que tinha o Q, fica com o SHIFT que era dela"): return
 	for blocked in [KEY_ESCAPE, KEY_ENTER, KEY_TAB, KEY_UP, KEY_DOWN, KEY_BACK, KEY_NONE]:
-		if not _check(not S.set_key("bonus", blocked) and S.key_for("bonus") == KEY_SPACE, "tecla proibida recusada (%d)" % blocked): return
+		if not _check(not S.set_key("bonus", blocked) and S.key_for("bonus") == KEY_E, "tecla proibida recusada (%d)" % blocked): return
 	if not _check(not S.set_key("inexistente", KEY_Z), "ação desconhecida é recusada"): return
 	_reload()
-	if not _check(S.key_for("sprint") == KEY_SHIFT and S.key_for("ability") == KEY_Q and S.key_for("bonus") == KEY_SPACE, "as teclas ficam salvas"): return
+	if not _check(S.key_for("sprint") == KEY_SHIFT and S.key_for("ability") == KEY_Q and S.key_for("bonus") == KEY_E, "as teclas ficam salvas"): return
 	var distinct := {}
 	for a: String in S.KEY_ACTIONS:
 		distinct[S.key_for(a)] = true
 	if not _check(distinct.size() == S.KEY_ACTIONS.size(), "cada ação com a sua tecla"): return
 	S.reset_controls()
-	if not _check(is_equal_approx(S.button_scale(), 1.0) and S.key_for("sprint") == KEY_ALT and S.key_for("ability") == KEY_SHIFT and S.key_for("bonus") == KEY_SPACE, "restaurar volta ao padrão"): return
+	if not _check(is_equal_approx(S.button_scale(), 1.0) and S.key_for("sprint") == KEY_ALT and S.key_for("ability") == KEY_SHIFT and S.key_for("bonus") == KEY_E, "restaurar volta ao padrão"): return
 
 	# 2. ControlLayout
 	var view := Vector2(960, 540)
@@ -143,7 +143,7 @@ func _run() -> void:
 	if not _check(sprint != null and ability != null and stock != null and pause != null and mini != null, "HUD tem sprint, habilidade, bônus, pausa e minimapa"): return
 	ability.visible = true
 	stock.visible = true
-	stock.text = "ESPAÇO · VELOCIDADE  [2]"
+	stock.text = "E · VELOCIDADE  [2]"
 	var sizes := {}
 	for window_size in [Vector2i(960, 540), Vector2i(844, 390), Vector2i(2400, 1080), Vector2i(1024, 768), Vector2i(1280, 800)]:
 		root.size = window_size
