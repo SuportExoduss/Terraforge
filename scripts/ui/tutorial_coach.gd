@@ -4,12 +4,15 @@ extends Control
 ## dela (um evento do jogo, ou um tempo sem ter feito a coisa). A HUD o cria no treino (`PlanetDef.tutorial`).
 ## Passo 130 (DD-169): também nas primeiras partidas normais (`remember`): cada dica sai UMA VEZ NA VIDA (o perfil guarda as vistas em
 ## `tips_seen`) e só as de contexto (as de largada e de lembrete são do treino). Passadas MEMORY_MATCHES partidas, a HUD nem o cria.
+## Passo 148 (DD-187): o treino também ensina o SPRINT (aos SPRINT_TIP_AT s) e a HABILIDADE (quando a 1ª carga fica pronta); cada uma some
+## se o jogador já usou o botão, e nenhuma corta a dica anterior (espera SHOW_SECONDS desde a última).
 ## ponytail: texto fixo em português na própria cena; vira tabela de tradução quando houver mais de um idioma.
 
 const SHOW_SECONDS := 6.0
 const NUDGE_SECONDS := 14.0   # sem fechar um circuito até aqui: lembra como se faz
 const MEMORY_MATCHES := 8   # a partir da 9ª partida o jogador já conhece o jogo: as dicas de contexto não saem mais
-const TRAINING_ONLY := ["steer", "loop"]   # a largada e o lembrete do circuito são do treino
+const SPRINT_TIP_AT := 7.0   # depois da dica de largada (6,9 s) e antes do lembrete do circuito (14 s)
+const TRAINING_ONLY := ["steer", "loop", "sprint", "ability"]   # a largada, o lembrete do circuito e os dois botões são do treino
 const TIPS := {
 	"steer": "Arraste para os lados (ou use as setas) para virar. Seu corredor anda sozinho e deixa um rastro: a sua cerca.",
 	"loop": "Saia da sua terra, faça uma curva e VOLTE para ela: o rastro fecha um circuito e tudo que ficou dentro vira seu.",
@@ -22,6 +25,8 @@ const TIPS := {
 	"anchor": "Tomaram a terra onde a sua cerca nasceu: o rastro evaporou, sem dano. Saia de novo de uma terra sua.",
 	"fallen": "Sua base foi tomada e o inimigo herdou o seu império! A sua nave decola: recomece de lá.",
 	"conquer": "Você tomou uma base e herdou o império inteiro dela!",
+	"sprint": "SPRINT: toque no botão » (ou aperte SHIFT) para uma corrida curta. Serve para fugir de um rival ou fechar o laço. Recarrega sozinho.",
+	"ability": "Sua habilidade especial está pronta: {h}! Botão ao lado do SPRINT (ou tecla E). Use com um rival por perto ou com a vida baixa. Recarrega sozinha.",
 }
 
 var remember := false   # partida normal: as dicas que o perfil já registrou não voltam; as novas ficam registradas
@@ -32,6 +37,10 @@ var _tween: Tween
 var _clock := 0.0
 var _started := false
 var _closed_loop := false
+var _last_tip := -100.0   # instante (relógio da partida) da última dica
+var _ability_at := -1.0   # instante em que a 1ª carga da habilidade fica pronta (-1 = ainda não avisada)
+var _ability_name := ""
+var _used := {}   # "sprint"/"ability": o jogador já apertou o botão, a dica não precisa mais sair
 
 
 func _ready() -> void:
@@ -67,14 +76,28 @@ func _ready() -> void:
 	EventBus.health_changed.connect(func(owner: int, points: int, _max: int): if owner == Civilization.PLAYER_ID and points == 1: tip("lowhp"))
 	EventBus.trail_anchor_lost.connect(func(owner: int): if owner == Civilization.PLAYER_ID: tip("anchor"))
 	EventBus.base_fallen.connect(_on_base_fallen)
+	EventBus.sprint_used.connect(func(owner: int, _s: float): if owner == Civilization.PLAYER_ID: _used["sprint"] = true)
+	EventBus.ability_used.connect(func(owner: int, _a: String): if owner == Civilization.PLAYER_ID: _used["ability"] = true)
+	EventBus.ability_charging.connect(_on_ability_charging)
 
 
 func _process(delta: float) -> void:
 	if not _started:
 		return
 	_clock += delta
+	if not _used.has("sprint") and _clock >= SPRINT_TIP_AT and _clock - _last_tip >= SHOW_SECONDS:
+		tip("sprint")
+	if not _used.has("ability") and _ability_at >= 0.0 and _clock >= _ability_at and _clock - _last_tip >= SHOW_SECONDS:
+		tip("ability")
 	if not _closed_loop and _clock >= NUDGE_SECONDS:
 		tip("loop")
+
+
+func _on_ability_charging(owner: int, cooldown: float, ability_id: String) -> void:
+	if owner != Civilization.PLAYER_ID or _ability_at >= 0.0:   # só a carga da largada marca a hora da dica
+		return
+	_ability_at = _clock + cooldown
+	_ability_name = CivilizationCatalog.ability_named(ability_id).get("name", "")
 
 
 func _on_base_fallen(owner: int, conqueror: int) -> void:
@@ -101,7 +124,8 @@ func tip(id: String) -> void:
 		seen.append(id)
 		Profile.data["tips_seen"] = seen
 	shown.append(id)
-	_label.text = TIPS[id]
+	_last_tip = _clock
+	_label.text = TIPS[id].replace("{h}", _ability_name)
 	if _tween != null:
 		_tween.kill()
 	_tween = create_tween()
