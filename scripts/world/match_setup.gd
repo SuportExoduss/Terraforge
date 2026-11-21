@@ -8,6 +8,8 @@ extends Node
 ## ponytail: no máximo 6 civilizações (6 faces, 6 fichas de tema); acima disso o Unity sorteava com
 ## separação mínima — entra com o multiplayer.
 
+const Mutators := preload("res://scripts/core/mutators.gd")
+
 @export var world_path := NodePath("../Main")
 @export_range(0, 5) var bot_count := 3
 @export var home_scene: PackedScene
@@ -21,6 +23,8 @@ var _cube_tilt := Basis(Vector3(-1, 0, 1).normalized(), acos(1.0 / sqrt(3.0)))
 func _ready() -> void:
 	if Services.match_def != null:
 		bot_count = Services.match_def.bots
+	if Services.mutator != "":
+		Mutators.apply.call_deferred(Services.mutator, get_parent())   # DD-193: depois de todos os _ready (o relógio nasce com a duração do planeta)
 	var world := get_node(world_path)
 	var homes: Array[HomeTerritory] = [world.get_node("HomeBase") as HomeTerritory]
 	var runners: Array[PlanetRunner] = [world.get_node("Runner") as PlanetRunner]

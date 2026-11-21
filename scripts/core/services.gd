@@ -11,6 +11,7 @@ var flow: Object = null            # máquina de estados da partida (MatchFlow):
 var stats: Object = null           # apuração da partida (MatchStats): get_stat(id, chave), ranking(), dominance(id)
 var rewards: Object = null         # recompensas da partida (MatchRewards): last = XP/moedas concedidos
 var match_def: PlanetDef = null    # planeta escolhido no menu (DD-143); null = padrões das cenas (testes, servidor)
+var mutator := ""                   # mutador do dia escolhido pelo menu (DD-193, Mutators); "" = partida clássica (testes, servidor, treino)
 
 
 func _ready() -> void:

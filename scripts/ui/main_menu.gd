@@ -5,6 +5,7 @@ extends Control
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const DailyMissions := preload("res://scripts/core/daily_missions.gd")
+const Mutators := preload("res://scripts/core/mutators.gd")
 const Leagues := preload("res://scripts/core/leagues.gd")
 const MissionsScreen := preload("res://scripts/ui/missions_screen.gd")
 const SeasonPass := preload("res://scripts/core/season_pass.gd")
@@ -87,6 +88,28 @@ func _ready() -> void:
 	play.theme_type_variation = "PrimaryButton"
 	var planet := _add_button(box, "Planet", "", func(): _open_screen(PlanetScreen.new(), "Planet"), TOUCH_MIN, 14)   # Passo 125: abre a escolha de planeta
 	planet.disabled = first_time
+	var mutator := PanelContainer.new()   # Passo 154 (DD-193): a regra do dia, num cartão no canto superior direito (a coluna da esquerda já está no limite dos 540 px)
+	mutator.name = "Mutator"
+	mutator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mutator.anchor_left = 1.0
+	mutator.anchor_right = 1.0
+	mutator.offset_left = -(24.0 + 300.0 + inset.z)
+	mutator.offset_right = -(24.0 + inset.z)
+	mutator.offset_top = 16.0 + inset.y
+	var card := StyleBoxFlat.new()
+	card.bg_color = Color(0.04, 0.05, 0.1, 0.88)
+	card.set_corner_radius_all(10)
+	card.set_border_width_all(2)
+	card.border_color = Color(1.0, 0.85, 0.3, 0.7)   # âmbar, como a faixa do HUD
+	card.set_content_margin_all(10)
+	mutator.add_theme_stylebox_override("panel", card)
+	var mutator_text := Label.new()
+	mutator_text.name = "Text"
+	mutator_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mutator_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mutator_text.add_theme_font_size_override("font_size", 15)
+	mutator.add_child(mutator_text)
+	add_child(mutator)
 	_refresh_planet(first_time)
 	_add_button(box, "Pass", "", func(): _open_screen(PassScreen.new(), "Pass"), TOUCH_MIN, 14)   # Passo 123: faixa do passe de temporada
 	_refresh_pass_label()
@@ -120,6 +143,9 @@ func _ready() -> void:
 ## Passo 125: o botão mostra o planeta escolhido e o brilho da atmosfera do fundo acompanha o bioma.
 func _refresh_planet(first_time := false) -> void:
 	get_node("Box/Planet").text = ("PRIMEIRA PARTIDA: " if first_time else "PLANETA: ") + Services.match_def.summary()
+	Services.mutator = "" if Services.match_def.tutorial else Mutators.today_id()   # DD-193: o treino é sempre clássico
+	get_node("Mutator/Text").text = Mutators.menu_line(Services.mutator)
+	get_node("Mutator").visible = Services.mutator != ""
 	get_node("Backdrop").set_biome(Services.match_def.biome)
 
 

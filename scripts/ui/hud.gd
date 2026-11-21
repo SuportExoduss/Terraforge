@@ -10,6 +10,7 @@ extends CanvasLayer
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const SafeArea := preload("res://scripts/core/safe_area.gd")
+const Mutators := preload("res://scripts/core/mutators.gd")
 
 const HEARTS := 5   # 4 normais + 1 do bônus Vida Extra (SYS-005), escondido até existir
 const BASE_POINTS := 16
@@ -27,6 +28,7 @@ const QUADRANT := 10.0
 const GAP := 1.0
 const HEART_GAP := 8.0
 const GO_SECONDS := 1.0
+const MUTATOR_SECONDS := 6.0   # Passo 154: a faixa do mutador do dia fica um bom tempo (o GO! é de 1 s)
 const IMPACT_SECONDS := 1.2
 const CAUSE_SECONDS := 2.0
 const DAMAGE_FLASH_SECONDS := 0.4
@@ -134,7 +136,10 @@ func _ready() -> void:
 	EventBus.match_clock_changed.connect(_on_clock)
 	EventBus.match_ended.connect(_on_match_ended)
 	EventBus.match_pause_changed.connect(_on_pause_changed)
-	EventBus.match_started.connect(func() -> void: _gain_on = true)
+	EventBus.match_started.connect(func() -> void:
+		_gain_on = true
+		if Services.mutator != "":
+			_flash(_event, Mutators.banner(Services.mutator), MUTATOR_SECONDS))
 	EventBus.trail_cut.connect(_on_cut)
 	EventBus.civilization_killed.connect(_on_kill)
 	EventBus.territory_score_changed.connect(_on_score)
