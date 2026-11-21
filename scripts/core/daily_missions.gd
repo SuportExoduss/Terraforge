@@ -9,12 +9,15 @@ extends RefCounted
 
 const TIERS := [   # por faixa: opções [id, texto, estatística da partida, meta, moedas, soma nas partidas (true) ou melhor partida (false)]
 	[["play", "Jogue 2 partidas", "play", 2, 20, true],
-			["loops", "Feche 6 áreas", "loops", 6, 25, true]],
+			["loops", "Feche 6 áreas", "loops", 6, 25, true],
+			["sprints", "Use o sprint 6 vezes", "sprints", 6, 25, true]],   # Passo 150 (DD-189): as mecânicas novas também viram missão
 	[["cuts", "Corte 2 rastros de rivais", "cuts", 2, 40, true],
 			["alive", "Sobreviva até o fim de 2 partidas", "alive", 2, 35, true],
-			["percent", "Domine 20% do planeta numa partida", "percent", 20, 40, false]],
+			["percent", "Domine 20% do planeta numa partida", "percent", 20, 40, false],
+			["abilities", "Use a habilidade do bioma 2 vezes", "abilities", 2, 40, true]],
 	[["kills", "Elimine 1 rival", "kills", 1, 50, true],
-			["win", "Vença 1 partida", "won", 1, 60, true]],
+			["win", "Vença 1 partida", "won", 1, 60, true],
+			["captures", "Capture 1 defensor de um rival", "captures", 1, 50, true]],
 ]
 const ALL_BONUS_GEMS := 1    # as 3 do dia resgatadas
 const STREAK_PERIOD := 7     # a cada 7 dias seguidos...

@@ -63,9 +63,9 @@ func _run() -> void:
 	var b: Array = today[1]
 	var c: Array = today[2]
 	if not _check(DailyMissions.claimable() == 0 and DailyMissions.progress_of(a) == 0, "começa zerado"): return
-	DailyMissions.record({"loops": 4, "cuts": 1, "kills": 0, "percent": 0.25, "alive": 1, "won": 0, "matches": 1})
-	DailyMissions.record({"loops": 3, "cuts": 2, "kills": 1, "percent": 0.15, "alive": 1, "won": 1, "matches": 2})
-	var want := {"play": 2, "loops": 7, "cuts": 3, "alive": 2, "percent": 25, "kills": 1, "win": 1}   # percent = melhor partida (25), o resto soma
+	DailyMissions.record({"loops": 4, "cuts": 1, "kills": 0, "percent": 0.25, "alive": 1, "won": 0, "matches": 1, "sprints": 3, "abilities": 1, "captures": 0})
+	DailyMissions.record({"loops": 3, "cuts": 2, "kills": 1, "percent": 0.15, "alive": 1, "won": 1, "matches": 2, "sprints": 4, "abilities": 1, "captures": 1})
+	var want := {"play": 2, "loops": 7, "cuts": 3, "alive": 2, "percent": 25, "kills": 1, "win": 1, "sprints": 7, "abilities": 2, "captures": 1}   # percent = melhor partida (25), o resto soma
 	for m: Array in today:
 		if not _check(DailyMissions.progress_of(m) == int(want[m[0]]), "%s soma %d (deu %d)" % [m[0], int(want[m[0]]), DailyMissions.progress_of(m)]): return
 
