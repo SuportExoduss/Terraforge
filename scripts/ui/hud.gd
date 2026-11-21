@@ -63,11 +63,12 @@ var _hearts: Control
 var _low_life := false               # Passo 76: último coração em risco (1..4 pontos)
 var _joystick: Control
 var _bonus_column: VBoxContainer
-var _sprint_button: Button           # Passo 143 (DD-182): sprint; apagado + segundos enquanto recarrega
+var _sprint_button: ActionButton     # Passo 143 (DD-182): sprint; apagado + segundos + anel enquanto recarrega (Passo 155)
 var _sprint_left := 0.0              # segundos que faltam para a carga do sprint (0 = pronta)
-var _ability_button: Button          # Passo 147 (DD-183): habilidade do bioma; só aparece quando o SkillSystem avisa a carga
+var _sprint_total := 3.5             # a recarga que começou agora (o anel precisa dela)
+var _ability_button: ActionButton    # Passo 147 (DD-183): habilidade do bioma; só aparece quando o SkillSystem avisa a carga
 var _ability_left := 0.0             # segundos que faltam para a habilidade (0 = pronta)
-var _ability_icon := "?"             # a letra do bioma no botão
+var _ability_total := 15.0
 var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
 var _bonus_rows: Dictionary = {}     # nome do bônus -> linha (Top/Chip + Top/Bonus)
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
@@ -317,10 +318,8 @@ func _build_pause_button(parent: Control) -> void:
 
 # Passo 143 (DD-182): SPRINT. Canto inferior direito (polegar); o toque nele não vira direção. Recarregando, apaga e mostra os segundos.
 func _build_sprint_button(parent: Control) -> void:
-	_sprint_button = Button.new()
+	_sprint_button = ActionButton.new(UiTheme.INK, "SPRINT", "»", true)   # SHIFT é o atalho
 	_sprint_button.name = "SprintButton"
-	_sprint_button.focus_mode = Control.FOCUS_NONE   # SHIFT é o atalho; ESPAÇO/ENTER não podem acionar por foco
-	_sprint_button.add_theme_font_size_override("font_size", 30)
 	_sprint_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_sprint_button.offset_left = -16.0 - SPRINT_SIZE
 	_sprint_button.offset_right = -16.0
@@ -336,20 +335,18 @@ func _build_sprint_button(parent: Control) -> void:
 func _on_sprint_used(owner_id: int, cooldown: float) -> void:
 	if owner_id == Civilization.PLAYER_ID:
 		_sprint_left = cooldown
+		_sprint_total = cooldown
 		_refresh_sprint()
 
 
 func _refresh_sprint() -> void:
-	_sprint_button.disabled = _sprint_left > 0.0
-	_sprint_button.text = "%.1f" % _sprint_left if _sprint_left > 0.0 else "»"
+	_sprint_button.charge(_sprint_left, _sprint_total)
 
 
 # Passo 147 (DD-183): HABILIDADE ESPECIAL do bioma. À esquerda do SPRINT; mesma regra de toque; recarregando, apaga e mostra os segundos.
 func _build_ability_button(parent: Control) -> void:
-	_ability_button = Button.new()
+	_ability_button = ActionButton.new()   # cor, letra e nome chegam quando o SkillSystem avisa a carga (E é o atalho)
 	_ability_button.name = "AbilityButton"
-	_ability_button.focus_mode = Control.FOCUS_NONE   # E é o atalho
-	_ability_button.add_theme_font_size_override("font_size", 30)
 	_ability_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_ability_button.offset_right = -16.0 - SPRINT_SIZE - ABILITY_GAP
 	_ability_button.offset_left = _ability_button.offset_right - SPRINT_SIZE
@@ -366,16 +363,16 @@ func _on_ability_charging(owner_id: int, cooldown: float, ability_id: String) ->
 	if owner_id != Civilization.PLAYER_ID:
 		return
 	var ability := CivilizationCatalog.ability_named(ability_id)
-	_ability_icon = ability.get("icon", "?")
+	_ability_button.set_look(ability.get("color", UiTheme.INK), str(ability.get("name", "")).to_upper(), ability.get("icon", "?"))
 	_ability_button.tooltip_text = "%s (E)" % ability.get("name", "")
 	_ability_button.visible = true
 	_ability_left = cooldown
+	_ability_total = cooldown
 	_refresh_ability()
 
 
 func _refresh_ability() -> void:
-	_ability_button.disabled = _ability_left > 0.0
-	_ability_button.text = "%d" % ceili(_ability_left) if _ability_left > 0.0 else _ability_icon
+	_ability_button.charge(_ability_left, _ability_total)
 
 
 func _on_pause_changed(paused: bool) -> void:
