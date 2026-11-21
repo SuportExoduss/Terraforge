@@ -164,14 +164,21 @@ func _stats_text() -> String:
 	if stats == null:
 		return ""
 	var me := Civilization.PLAYER_ID
-	return "\n".join([
+	var lines: PackedStringArray = [
 		"[center][b]SUAS ESTATÍSTICAS[/b][/center]",
 		"Áreas conquistadas: %d" % stats.get_stat(me, "loops"),
 		"Território tomado de rivais: %s" % _percent(stats.get_stat(me, "converted")),
 		"Rastros cortados: %d" % stats.get_stat(me, "cuts"),
 		"Eliminações: %d" % stats.get_stat(me, "kills"),
-		"Eventos globais: %d — escapou de %d, atingido por %d" % [stats.events_seen(), stats.events_seen() - stats.events_hit(), stats.events_hit()],
-	])
+	]
+	var moves: PackedStringArray = []   # Passo 151 (DD-190): sprint/habilidade/captura numa linha só, e só o que aconteceu
+	for entry: Array in [["sprints", "Sprints"], ["abilities", "Habilidades"], ["captures", "Defensores capturados"]]:
+		if int(stats.get_stat(me, entry[0])) > 0:
+			moves.append("%s: %d" % [entry[1], stats.get_stat(me, entry[0])])
+	if not moves.is_empty():
+		lines.append(" · ".join(moves))
+	lines.append("Eventos globais: %d — escapou de %d, atingido por %d" % [stats.events_seen(), stats.events_seen() - stats.events_hit(), stats.events_hit()])
+	return "\n".join(lines)
 
 
 func _rewards_text() -> String:
