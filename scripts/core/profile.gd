@@ -26,6 +26,12 @@ static func defaults() -> Dictionary:
 const HISTORY_MAX := 8
 
 
+## Passo 141 (DD-180): há quantos dias foi a última partida registrada (0 se jogou hoje ou se o histórico está vazio).
+static func days_away(today: int) -> int:
+	var list: Array = data.get("history", [])
+	return maxi(0, today - int(list[0].get("day", today))) if not list.is_empty() else 0
+
+
 ## Passo 137 (DD-176): guarda o resultado desta partida no histórico (só os últimos HISTORY_MAX; não salva sozinho).
 static func add_history(day: int, place: int, percent: float, delta: int) -> void:
 	var list: Array = data.get("history", [])

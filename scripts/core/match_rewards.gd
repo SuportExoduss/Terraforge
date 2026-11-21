@@ -20,6 +20,8 @@ const COINS_PARTICIPATION := 10
 const COINS_PER_PERCENT := 1        # por 1% do planeta no fim
 const COINS_WIN := 25
 const FIRST_WIN_COINS := DailyMissions.FIRST_WIN_COINS   # Passo 135 (DD-174): bônus da 1ª vitória do dia (só moedas, sem poder)
+const COMEBACK_DAYS := 3             # Passo 141 (DD-180): longe há 3 dias ou mais...
+const COMEBACK_XP := 60              # ...a próxima partida rende XP a mais (só XP, sem moeda nem poder)
 const GEMS_PER_ACHIEVEMENT := 5      # Passo 108 (DD-148): a GEMA é a moeda rara; por ora vem só de conquistas novas
 
 var last := {}   # recompensa desta partida: xp, coins, level_before, level, place, percent
@@ -63,6 +65,8 @@ func _grant() -> void:
 	var coins := COINS_PARTICIPATION + roundi(percent * 100.0 * COINS_PER_PERCENT) + (COINS_WIN if place == 1 else 0)
 
 	Profile.load_data()
+	var comeback := COMEBACK_XP if Profile.days_away(DailyMissions.today()) >= COMEBACK_DAYS else 0   # Passo 141 (DD-180)
+	xp += comeback
 	var level_before := Profile.level()
 	var pass_before := SeasonPass.tiers_reached()
 	var data := Profile.data
@@ -105,4 +109,4 @@ func _grant() -> void:
 	Profile.save()
 	last = {"xp": xp, "coins": coins, "gems": gems, "level_before": level_before, "level": Profile.level(), "place": place,
 			"percent": percent, "new_achievements": fresh, "new_titles": titles, "rating_before": rating_before, "rating": data["rating"], "pass_before": pass_before,
-			"first_win_coins": FIRST_WIN_COINS if first_win else 0, "promo_gems": promo}
+			"first_win_coins": FIRST_WIN_COINS if first_win else 0, "promo_gems": promo, "comeback_xp": comeback}
