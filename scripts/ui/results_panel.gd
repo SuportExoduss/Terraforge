@@ -184,6 +184,8 @@ func _rewards_text() -> String:
 			"Nível %d" % last["level"] + ("  — SUBIU DE NÍVEL!" if last["level"] > last["level_before"] else "")]
 	if int(last.get("comeback_xp", 0)) > 0:   # Passo 141 (DD-180)
 		lines.append("Bem-vindo de volta! +%d XP" % last["comeback_xp"])
+	if int(last.get("streak_coins", 0)) > 0:   # Passo 142 (DD-181)
+		lines.append("%d vitórias seguidas: +%d moedas" % [last["streak"], last["streak_coins"]])
 	if int(last.get("first_win_coins", 0)) > 0:   # Passo 135 (DD-174)
 		lines.append("1ª vitória do dia: +%d moedas" % last["first_win_coins"])
 	lines.append(Leagues.result_line(int(last.get("rating_before", last.get("rating", 0))), int(last.get("rating", 0))))   # Passo 122 (DD-162)

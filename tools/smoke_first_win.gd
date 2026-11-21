@@ -37,6 +37,8 @@ func _play(place: int) -> int:
 	var rewards = load("res://scripts/core/match_rewards.gd").new()
 	_stats.place = place
 	root.get_node("Services").stats = _stats
+	_profile.data["win_streak"] = 0   # isola a sequência de vitórias (Passo 142): aqui só o bônus da 1ª vitória do dia
+	_profile.save()
 	var before := int(_profile.data["coins"])
 	rewards._grant()
 	_last = rewards.last

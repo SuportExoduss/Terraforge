@@ -20,6 +20,7 @@ static func defaults() -> Dictionary:
 			"loops": 0, "cuts": 0, "kills": 0, "achievements": {}, "rating": RATING_START, "planet": "medio",
 			"tips_seen": [],   # Passo 130: ids das dicas de contexto que o jogador já viu (texto, não número: o JSON troca 5 por 5.0)
 			"history": [],
+			"win_streak": 0,   # Passo 142 (DD-181): vitórias seguidas (qualquer outro resultado zera)
 			"league_best": 0}   # Passo 139 (DD-178): a liga mais alta já premiada com gemas (índice em Leagues.TIERS)   # Passo 137 (DD-176): últimas partidas, a mais nova primeiro: {day, place, percent, delta}
 
 
