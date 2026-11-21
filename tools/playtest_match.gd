@@ -211,7 +211,7 @@ func _watch(delta: float) -> void:
 				if (pts[i] as Vector3).distance_to(me) < NEAR_TRAIL:
 					_self_touch[trail.owner_id] = _self_touch.get(trail.owner_id, 0) + 1
 					if _self_touch[trail.owner_id] == 1 or (_self_touch[trail.owner_id] % 25 == 0):
-						_log("BUG?", "civ %d ENCOSTOU no PRÓPRIO rastro (ponto %d de %d) e nada fechou [x%d]" % [trail.owner_id, i, pts.size(), _self_touch[trail.owner_id]])
+						_log("OBS", "civ %d cruzou o PRÓPRIO rastro (ponto %d de %d): esperado, DD-184 só fecha ao voltar à área [x%d]" % [trail.owner_id, i, pts.size(), _self_touch[trail.owner_id]])
 					break
 	if _cross_clock >= 0.1:
 		_cross_clock = 0.0
@@ -329,7 +329,7 @@ func _report() -> void:
 	_say("estados: ", _state_log)
 	_say("circuitos fechados por civ: ", _loops)
 	_say("anexos: %d (células %d, maior %d); circuitos vazios: %d" % [_claims, _claim_cells, _max_claim, _empty_loops])
-	_say("encostou no PRÓPRIO rastro sem fechar (vezes, a 10 Hz): ", _self_touch)
+	_say("cruzou o PRÓPRIO rastro (esperado, DD-184; vezes, a 10 Hz): ", _self_touch)
 	_say("encostou em rastro ALHEIO: cortou %d, toque mútuo %d, NÃO cortou %d" % [_cross_cut, _cross_mutual, _cross_missed])
 	_say("pico de domínio por civ: ", _peak_dom)
 	_worst.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])

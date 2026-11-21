@@ -30,7 +30,7 @@ Marcas: ✅ confere · ⚠ diverge/falta em parte · ❌ falta · ➕ extra (nã
 | Campo de força | DD-097: escala 15 (raio 7,5); DD-100: decolagem em 0,2 s | ✅ |
 | Civilizações | DD-095: 6 civs nas faces do cubo | ✅ |
 | Rastro / corte / base cai / território amputado / ruína / recall | DD-099/100/102/122/123 | ✅ (smokes de laço 97–99) |
-| Conquista | DD-127: onda de domínio, auto-toque fecha área, ≥12 células, desempate, contagem sem repetir | ✅ |
+| Conquista | DD-127: onda de domínio, ≥12 células (auto-toque fecha área foi substituído pelo DD-184: só fecha ao voltar à área), desempate, contagem sem repetir | ✅ |
 | Bots | DD-101 humanos; DD-130 ambição 0,6–1,6 | ✅ |
 | Minimapa | DD-104: expande a 75 %, arrasta, toque | ✅ |
 | Ciclo de eventos | DD-106/128: janelas calmas de 25 s, folga de 25 s, fila aleatória 0–8 s | ✅ (mas "um por vez" não vale com 6 corredores — ver §2.1) |

@@ -63,7 +63,7 @@ func _process(_delta: float) -> bool:
 		_before = _map.owners_snapshot()
 		# (a) o pé em cima do rival não fecha nada: a distância até o rastro PRÓPRIO é grande
 		var foot: Vector3 = _rival.points[4]
-		if not _check(not _trail._close_on_self_touch(foot, 1.0) and _loops == 0, "tocar o rastro do rival não fecha circuito"): return true
+		if not _check(_loops == 0, "o rastro do rival não faz parte do anel: nenhum circuito fecha"): return true
 		# (b) o corredor para em cima do rival: o sensor de corte tem de agir
 		_runner.global_position = foot
 		return false
