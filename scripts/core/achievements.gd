@@ -27,6 +27,10 @@ const LIST := [
 	["unbeatable", "Imbatível", "Termine com 75% ou mais do planeta", "percent", 0.75],
 	["ascending", "Em Ascensão", "Chegue ao nível 10", "level", 10],
 	["platinum", "Platinado", "Chegue à liga Platina", "rating", 1550],   # 1550 = Leagues.TIERS[3]
+	# Passo 149 (DD-188): as mecânicas novas (sprint, habilidade do bioma, defensor capturado) também rendem conquista
+	["sprinter", "Corredor", "Use o sprint 8 vezes numa partida", "sprints", 8],
+	["caster", "Mestre da Habilidade", "Use a habilidade do bioma 3 vezes numa partida", "abilities", 3],
+	["tamer", "Domador", "Capture um defensor de um rival", "captures", 1],
 ]
 
 

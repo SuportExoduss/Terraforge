@@ -59,6 +59,9 @@ func _grant() -> void:
 	var cuts := int(stats.get_stat(me, "cuts"))
 	var kills := int(stats.get_stat(me, "kills"))
 	var taken: float = stats.get_stat(me, "converted")
+	var sprints := int(stats.get_stat(me, "sprints"))
+	var abilities := int(stats.get_stat(me, "abilities"))
+	var captures := int(stats.get_stat(me, "captures"))
 
 	var xp := XP_PARTICIPATION + loops * XP_PER_LOOP + cuts * XP_PER_CUT + kills * XP_PER_KILL \
 			+ roundi(taken * 100.0 * XP_PER_PERCENT_TAKEN) + (XP_SURVIVED if alive else 0)
@@ -99,7 +102,8 @@ func _grant() -> void:
 	var snapshot := {"loops": loops, "converted": taken, "cuts": cuts, "kills": kills, "percent": percent,
 			"alive": 1 if alive else 0, "won": 1 if place == 1 else 0, "matches": data["matches"],
 			"total_wins": data["wins"], "total_loops": data["loops"], "total_cuts": data["cuts"], "total_kills": data["kills"],
-			"level": Profile.level(), "rating": data["rating"]}   # Passo 132: a carreira também conta
+			"level": Profile.level(), "rating": data["rating"],   # Passo 132: a carreira também conta
+			"sprints": sprints, "abilities": abilities, "captures": captures}   # Passo 149 (DD-188)
 	var known: Dictionary = data["achievements"]
 	var fresh := Achievements.earned(snapshot).filter(func(id: String) -> bool: return not known.has(id))
 	var gems: int = fresh.size() * GEMS_PER_ACHIEVEMENT   # Passo 108 (DD-148): GEMAS vêm de conquistas novas (e, depois, de missões e do passe)

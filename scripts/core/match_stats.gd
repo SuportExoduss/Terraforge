@@ -8,7 +8,7 @@ extends Node
 ## ponytail: sem histórico no tempo (o replay guarda o seu); eliminação por evento global não credita ninguém; o dano "IMPACTO"
 ## vem do Meteoro e do Verme (mesmo sinal): vale para o mais recente dos dois.
 
-const KEYS := ["loops", "converted", "cuts", "kills"]
+const KEYS := ["loops", "converted", "cuts", "kills", "sprints", "abilities", "captures"]   # Passo 149: as 3 últimas contam as mecânicas novas
 const MIN_LOOP_CELLS := 12   # abaixo disso o circuito não conta como "área conquistada"
 
 var _stats := {}   # id -> {chave: valor}
@@ -29,6 +29,9 @@ func _ready() -> void:
 	EventBus.territory_cells_converted.connect(func(id: int, fraction: float) -> void: _bump(id, "converted", fraction))
 	EventBus.trail_cut.connect(func(_victim: int, attacker: int) -> void: _bump(attacker, "cuts", 1))
 	EventBus.civilization_killed.connect(func(_victim: int, killer: int) -> void: _bump(killer, "kills", 1))
+	EventBus.sprint_used.connect(func(id: int, _cooldown: float) -> void: _bump(id, "sprints", 1))
+	EventBus.ability_used.connect(func(id: int, _kind: String) -> void: _bump(id, "abilities", 1))
+	EventBus.defender_captured.connect(func(conqueror: int, _victim: int) -> void: _bump(conqueror, "captures", 1))
 	EventBus.territory_score_changed.connect(func(id: int, fraction: float) -> void:
 		_latest[id] = fraction
 		_peak[id] = maxf(_peak.get(id, 0.0), fraction))
