@@ -6,6 +6,7 @@ extends Node3D
 ## Regras do GDMD: nunca saem do território, nunca atacam o dono, nunca matam de uma vez (1 ponto por golpe,
 ## com recarga), são mais lentos que o corredor (invasão sempre possível) e o número cresce com o território
 ## mas tem teto. Fala com o resto só por sinais e pelo grupo "runners" (e Services para território/bases).
+## DD-186 (Passo 146): quem toma terreno de outra civilização leva um defensor dela (cor do anel muda) e ele corre até a nave do novo dono.
 ## ponytail: corpo = cone + olho (silhueta própria, sem modelo ainda); sem sinal de "golpe" para HUD/som.
 
 enum State { PATROL, ALERT, CHASE, ATTACK, RETURN, REST }
@@ -30,6 +31,10 @@ const EYE_ATTACK := Color(1.0, 0.1, 0.05)
 @export var rest_seconds := 2.0
 @export var damage := 2                      # DD-109: guardião = 2/16 por ataque
 @export var chase_max_seconds := 4.0         # DD-109: perseguição máxima de 4 s (do aviso até desistir; o golpe em curso termina)
+@export var capture_min_fraction := 0.02     # DD-186: só conta tomar pelo menos 2% do planeta da vítima de uma vez
+@export var max_captured := 2                # DD-186: capturados por conquistador (EXTRAS ao teto normal)
+@export var capture_cooldown := 20.0         # DD-186: uma captura por vítima a cada 20 s
+@export var transfer_max_seconds := 45.0     # DD-186: se a corrida até a nave nova passar disso, o defensor é posto lá
 
 
 class Guard extends RefCounted:
@@ -37,6 +42,8 @@ class Guard extends RefCounted:
 	var eye: MeshInstance3D
 	var eye_material: StandardMaterial3D
 	var owner_id := 0
+	var captured := false            # DD-186: veio de outra civilização (extra: não conta no equilíbrio do dono)
+	var transferring := false        # DD-186: ainda correndo até a nave do novo dono (sem a trava de território)
 	var state := State.REST
 	var position := Vector3.ZERO     # no chão
 	var goal := Vector3.ZERO
@@ -51,17 +58,22 @@ var _guards: Array[Guard] = []
 var _dead := {}          # civilizações eliminadas: sem sentinelas novas
 var _active := false
 var _balance_clock := 0.0
+var _time := 0.0
+var _next_capture := {}   # DD-186: vítima -> instante em que pode perder outro defensor
 
 
 func _ready() -> void:
 	EventBus.match_started.connect(func() -> void: _active = true; _balance_clock = 0.0)
 	EventBus.match_ended.connect(_on_match_ended)
 	EventBus.civilization_eliminated.connect(_on_eliminated)
+	EventBus.territory_taken.connect(_on_territory_taken)
+	EventBus.base_fallen.connect(func(owner_id: int, conqueror_id: int) -> void: _capture(owner_id, conqueror_id, true))
 
 
 func _process(delta: float) -> void:
 	if not _active:
 		return
+	_time += delta
 	_balance_clock -= delta
 	if _balance_clock <= 0.0:
 		_balance_clock = 1.0
@@ -76,7 +88,8 @@ func _balance() -> void:
 		return
 	var counts := {}
 	for guard in _guards:
-		counts[guard.owner_id] = counts.get(guard.owner_id, 0) + 1
+		if not guard.captured:   # DD-186: capturado é extra
+			counts[guard.owner_id] = counts.get(guard.owner_id, 0) + 1
 	for id in Services.home_bases.keys():
 		if _dead.has(id):
 			continue
@@ -125,16 +138,60 @@ func _spawn(owner_id: int) -> void:
 
 # Passo 83 (SYS-006, "identidade visual única para cada civilização"): anel no chão, na cor viva do solo da civilização dona.
 func _civ_mark(owner_id: int) -> MeshInstance3D:
-	var theme := Services.themes.theme_of(owner_id) if Services.themes != null else null
 	var ring := TorusMesh.new()
 	ring.inner_radius = MARK_RADIUS - 0.15
 	ring.outer_radius = MARK_RADIUS + 0.15
-	ring.material = _flat_material(Color.from_hsv((theme.soil_base if theme != null else Color.GRAY).h, 0.8, 1.0))
+	ring.material = _flat_material(_mark_color(owner_id))
 	var mark := MeshInstance3D.new()
 	mark.name = "CivMark"
 	mark.mesh = ring
 	mark.position.y = 0.15
 	return mark
+
+
+func _mark_color(owner_id: int) -> Color:
+	var theme := Services.themes.theme_of(owner_id) if Services.themes != null else null
+	return Color.from_hsv((theme.soil_base if theme != null else Color.GRAY).h, 0.8, 1.0)
+
+
+# ---------------------------------------------------------------------------------------------
+# DD-186: defensor do derrotado passa para o conquistador
+# ---------------------------------------------------------------------------------------------
+
+func _on_territory_taken(conqueror_id: int, victim_id: int, fraction: float) -> void:
+	if not _active or fraction < capture_min_fraction or _time < _next_capture.get(victim_id, 0.0):
+		return
+	if _capture(victim_id, conqueror_id, false):
+		_next_capture[victim_id] = _time + capture_cooldown
+
+
+## Passa um defensor (ou todos, se `everyone`) de `victim_id` para `conqueror_id`, até o teto de capturados. Devolve se passou algum.
+func _capture(victim_id: int, conqueror_id: int, everyone: bool) -> bool:
+	if not _active or victim_id == conqueror_id or _dead.has(conqueror_id) or not Services.home_bases.has(conqueror_id):
+		return false
+	var held := 0
+	for guard in _guards:
+		if guard.owner_id == conqueror_id and guard.captured:
+			held += 1
+	var took := false
+	for guard in _guards:
+		if held >= max_captured:
+			break
+		if guard.owner_id != victim_id:
+			continue
+		guard.owner_id = conqueror_id
+		guard.captured = true
+		guard.transferring = true
+		guard.target = null
+		((guard.node.get_node("CivMark") as MeshInstance3D).mesh as TorusMesh).material.albedo_color = _mark_color(conqueror_id)
+		_set_state(guard, State.RETURN)   # RETURN com `transferring`: corre até a nave nova
+		EventBus.defender_captured.emit(conqueror_id, victim_id)
+		GameLog.say("[World] Defensor da civilização %d passou para a civilização %d (DD-186)." % [victim_id, conqueror_id])
+		held += 1
+		took = true
+		if not everyone:
+			break
+	return took
 
 
 func _flat_material(color: Color) -> StandardMaterial3D:
@@ -203,6 +260,16 @@ func _calm(guard: Guard, delta: float) -> void:
 		State.RETURN:
 			var base: Dictionary = Services.home_bases.get(guard.owner_id, {})
 			var home: Vector3 = base.get("position", guard.position)
+			if guard.transferring:   # DD-186: capturado corre até a nave do novo dono, sem a trava de território
+				if guard.position.distance_to(home) < 6.0 or guard.clock >= transfer_max_seconds:
+					guard.transferring = false
+					if guard.position.distance_to(home) >= 6.0:   # demorou demais: põe o defensor perto da nave
+						guard.position = _patrol_point(guard.owner_id)
+						_place(guard, Vector3.ZERO)
+					_set_state(guard, State.REST)
+				else:
+					_step(guard, home, chase_speed, delta, true)
+				return
 			if not _step(guard, home, patrol_speed * 1.5, delta) or guard.position.distance_to(home) < 3.0:
 				_set_state(guard, State.REST)
 		State.REST:
@@ -258,17 +325,23 @@ func _still_invader(guard: Guard) -> bool:
 # ---------------------------------------------------------------------------------------------
 
 ## Anda um passo rumo a `goal`. Devolve false se a borda do território barrou o passo.
-func _step(guard: Guard, goal: Vector3, speed: float, delta: float) -> bool:
+func _step(guard: Guard, goal: Vector3, speed: float, delta: float, free := false) -> bool:
 	var planet := Services.planet
 	var up := (guard.position - planet.center).normalized()
 	var to := (goal - guard.position).slide(up)
+	if free:   # DD-186: corre pelo círculo máximo (a corda degenera quando a nave nova está do outro lado do planeta)
+		var goal_up := (goal - planet.center).normalized()
+		var side := up.cross(goal_up)
+		if side.length() < 0.001:
+			side = up.cross(Vector3.RIGHT if absf(up.x) < 0.9 else Vector3.UP)
+		to = side.normalized().cross(up) * up.angle_to(goal_up) * planet.radius
 	var distance := to.length()
 	if distance < 0.2:
 		return true
 	var next := guard.position + to / distance * minf(speed * delta, distance)
 	var next_up := (next - planet.center).normalized()
 	next = planet.center + next_up * planet.get_surface_radius(next_up)
-	if not Services.territory.is_owned_by(guard.owner_id, next):
+	if not free and not Services.territory.is_owned_by(guard.owner_id, next):
 		return false
 	guard.position = next
 	_place(guard, to)
@@ -322,3 +395,4 @@ func _on_match_ended() -> void:
 	for guard in _guards:
 		guard.node.queue_free()
 	_guards.clear()
+	_next_capture.clear()

@@ -21,6 +21,7 @@ var _dirs := PackedVector3Array()
 var _owners := PackedByteArray()
 var _counts := PackedInt32Array()          # células por dono
 var _dispossessed := PackedByteArray()     # donos que perderam célula na conquista em curso
+var _lost := PackedInt32Array()            # DD-186: quantas células cada dono perdeu na conquista em curso
 var _claim_cells := PackedInt32Array()     # células conquistadas na operação em curso (índices)
 var _wave_hint := Vector3.ZERO             # de onde a onda sai quando não há território colado (direção, ou zero)
 var _taken := 0                            # destas, quantas eram de outro dono (conversão)
@@ -368,6 +369,7 @@ func _begin_claim() -> void:
 	_wave_hint = Vector3.ZERO
 	_taken = 0
 	_dispossessed.fill(0)
+	_lost.fill(0)
 
 
 func _claim_cell(owner_id: int, cell: int) -> void:
@@ -377,6 +379,7 @@ func _claim_cell(owner_id: int, cell: int) -> void:
 	if previous != NO_OWNER:
 		_counts[previous] -= 1
 		_dispossessed[previous] = 1
+		_lost[previous] += 1
 		_taken += 1
 	_owners[cell] = owner_id
 	_counts[owner_id] += 1
@@ -443,7 +446,7 @@ func _publish_claims(owner_id: int, from_loop := false) -> void:
 	var scores: Array = [[owner_id, float(_counts[owner_id]) / cell_count]]
 	for loser in range(1, MAX_OWNERS):
 		if _dispossessed[loser] != 0:
-			scores.append([loser, float(_counts[loser]) / cell_count])
+			scores.append([loser, float(_counts[loser]) / cell_count, float(_lost[loser]) / cell_count])
 	_outbox.append([owner_id, _wave_order(owner_id), scores, _taken, from_loop])
 
 
@@ -456,6 +459,8 @@ func _flush_outbox() -> void:
 			EventBus.territory_cells_converted.emit(note[0], float(note[3]) / cell_count)
 		for score in note[2]:
 			EventBus.territory_score_changed.emit(score[0], score[1])
+			if score.size() > 2:   # DD-186: a vítima e quanto perdeu (o defensor dela pode trocar de lado)
+				EventBus.territory_taken.emit(note[0], score[0], score[2])
 	_outbox.clear()
 
 
@@ -542,6 +547,7 @@ func _ensure_built() -> bool:
 	_wave_queue.resize(cell_count)
 	_counts.resize(MAX_OWNERS)
 	_dispossessed.resize(MAX_OWNERS)
+	_lost.resize(MAX_OWNERS)
 
 	if not _take_warm():
 		_build_grid()
