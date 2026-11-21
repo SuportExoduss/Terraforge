@@ -10,6 +10,7 @@ extends CanvasLayer
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
 const SafeArea := preload("res://scripts/core/safe_area.gd")
+const ControlLayout := preload("res://scripts/ui/control_layout.gd")
 const Mutators := preload("res://scripts/core/mutators.gd")
 
 const HEARTS := 5   # 4 normais + 1 do bônus Vida Extra (SYS-005), escondido até existir
@@ -69,6 +70,10 @@ var _sprint_total := 3.5             # a recarga que começou agora (o anel prec
 var _ability_button: ActionButton    # Passo 147 (DD-183): habilidade do bioma; só aparece quando o SkillSystem avisa a carga
 var _ability_left := 0.0             # segundos que faltam para a habilidade (0 = pronta)
 var _ability_total := 15.0
+var _stock_kind := ""
+var _stock_count := 0
+var _ability_name := ""
+var _pause_button: Button           # Passo 156: tamanho e posição acompanham os Ajustes e a tela (_layout_actions)
 var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
 var _bonus_rows: Dictionary = {}     # nome do bônus -> linha (Top/Chip + Top/Bonus)
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
@@ -124,6 +129,8 @@ func _ready() -> void:
 	_build_pause_button(root)
 	_build_sprint_button(root)
 	_build_ability_button(root)
+	_layout_actions()
+	_refresh_key_hints()
 	_joystick = Control.new()
 	_joystick.name = "Joystick"
 	_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -133,6 +140,7 @@ func _ready() -> void:
 	root.add_child(_joystick)
 	_apply_insets()
 	get_viewport().size_changed.connect(_apply_insets)
+	get_viewport().size_changed.connect(_layout_actions)
 
 	EventBus.match_clock_changed.connect(_on_clock)
 	EventBus.match_ended.connect(_on_match_ended)
@@ -177,7 +185,7 @@ func _apply_insets() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
-	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
+	if key != null and key.pressed and not key.echo and key.keycode == Settings.key_for("bonus"):
 		EventBus.bonus_use_requested.emit(Civilization.PLAYER_ID)
 		get_viewport().set_input_as_handled()
 
@@ -301,6 +309,7 @@ func _build_bonus_column(parent: Control) -> void:
 # Passo 127: "II" (pausa) à esquerda do minimapa; 52 px de lado cabem num dedo e o toque nele não vira direção.
 func _build_pause_button(parent: Control) -> void:
 	var button := Button.new()
+	_pause_button = button
 	button.name = "PauseButton"
 	button.text = "II"
 	button.focus_mode = Control.FOCUS_NONE   # ESPAÇO/ENTER não podem acionar a pausa por foco
@@ -314,6 +323,37 @@ func _build_pause_button(parent: Control) -> void:
 	button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
 	button.pressed.connect(EventBus.match_pause_requested.emit)
 	parent.add_child(button)
+
+
+# Passo 156 (DD-195): tamanho e posição dos botões de toque. O tamanho vem do ajuste do jogador e da tela (ControlLayout); roda ao montar,
+# quando a janela muda e ao voltar da pausa. Tudo ancorado nos cantos da área segura, então nada sai da tela nem se sobrepõe.
+func _layout_actions() -> void:
+	var view := get_viewport().get_visible_rect().size
+	var px_per_unit := float(get_window().size.x) / maxf(view.x, 1.0)
+	var side := ControlLayout.action_size(SPRINT_SIZE, Settings.button_scale(), view, px_per_unit, float(DisplayServer.screen_get_dpi()), DisplayServer.is_touchscreen_available())
+	var factor := clampf(side / SPRINT_SIZE, 0.8, 1.3)
+	_sprint_button.offset_right = -16.0
+	_sprint_button.offset_left = -16.0 - side
+	_ability_button.offset_right = -16.0 - side - ABILITY_GAP
+	_ability_button.offset_left = _ability_button.offset_right - side
+	for action: Control in [_sprint_button, _ability_button]:
+		action.offset_top = -24.0 - side
+		action.offset_bottom = -24.0
+	var pause := clampf(PAUSE_SIZE * side / SPRINT_SIZE, 40.0, 72.0)
+	_pause_button.offset_right = -MinimapView.MINI_SIZE - MinimapView.MARGIN - 8.0
+	_pause_button.offset_left = _pause_button.offset_right - pause
+	_pause_button.offset_bottom = MinimapView.MARGIN + pause
+	_pause_button.add_theme_font_size_override("font_size", roundi(24 * factor))
+	_stock_button.add_theme_font_size_override("font_size", roundi(20 * Settings.text_scale() * factor))
+	_stock_button.custom_minimum_size.y = roundf(44.0 * factor)
+
+
+# Passo 156: os textos que citam uma tecla (bônus guardado, dica do botão da habilidade) seguem a tecla escolhida em Ajustes.
+func _refresh_key_hints() -> void:
+	_sprint_button.tooltip_text = "SPRINT (%s)" % Settings.key_label("sprint")
+	_ability_button.tooltip_text = "%s (%s)" % [_ability_name, Settings.key_label("ability")]
+	if _stock_count > 0:
+		_stock_button.text = "%s · %s  [%d]" % [Settings.key_label("bonus"), _stock_kind, _stock_count]
 
 
 # Passo 143 (DD-182): SPRINT. Canto inferior direito (polegar); o toque nele não vira direção. Recarregando, apaga e mostra os segundos.
@@ -364,7 +404,8 @@ func _on_ability_charging(owner_id: int, cooldown: float, ability_id: String) ->
 		return
 	var ability := CivilizationCatalog.ability_named(ability_id)
 	_ability_button.set_look(ability.get("color", UiTheme.INK), str(ability.get("name", "")).to_upper(), ability.get("icon", "?"))
-	_ability_button.tooltip_text = "%s (E)" % ability.get("name", "")
+	_ability_name = str(ability.get("name", ""))
+	_refresh_key_hints()
 	_ability_button.visible = true
 	_ability_left = cooldown
 	_ability_total = cooldown
@@ -379,6 +420,8 @@ func _on_pause_changed(paused: bool) -> void:
 	if paused:
 		_pause_at = Time.get_ticks_msec()
 		return
+	_layout_actions()   # Passo 156: quem mexeu no tamanho dos botões ou nas teclas pela pausa vê o resultado ao voltar
+	_refresh_key_hints()
 	var span := Time.get_ticks_msec() - _pause_at   # o tempo parado não gasta o bônus que aparece na ficha
 	for entry in _bonus_until.values():
 		entry["until_ms"] += span
@@ -389,8 +432,10 @@ func _on_stock(owner_id: int, kinds: Array) -> void:
 	if owner_id != Civilization.PLAYER_ID:
 		return
 	_stock_button.visible = not kinds.is_empty()
+	_stock_count = kinds.size()
 	if not kinds.is_empty():
-		_stock_button.text = "ESPAÇO · %s  [%d]" % [kinds[0], kinds.size()]
+		_stock_kind = str(kinds[0])
+		_refresh_key_hints()
 
 
 # Passo 80 (SYS-005 INTERFACE, "ícone exclusivo"): cada bônus ativo é uma linha com ficha (cor do cristal + símbolo) e o contador.

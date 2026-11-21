@@ -38,7 +38,7 @@ func build(parent: VBoxContainer) -> void:
 		row.add_child(button)
 		_buttons[id] = button
 		var ability: Dictionary = CivilizationCatalog.ability_of(id)   # DD-183: a habilidade que o bioma dá
-		var info := make_label("Habilidade (E): %s — %s" % [ability["name"], ability["text"]], 15, "Skill%d" % id)
+		var info := make_label("Habilidade (%s): %s — %s" % [Settings.key_label("ability"), ability["name"], ability["text"]], 15, "Skill%d" % id)
 		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info.modulate = Color(1.0, 1.0, 1.0, 0.7)
 		parent.add_child(info)

@@ -5,6 +5,13 @@ extends Control
 
 signal closed
 
+const UiTheme := preload("res://scripts/ui/ui_theme.gd")
+const KEY_TITLES := {"sprint": "SPRINT", "ability": "HABILIDADE", "bonus": "USAR BÔNUS"}   # Passo 156: nome de cada ação na tela de teclas
+const PREVIEW_BASE := 76.0   # = Hud.SPRINT_SIZE
+
+var _capturing := ""   # ação esperando a próxima tecla ("" = nenhuma)
+var _key_buttons := {}
+
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -31,6 +38,7 @@ func _ready() -> void:
 	_add_slider(box, "Music", "MÚSICA", "music")
 	_add_slider(box, "Turn", "GIRO (50% A 150%)", "turn")
 	_add_slider(box, "Text", "TEXTO DA HUD (100% A 150%)", "text")
+	_add_controls(box)
 
 	var quality_label := Label.new()
 	quality_label.text = "QUALIDADE GRÁFICA"
@@ -90,7 +98,74 @@ func _unhandled_input(event: InputEvent) -> void:   # Passo 128: ESC / botão vo
 		close()
 
 
-func _add_slider(parent: Control, node_name: String, label_text: String, key: String) -> void:
+# Passo 156 (DD-195): tamanho dos botões de toque (com um botão de amostra que muda junto), teclas do PC (clique e aperte a nova) e "restaurar".
+func _add_controls(box: Control) -> void:
+	var slider := _add_slider(box, "ButtonSize", "TAMANHO DOS BOTÕES (60% A 140%)", "btn_size")
+	var holder := CenterContainer.new()
+	holder.name = "Preview"
+	holder.custom_minimum_size = Vector2(0.0, PREVIEW_BASE * 1.4)   # reserva a altura do maior tamanho: o controle não pula sob o dedo
+	box.add_child(holder)
+	var sample := ActionButton.new(UiTheme.INK, "SPRINT", "»", true)
+	sample.name = "PreviewButton"
+	sample.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sample.custom_minimum_size = Vector2.ONE * PREVIEW_BASE * Settings.button_scale()
+	holder.add_child(sample)
+	slider.value_changed.connect(func(_v: float): sample.custom_minimum_size = Vector2.ONE * PREVIEW_BASE * Settings.button_scale())
+	if not OS.has_feature("mobile"):   # teclado só no PC
+		var keys_label := Label.new()
+		keys_label.text = "TECLAS (clique e aperte a nova)"
+		box.add_child(keys_label)
+		for action: String in Settings.KEY_ACTIONS:
+			var row := HBoxContainer.new()
+			row.name = "Key_" + action
+			var label := Label.new()
+			label.text = KEY_TITLES[action]
+			label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(label)
+			var button := Button.new()
+			button.name = "Pick"
+			button.custom_minimum_size = Vector2(190.0, 48.0)
+			button.pressed.connect(_start_capture.bind(action))
+			row.add_child(button)
+			_key_buttons[action] = button
+			box.add_child(row)
+	var reset := Button.new()
+	reset.name = "ResetControls"
+	reset.text = "RESTAURAR CONTROLES"
+	reset.custom_minimum_size = Vector2(0.0, 48.0)
+	reset.pressed.connect(func():
+		Settings.reset_controls()
+		slider.value = Settings.get_value("btn_size")
+		_capturing = ""
+		_refresh_keys())
+	box.add_child(reset)
+	_refresh_keys()
+
+
+func _start_capture(action: String) -> void:
+	_capturing = action
+	_refresh_keys()
+
+
+func _refresh_keys() -> void:
+	for action: String in _key_buttons:
+		(_key_buttons[action] as Button).text = "APERTE UMA TECLA..." if action == _capturing else Settings.key_label(action)
+
+
+# Esperando uma tecla: ela vai para a ação (ESC cancela; as proibidas, como as setas e o ENTER, são ignoradas sem sair da espera).
+func _input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if _capturing == "" or key == null or not key.pressed or key.echo:
+		return
+	get_viewport().set_input_as_handled()
+	if key.keycode == KEY_ESCAPE:
+		_capturing = ""
+	elif Settings.set_key(_capturing, key.keycode if key.keycode != KEY_NONE else key.physical_keycode):
+		_capturing = ""
+	_refresh_keys()
+
+
+func _add_slider(parent: Control, node_name: String, label_text: String, key: String) -> HSlider:
 	var label := Label.new()
 	label.text = label_text
 	parent.add_child(label)
@@ -104,3 +179,4 @@ func _add_slider(parent: Control, node_name: String, label_text: String, key: St
 	slider.value_changed.connect(func(value: float): Settings.set_value(key, value, false))
 	slider.drag_ended.connect(func(_changed: bool): Profile.save())
 	parent.add_child(slider)
+	return slider

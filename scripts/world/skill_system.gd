@@ -49,9 +49,9 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
-	if key != null and key.pressed and not key.echo and key.keycode == KEY_SHIFT:
+	if key != null and key.pressed and not key.echo and key.keycode == Settings.key_for("sprint"):   # Passo 156: teclas escolhidas em Ajustes
 		use_sprint(Civilization.PLAYER_ID)
-	elif key != null and key.pressed and not key.echo and key.keycode == KEY_E:
+	elif key != null and key.pressed and not key.echo and key.keycode == Settings.key_for("ability"):
 		use_ability(Civilization.PLAYER_ID)
 
 

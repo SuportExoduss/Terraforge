@@ -19,14 +19,14 @@ const TIPS := {
 	"claimed": "Circuito fechado! Tudo lá dentro agora é seu. Quanto maior o laço, maior a conquista.",
 	"hurt": "Cada dano tira um pedaço de coração. Rastro longo e exposto é arriscado: feche o circuito e volte para casa.",
 	"event": "Um evento vai atingir o planeta. Afaste-se do ponto marcado!",
-	"bonus": "Você guardou um bônus! Toque no botão ou aperte ESPAÇO para usar.",
+	"bonus": "Você guardou um bônus! Toque no botão ou aperte {k_bonus} para usar.",
 	"cut": "Você cortou o rastro de um rival: ele perde vida! O seu rastro também pode ser cortado.",
 	"lowhp": "Vida quase no fim! Feche o circuito e volte para a sua terra antes de levar outro golpe.",
 	"anchor": "Tomaram a terra onde a sua cerca nasceu: o rastro evaporou, sem dano. Saia de novo de uma terra sua.",
 	"fallen": "Sua base foi tomada e o inimigo herdou o seu império! A sua nave decola: recomece de lá.",
 	"conquer": "Você tomou uma base e herdou o império inteiro dela!",
-	"sprint": "SPRINT: toque no botão » (ou aperte SHIFT) para uma corrida curta. Serve para fugir de um rival ou fechar o laço. Recarrega sozinho.",
-	"ability": "Sua habilidade especial está pronta: {h}! Botão ao lado do SPRINT (ou tecla E). Use com um rival por perto ou com a vida baixa. Recarrega sozinha.",
+	"sprint": "SPRINT: toque no botão » (ou aperte {k_sprint}) para uma corrida curta. Serve para fugir de um rival ou fechar o laço. Recarrega sozinho.",
+	"ability": "Sua habilidade especial está pronta: {h}! Botão ao lado do SPRINT (ou tecla {k_ability}). Use com um rival por perto ou com a vida baixa. Recarrega sozinha.",
 }
 
 var remember := false   # partida normal: as dicas que o perfil já registrou não voltam; as novas ficam registradas
@@ -125,7 +125,7 @@ func tip(id: String) -> void:
 		Profile.data["tips_seen"] = seen
 	shown.append(id)
 	_last_tip = _clock
-	_label.text = TIPS[id].replace("{h}", _ability_name)
+	_label.text = TIPS[id].replace("{h}", _ability_name).replace("{k_bonus}", Settings.key_label("bonus")).replace("{k_sprint}", Settings.key_label("sprint")).replace("{k_ability}", Settings.key_label("ability"))
 	if _tween != null:
 		_tween.kill()
 	_tween = create_tween()

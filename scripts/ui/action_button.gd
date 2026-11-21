@@ -32,6 +32,23 @@ func _init(color := Color.WHITE, caption := "", icon := "?", with_decimal := fal
 	set_look(color, caption, icon)
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_fit()
+
+
+## Passo 156: o botão cresce e encolhe (Ajustes, tela); letra, nome e anel acompanham o diâmetro (76 px = 30 / 11 / 5).
+func _fit() -> void:
+	var d := minf(size.x, size.y)
+	if d <= 0.0 or _caption == null:
+		return
+	add_theme_font_size_override("font_size", roundi(d * 0.4))
+	_caption.add_theme_font_size_override("font_size", clampi(roundi(d * 0.145), 9, 22))
+	_caption.offset_top = -d * 0.26
+	_caption.offset_bottom = -d * 0.05
+	queue_redraw()
+
+
 ## Cor, nome e letra da ação (a habilidade só sabe qual é quando a partida avisa a carga).
 func set_look(color: Color, caption: String, icon: String) -> void:
 	accent = color
@@ -50,7 +67,7 @@ static func _style(bg: Color, border: Color, border_width: int, glow: int) -> St
 	style.bg_color = bg
 	style.border_color = border
 	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(64)   # maior que a metade do botão: vira círculo
+	style.set_corner_radius_all(100)   # maior que a metade do botão (até 140 px): vira círculo
 	style.anti_aliasing = true
 	if glow > 0:
 		style.shadow_color = Color(border.r, border.g, border.b, 0.45)
@@ -80,9 +97,11 @@ func _draw() -> void:
 	if left <= 0.0:
 		return
 	var center := size * 0.5
-	var radius := minf(size.x, size.y) * 0.5 - 5.0
-	draw_arc(center, radius, 0.0, TAU, 48, Color(UiTheme.LINE, 0.5), 5.0, true)
-	draw_arc(center, radius, -PI * 0.5, -PI * 0.5 + TAU * progress(), 48, accent, 5.0, true)
+	var d := minf(size.x, size.y)
+	var width := maxf(3.0, d * 0.066)
+	var radius := d * 0.5 - width
+	draw_arc(center, radius, 0.0, TAU, 48, Color(UiTheme.LINE, 0.5), width, true)
+	draw_arc(center, radius, -PI * 0.5, -PI * 0.5 + TAU * progress(), 48, accent, width, true)
 
 
 func _pop() -> void:
