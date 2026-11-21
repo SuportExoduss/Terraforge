@@ -121,7 +121,7 @@ func _run() -> void:
 	button.button_up.emit()
 	if not _check(held and not TouchSteering.is_ui_pointer_held, "o toque no botão não vira direção"): return
 	var sprint: Button = _match.get_node("Hud").find_child("SprintButton", true, false)
-	if not _check(sprint != null and button.get_global_rect().end.x <= sprint.get_global_rect().position.x + 0.5, "o botão da habilidade fica à esquerda do SPRINT"): return
+	if not _check(sprint != null and button.get_global_rect().end.y <= sprint.get_global_rect().position.y + 0.5 and absf(button.get_global_rect().end.x - sprint.get_global_rect().end.x) < 0.5, "no PC o botão da habilidade fica empilhado acima do SPRINT, alinhado à direita"): return
 	skills.ability_cooldown = 0.5    # a partir daqui, cargas curtas
 	skills.lasso_seconds = 0.4
 	skills.emp_seconds = 0.4
@@ -129,14 +129,14 @@ func _run() -> void:
 	skills._ability_cd.erase(1)      # (a 1ª carga de 15 s já foi verificada)
 	skills._kinds[1] = "trick"       # sem alvo: dá para testar o pedido sem posicionar ninguém
 	skills._unhandled_input(_key(KEY_A))
-	skills._unhandled_input(_key(KEY_E, true))
+	skills._unhandled_input(_key(KEY_SHIFT, true))
 	if not _check(_used.is_empty(), "outra tecla e o eco do E não disparam"): return
-	skills._unhandled_input(_key(KEY_E))
+	skills._unhandled_input(_key(KEY_SHIFT))
 	if not _check(_used == [[1, "trick"]] and not skills.ability_ready(1), "E dispara e gasta a carga (%s)" % [_used]): return
 	var again: Array = _charging.filter(func(e): return e[0] == 1 and absf(e[1] - 0.5) < 0.001)
 	if not _check(again.size() == 1, "ability_charging(1, 0.5) depois do uso"): return
 	if not _check(button.disabled and button.text == "1", "recarregando: o botão mostra os segundos (%s)" % button.text): return
-	skills._unhandled_input(_key(KEY_E))
+	skills._unhandled_input(_key(KEY_SHIFT))
 	if not _check(_used.size() == 1, "durante a recarga, E não faz nada"): return
 	await _wait(0.7)
 	if not _check(absf(runner.turn_speed_degrees - base_turn) < 0.001, "a Manobra acabou: curva volta (%.1f)" % runner.turn_speed_degrees): return

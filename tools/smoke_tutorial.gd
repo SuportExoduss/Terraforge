@@ -72,7 +72,7 @@ func _run() -> void:
 
 	# 3. As dicas: cada uma na sua hora, cada uma uma vez só
 	bus.match_started.emit()
-	if not (Array(coach.shown) == ["steer"] and coach.current_text().contains("Arraste")):
+	if not (Array(coach.shown) == ["steer"] and coach.current_text().to_lower().contains("arraste")):
 		return _fail("na largada deveria sair a dica de virar (saiu %s)" % [coach.shown])
 	bus.territory_loop_claimed.emit(2, 50)   # circuito do BOT: não é com o jogador
 	bus.damage_taken.emit(2, 2, "RASTRO")

@@ -15,7 +15,7 @@ var _steer := 0.0
 func _process(delta: float) -> void:
 	if net == null:
 		return
-	var value := Input.get_axis("ui_left", "ui_right")
+	var value := Settings.steer_axis()
 	if value != _steer:   # o servidor guarda a última direção: só preciso avisar quando ela muda
 		_steer = value
 		net.send_steer(value, delta)

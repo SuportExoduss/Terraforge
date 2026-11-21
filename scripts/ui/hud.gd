@@ -42,6 +42,7 @@ const KNOB_RADIUS := 22.0
 const PAUSE_SIZE := 52.0
 const SPRINT_SIZE := 76.0   # Passo 143: botão redondo de dedo, canto inferior direito
 const ABILITY_GAP := 12.0   # Passo 147: o botão da habilidade fica à esquerda do SPRINT
+const PC_ACTION_SIZE := 64.0   # Passo 157: no PC são só indicadores de recarga (o teclado aciona): menores e em fila na lateral direita
 
 var _clock: Label
 var _score: Label
@@ -300,6 +301,8 @@ func _build_bonus_column(parent: Control) -> void:
 	_stock_button.focus_mode = Control.FOCUS_NONE   # senão o ESPAÇO acionaria o botão por foco E pelo atalho
 	_stock_button.add_theme_font_size_override("font_size", roundi(20 * Settings.text_scale()))
 	_stock_button.visible = false
+	if Settings.is_pc():
+		_stock_button.mouse_filter = Control.MOUSE_FILTER_IGNORE   # Passo 157: só mostra o bônus guardado; ESPAÇO (ou a tecla escolhida) usa
 	_stock_button.button_down.connect(TouchSteering.set_ui_pointer_held.bind(true))   # o toque no botão não vira direção
 	_stock_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
 	_stock_button.pressed.connect(func(): EventBus.bonus_use_requested.emit(Civilization.PLAYER_ID))
@@ -330,16 +333,25 @@ func _build_pause_button(parent: Control) -> void:
 func _layout_actions() -> void:
 	var view := get_viewport().get_visible_rect().size
 	var px_per_unit := float(get_window().size.x) / maxf(view.x, 1.0)
-	var side := ControlLayout.action_size(SPRINT_SIZE, Settings.button_scale(), view, px_per_unit, float(DisplayServer.screen_get_dpi()), DisplayServer.is_touchscreen_available())
-	var factor := clampf(side / SPRINT_SIZE, 0.8, 1.3)
+	var pc := Settings.is_pc()
+	var base := PC_ACTION_SIZE if pc else SPRINT_SIZE
+	var side := ControlLayout.action_size(base, Settings.button_scale(), view, px_per_unit, float(DisplayServer.screen_get_dpi()), DisplayServer.is_touchscreen_available())
+	var factor := clampf(side / base, 0.8, 1.3)
 	_sprint_button.offset_right = -16.0
 	_sprint_button.offset_left = -16.0 - side
-	_ability_button.offset_right = -16.0 - side - ABILITY_GAP
-	_ability_button.offset_left = _ability_button.offset_right - side
-	for action: Control in [_sprint_button, _ability_button]:
-		action.offset_top = -24.0 - side
-		action.offset_bottom = -24.0
-	var pause := clampf(PAUSE_SIZE * side / SPRINT_SIZE, 40.0, 72.0)
+	_sprint_button.offset_top = -24.0 - side
+	_sprint_button.offset_bottom = -24.0
+	if pc:   # Passo 157: fila vertical no lado direito: a habilidade em cima do SPRINT
+		_ability_button.offset_right = -16.0
+		_ability_button.offset_left = -16.0 - side
+		_ability_button.offset_bottom = -24.0 - side - ABILITY_GAP
+		_ability_button.offset_top = _ability_button.offset_bottom - side
+	else:
+		_ability_button.offset_right = -16.0 - side - ABILITY_GAP
+		_ability_button.offset_left = _ability_button.offset_right - side
+		_ability_button.offset_top = -24.0 - side
+		_ability_button.offset_bottom = -24.0
+	var pause := clampf(PAUSE_SIZE * side / base, 40.0, 72.0)
 	_pause_button.offset_right = -MinimapView.MINI_SIZE - MinimapView.MARGIN - 8.0
 	_pause_button.offset_left = _pause_button.offset_right - pause
 	_pause_button.offset_bottom = MinimapView.MARGIN + pause
@@ -352,6 +364,9 @@ func _layout_actions() -> void:
 func _refresh_key_hints() -> void:
 	_sprint_button.tooltip_text = "SPRINT (%s)" % Settings.key_label("sprint")
 	_ability_button.tooltip_text = "%s (%s)" % [_ability_name, Settings.key_label("ability")]
+	if Settings.is_pc():   # Passo 157: indicadores (sem clique); o selo diz a tecla de cada um
+		_sprint_button.set_key_hint(Settings.key_label("sprint"))
+		_ability_button.set_key_hint(Settings.key_label("ability"))
 	if _stock_count > 0:
 		_stock_button.text = "%s · %s  [%d]" % [Settings.key_label("bonus"), _stock_kind, _stock_count]
 
@@ -368,6 +383,8 @@ func _build_sprint_button(parent: Control) -> void:
 	_sprint_button.button_down.connect(TouchSteering.set_ui_pointer_held.bind(true))
 	_sprint_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
 	_sprint_button.pressed.connect(func(): EventBus.sprint_requested.emit(Civilization.PLAYER_ID))
+	if Settings.is_pc():
+		_sprint_button.mouse_filter = Control.MOUSE_FILTER_IGNORE   # Passo 157: no PC é só o relógio; quem aciona é a tecla
 	parent.add_child(_sprint_button)
 	_refresh_sprint()
 
@@ -396,6 +413,8 @@ func _build_ability_button(parent: Control) -> void:
 	_ability_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
 	_ability_button.pressed.connect(func(): EventBus.ability_requested.emit(Civilization.PLAYER_ID))
 	_ability_button.visible = false   # sem SkillSystem (ou antes da largada) não há habilidade para mostrar
+	if Settings.is_pc():
+		_ability_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(_ability_button)
 
 

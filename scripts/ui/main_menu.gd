@@ -138,6 +138,23 @@ func _ready() -> void:
 	quit.theme_type_variation = "GhostButton"
 	quit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	play.grab_focus()   # teclado / controle
+	if Settings.is_pc() and not Settings.scheme_asked() and DisplayServer.get_name() != "headless":
+		ask_scheme.call_deferred()   # Passo 157: primeira vez no PC (a tela já está de pé)
+
+
+## Passo 157: pergunta "A / D ou setas?"; ao fechar, o foco volta ao JOGAR.
+func ask_scheme() -> void:
+	if get_node_or_null("SchemePrompt") != null:
+		return
+	var box: Control = get_node("Box")
+	box.process_mode = Node.PROCESS_MODE_DISABLED   # as setas só andam dentro da pergunta
+	var prompt := SchemePrompt.new()
+	prompt.tree_exited.connect(func():
+		box.process_mode = Node.PROCESS_MODE_INHERIT
+		var play := get_node_or_null("Box/Play") as Button
+		if play != null and not _launching:
+			play.grab_focus())
+	add_child(prompt)
 
 
 ## Passo 125: o botão mostra o planeta escolhido e o brilho da atmosfera do fundo acompanha o bioma.
@@ -222,10 +239,13 @@ func _quit_game() -> void:
 
 func _open_settings() -> void:
 	get_node("Music").deepen()
+	var box: Control = get_node("Box")
+	box.process_mode = Node.PROCESS_MODE_DISABLED   # Passo 158: as setas só andam dentro de Ajustes
 	var panel := SettingsPanel.new()
 	panel.name = "SettingsPanel"
 	panel.closed.connect(func():
 		panel.queue_free()
+		box.process_mode = Node.PROCESS_MODE_INHERIT
 		get_node("Box/Footer/Settings").grab_focus())
 	add_child(panel)
 

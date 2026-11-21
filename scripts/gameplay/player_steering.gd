@@ -40,7 +40,7 @@ func _process(_delta: float) -> void:
 
 
 func get_steer() -> float:
-	var raw := TouchSteering.value if _tracking and absf(TouchSteering.value) > 0.001 else Input.get_axis("ui_left", "ui_right")
+	var raw := TouchSteering.value if _tracking and absf(TouchSteering.value) > 0.001 else Settings.steer_axis()
 	return clampf(raw * Settings.turn_gain(), -1.0, 1.0)   # Passo 55: sensibilidade do giro (configurações)
 
 

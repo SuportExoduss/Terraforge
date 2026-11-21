@@ -45,7 +45,7 @@ func _run() -> void:
 	coach._process(5.0)
 	_check(Array(coach.shown) == ["steer"], "aos 5 s o sprint ainda não sai (%s)" % [coach.shown])
 	coach._process(2.5)   # 7,5 s
-	_check(Array(coach.shown) == ["steer", "sprint"] and coach.current_text().contains("SPRINT") and coach.current_text().contains("SHIFT"),
+	_check(Array(coach.shown) == ["steer", "sprint"] and coach.current_text().contains("SPRINT") and coach.current_text().contains("ALT"),
 			"aos 7 s sai a dica do sprint (%s)" % [coach.shown])
 	coach._process(7.0)   # 14,5 s: lembrete do circuito
 	_check(Array(coach.shown) == ["steer", "sprint", "loop"], "aos 14 s o lembrete do circuito (%s)" % [coach.shown])
@@ -53,7 +53,7 @@ func _run() -> void:
 	_check(not coach.shown.has("ability"), "a habilidade não corta a dica que acabou de sair (%s)" % [coach.shown])
 	coach._process(5.5)   # 20,6 s
 	_check(Array(coach.shown) == ["steer", "sprint", "loop", "ability"], "a habilidade sai quando a anterior acabou (%s)" % [coach.shown])
-	_check(coach.current_text().contains("Pulso EMP") and coach.current_text().contains("tecla E"), "a dica traz o nome e a tecla (%s)" % coach.current_text())
+	_check(coach.current_text().contains("Pulso EMP") and coach.current_text().contains("SHIFT"), "a dica traz o nome e a tecla (%s)" % coach.current_text())
 	coach._process(100.0)
 	_check(coach.shown.size() == 4, "cada dica sai uma vez só (%s)" % [coach.shown])
 	coach.free()

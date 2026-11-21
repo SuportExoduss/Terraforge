@@ -13,6 +13,7 @@ var decimal := false   # true = recarga curta (sprint): mostra "2.3"; false = "8
 var left := 0.0    # segundos que faltam (0 = pronta)
 var total := 1.0   # duração da recarga que começou agora
 var _caption: Label
+var _hint: Label   # Passo 157: selo com a tecla do atalho, fora do círculo (só PC)
 
 
 func _init(color := Color.WHITE, caption := "", icon := "?", with_decimal := false) -> void:
@@ -35,6 +36,34 @@ func _init(color := Color.WHITE, caption := "", icon := "?", with_decimal := fal
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_fit()
+
+
+## Passo 157: mostra a tecla do atalho num selo à esquerda do botão ("" esconde). `text` e `icon_text` não mudam.
+func set_key_hint(key_text: String) -> void:
+	if _hint == null:
+		_hint = Label.new()
+		_hint.name = "KeyHint"
+		_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hint.add_theme_font_size_override("font_size", 14)
+		_hint.add_theme_color_override("font_color", UiTheme.INK)
+		var style := StyleBoxFlat.new()
+		style.bg_color = UiTheme.GLASS
+		style.border_color = UiTheme.LINE
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(6)
+		style.content_margin_left = 8.0
+		style.content_margin_right = 8.0
+		style.content_margin_top = 2.0
+		style.content_margin_bottom = 2.0
+		_hint.add_theme_stylebox_override("normal", style)
+		_hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+		_hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		_hint.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_hint.offset_left = -6.0
+		_hint.offset_right = -6.0
+		add_child(_hint)
+	_hint.text = key_text
+	_hint.visible = key_text != ""
 
 
 ## Passo 156: o botão cresce e encolhe (Ajustes, tela); letra, nome e anel acompanham o diâmetro (76 px = 30 / 11 / 5).

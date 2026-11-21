@@ -29,6 +29,14 @@ const TIPS := {
 	"ability": "Sua habilidade especial está pronta: {h}! Botão ao lado do SPRINT (ou tecla {k_ability}). Use com um rival por perto ou com a vida baixa. Recarrega sozinha.",
 }
 
+## Passo 157: no PC os botões da HUD só mostram o tempo; quem age é a tecla. Estas dicas trocam as da lista acima.
+const TIPS_PC := {
+	"steer": "Gire com {k_left} e {k_right} (ou arraste para os lados). Seu corredor anda sozinho e deixa um rastro: a sua cerca. {k_map} abre o mapa.",
+	"bonus": "Você guardou um bônus! Aperte {k_bonus} para usar.",
+	"sprint": "SPRINT: aperte {k_sprint} para uma corrida curta. Serve para fugir de um rival ou fechar o laço. Recarrega sozinho (veja o contador no lado direito).",
+	"ability": "Sua habilidade especial está pronta: {h}! Aperte {k_ability}. Use com um rival por perto ou com a vida baixa. Recarrega sozinha.",
+}
+
 var remember := false   # partida normal: as dicas que o perfil já registrou não voltam; as novas ficam registradas
 var shown: Array[String] = []   # ids das dicas já mostradas (os testes leem)
 var _label: Label
@@ -125,7 +133,10 @@ func tip(id: String) -> void:
 		Profile.data["tips_seen"] = seen
 	shown.append(id)
 	_last_tip = _clock
-	_label.text = TIPS[id].replace("{h}", _ability_name).replace("{k_bonus}", Settings.key_label("bonus")).replace("{k_sprint}", Settings.key_label("sprint")).replace("{k_ability}", Settings.key_label("ability"))
+	var text: String = TIPS_PC[id] if Settings.is_pc() and TIPS_PC.has(id) else TIPS[id]
+	for action: String in Settings.KEY_ACTIONS:   # {k_left}, {k_right}, {k_sprint}, {k_ability}, {k_bonus}, {k_map}
+		text = text.replace("{k_%s}" % action, Settings.key_label(action))
+	_label.text = text.replace("{h}", _ability_name)
 	if _tween != null:
 		_tween.kill()
 	_tween = create_tween()

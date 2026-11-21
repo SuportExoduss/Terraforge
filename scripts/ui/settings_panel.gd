@@ -6,11 +6,13 @@ extends Control
 signal closed
 
 const UiTheme := preload("res://scripts/ui/ui_theme.gd")
-const KEY_TITLES := {"sprint": "SPRINT", "ability": "HABILIDADE", "bonus": "USAR BÔNUS"}   # Passo 156: nome de cada ação na tela de teclas
+const KEY_TITLES := {"left": "GIRAR À ESQUERDA", "right": "GIRAR À DIREITA", "sprint": "SPRINT", "ability": "HABILIDADE ESPECIAL", "bonus": "USAR BÔNUS", "map": "ABRIR O MAPA"}   # Passos 156 e 157: nome de cada ação na tela de teclas
 const PREVIEW_BASE := 76.0   # = Hud.SPRINT_SIZE
 
 var _capturing := ""   # ação esperando a próxima tecla ("" = nenhuma)
 var _key_buttons := {}
+var _scheme_buttons := {}   # 1 = "A / D", 2 = "← / →" (Passo 157)
+var _map_hint: Label
 
 
 func _ready() -> void:
@@ -99,6 +101,7 @@ func _unhandled_input(event: InputEvent) -> void:   # Passo 128: ESC / botão vo
 
 
 # Passo 156 (DD-195): tamanho dos botões de toque (com um botão de amostra que muda junto), teclas do PC (clique e aperte a nova) e "restaurar".
+# Passo 157 (DD-196): no PC o primeiro bloco é "GIRAR COM": A / D ou setas, e o OUTRO par vira o do mapa; depois cada tecla pode ser trocada (PAUSE é sempre ESC).
 func _add_controls(box: Control) -> void:
 	var slider := _add_slider(box, "ButtonSize", "TAMANHO DOS BOTÕES (60% A 140%)", "btn_size")
 	var holder := CenterContainer.new()
@@ -112,8 +115,34 @@ func _add_controls(box: Control) -> void:
 	holder.add_child(sample)
 	slider.value_changed.connect(func(_v: float): sample.custom_minimum_size = Vector2.ONE * PREVIEW_BASE * Settings.button_scale())
 	if not OS.has_feature("mobile"):   # teclado só no PC
+		var scheme_label := Label.new()
+		scheme_label.text = "GIRAR O PERSONAGEM COM"
+		box.add_child(scheme_label)
+		var scheme_row := HBoxContainer.new()
+		scheme_row.name = "Scheme"
+		scheme_row.add_theme_constant_override("separation", 8)
+		box.add_child(scheme_row)
+		for scheme in [1, 2]:
+			var pick := Button.new()
+			pick.name = "Wasd" if scheme == 1 else "Arrows"
+			pick.text = "A  /  D" if scheme == 1 else "←  /  →"
+			pick.toggle_mode = true
+			pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			pick.custom_minimum_size = Vector2(0.0, 48.0)
+			pick.pressed.connect(func():
+				Settings.set_scheme(scheme)
+				_refresh_keys())
+			scheme_row.add_child(pick)
+			_scheme_buttons[scheme] = pick
+		_map_hint = Label.new()
+		_map_hint.name = "MapHint"
+		_map_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_map_hint.custom_minimum_size = Vector2(420.0, 0.0)
+		_map_hint.add_theme_font_size_override("font_size", 14)
+		_map_hint.add_theme_color_override("font_color", UiTheme.INK_DIM)
+		box.add_child(_map_hint)
 		var keys_label := Label.new()
-		keys_label.text = "TECLAS (clique e aperte a nova)"
+		keys_label.text = "TECLAS (aperte ENTER e depois a nova tecla)"
 		box.add_child(keys_label)
 		for action: String in Settings.KEY_ACTIONS:
 			var row := HBoxContainer.new()
@@ -150,6 +179,13 @@ func _start_capture(action: String) -> void:
 func _refresh_keys() -> void:
 	for action: String in _key_buttons:
 		(_key_buttons[action] as Button).text = "APERTE UMA TECLA..." if action == _capturing else Settings.key_label(action)
+	if _map_hint == null:
+		return
+	var left := Settings.key_for("left")
+	var right := Settings.key_for("right")
+	(_scheme_buttons[1] as Button).set_pressed_no_signal(left == KEY_A and right == KEY_D)
+	(_scheme_buttons[2] as Button).set_pressed_no_signal(left == KEY_LEFT and right == KEY_RIGHT)
+	_map_hint.text = "Com o mapa aberto (%s): %s giram o planeta, + e − dão zoom e ESC fecha o mapa. PAUSE: ESC." % [Settings.key_label("map"), Settings.map_pan_text()]
 
 
 # Esperando uma tecla: ela vai para a ação (ESC cancela; as proibidas, como as setas e o ENTER, são ignoradas sem sair da espera).

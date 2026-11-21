@@ -72,7 +72,7 @@ func _run() -> void:
 	# 1. Pronto no início; outra tecla e o eco do SHIFT não ligam
 	if not _check(skills.sprint_ready(1) and not skills.sprint_running(1), "a carga começa pronta"): return
 	skills._unhandled_input(_key(KEY_A))
-	skills._unhandled_input(_key(KEY_SHIFT, true))
+	skills._unhandled_input(_key(KEY_ALT, true))
 	if not _check(not skills.sprint_running(1) and _used.is_empty(), "só SHIFT (sem eco) liga o sprint"): return
 
 	# 9a. Botão da HUD: existe, tem tamanho de dedo, está pronto e segura o toque de direção
@@ -85,7 +85,7 @@ func _run() -> void:
 
 	# 3. Distância: sem sprint x com sprint, o mesmo passo
 	var normal := _step(runner, 0.05)
-	skills._unhandled_input(_key(KEY_SHIFT))
+	skills._unhandled_input(_key(KEY_ALT))
 	if not _check(skills.sprint_running(1) and not skills.sprint_ready(1), "SHIFT liga o sprint e gasta a carga"): return
 	if not _check(absf(runner.move_speed - base * 1.8) < 0.001, "velocidade ×1,8 (%.2f)" % runner.move_speed): return
 	if not _check(_used.size() == 1 and _used[0][0] == 1 and absf(_used[0][1] - 1.2) < 0.001, "sprint_used(1, recarga) emitido (%s)" % [_used]): return
@@ -95,7 +95,7 @@ func _run() -> void:
 	if not _check(button.disabled and button.text.begins_with("1."), "recarregando: botão apagado com os segundos (%s)" % button.text): return
 
 	# 2. Recarregando: outro SHIFT não faz nada
-	skills._unhandled_input(_key(KEY_SHIFT))
+	skills._unhandled_input(_key(KEY_ALT))
 	if not _check(_used.size() == 1 and absf(runner.move_speed - base * 1.8) < 0.001, "durante a recarga, SHIFT não faz nada"): return
 
 	# 4. O sprint acaba sozinho (0,3 s); a carga só volta depois de 1,2 s do uso
@@ -108,12 +108,12 @@ func _run() -> void:
 
 	# 5. Fora de campo não vale e não gasta a carga
 	runner._aboard_ship = true
-	skills._unhandled_input(_key(KEY_SHIFT))
+	skills._unhandled_input(_key(KEY_ALT))
 	if not _check(not skills.sprint_running(1) and skills.sprint_ready(1) and _used.size() == 1, "embarcado: SHIFT não gasta a carga"): return
 	runner._aboard_ship = false
 
 	# 6. Pausa congela o relógio: o sprint e a recarga ficam parados
-	skills._unhandled_input(_key(KEY_SHIFT))
+	skills._unhandled_input(_key(KEY_ALT))
 	if not _check(skills.sprint_running(1), "sprint ligado de novo"): return
 	var left: float = skills.sprint_cooldown_left(1)
 	paused = true
