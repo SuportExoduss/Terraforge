@@ -277,7 +277,7 @@ func _tick_bots() -> void:
 	for node in runners:
 		var bot := node as PlanetRunner
 		var civ := bot.get_node_or_null("Civilization") as Civilization
-		if civ == null or civ.id == Civilization.PLAYER_ID or _cooldowns.has(civ.id) or not bot.is_active_in_field():
+		if civ == null or not _is_bot(bot) or _cooldowns.has(civ.id) or not bot.is_active_in_field():
 			continue
 		for other_node in runners:
 			var other := other_node as PlanetRunner
@@ -287,12 +287,17 @@ func _tick_bots() -> void:
 				break
 
 
+## Quem dirige o corredor é um BotSteering? (o jogador humano nunca é; no simulador de equilíbrio, sim.)
+func _is_bot(runner: PlanetRunner) -> bool:
+	return runner.get_node_or_null("Steering") is BotSteering
+
+
 # Bot: usa a habilidade do bioma dele por regra simples (ver DD-183, 3); sem alvo/sem o que curar use_ability já recusa.
 func _tick_bot_abilities() -> void:
 	for node in get_tree().get_nodes_in_group("runners"):
 		var bot := node as PlanetRunner
 		var civ := bot.get_node_or_null("Civilization") as Civilization
-		if civ == null or civ.id == Civilization.PLAYER_ID or _ability_cd.has(civ.id) or not bot.is_active_in_field():
+		if civ == null or not _is_bot(bot) or _ability_cd.has(civ.id) or not bot.is_active_in_field():
 			continue
 		var kind := ability_kind(civ.id)
 		var health := bot.get_node_or_null("Health") as Health
