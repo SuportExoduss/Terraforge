@@ -17,7 +17,7 @@ const PHASE_OF := {
 	"PlanetRunner": Phase.GAMEPLAY, "RunnerTrail": Phase.GAMEPLAY, "TrailCutSensor": Phase.GAMEPLAY,
 	"Health": Phase.GAMEPLAY, "HomeTerritory": Phase.GAMEPLAY, "TerritoryMap": Phase.GAMEPLAY,
 	"MatchTimer": Phase.GAMEPLAY, "MatchFlow": Phase.GAMEPLAY, "MatchReplay": Phase.GAMEPLAY,
-	"BonusSystem": Phase.GAMEPLAY,
+	"BonusSystem": Phase.GAMEPLAY, "SkillSystem": Phase.GAMEPLAY,
 	"NetSession": Phase.NETWORK, "MatchServer": Phase.NETWORK,
 	"BotSteering": Phase.AI, "DefenderSystem": Phase.AI,
 	"GlobalEvent": Phase.WORLD, "MeteorEventSystem": Phase.WORLD, "ObstacleSystem": Phase.WORLD,

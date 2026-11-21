@@ -34,6 +34,7 @@
 [ext_resource type="Script" path="res://scripts/world/stampede_event.gd" id="32"]
 [ext_resource type="Script" path="res://scripts/world/leader_crown.gd" id="33"]
 [ext_resource type="Script" path="res://scripts/ui/pause_panel.gd" id="34"]
+[ext_resource type="Script" path="res://scripts/world/skill_system.gd" id="35"]
 
 [node name="Match" type="Node"]
 
@@ -104,6 +105,9 @@ script = ExtResource("11")
 
 [node name="Defenders" type="Node3D" parent="."]
 script = ExtResource("12")
+
+[node name="Skills" type="Node" parent="."]
+script = ExtResource("35")
 
 [node name="FirstConquest" type="Node3D" parent="."]
 script = ExtResource("31")
