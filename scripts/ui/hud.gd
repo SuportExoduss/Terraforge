@@ -38,6 +38,7 @@ const JOYSTICK_RADIUS := 60.0   # = PlayerSteering.joystick_radius_pixels
 const KNOB_RADIUS := 22.0
 const PAUSE_SIZE := 52.0
 const SPRINT_SIZE := 76.0   # Passo 143: botão redondo de dedo, canto inferior direito
+const ABILITY_GAP := 12.0   # Passo 147: o botão da habilidade fica à esquerda do SPRINT
 
 var _clock: Label
 var _score: Label
@@ -62,6 +63,9 @@ var _joystick: Control
 var _bonus_column: VBoxContainer
 var _sprint_button: Button           # Passo 143 (DD-182): sprint; apagado + segundos enquanto recarrega
 var _sprint_left := 0.0              # segundos que faltam para a carga do sprint (0 = pronta)
+var _ability_button: Button          # Passo 147 (DD-183): habilidade do bioma; só aparece quando o SkillSystem avisa a carga
+var _ability_left := 0.0             # segundos que faltam para a habilidade (0 = pronta)
+var _ability_icon := "?"             # a letra do bioma no botão
 var _stock_button: Button            # Passo 60: próximo bônus guardado; toque ou ESPAÇO usa
 var _bonus_rows: Dictionary = {}     # nome do bônus -> linha (Top/Chip + Top/Bonus)
 var _bonus_until: Dictionary = {}    # nome -> {until_ms, timed}
@@ -116,6 +120,7 @@ func _ready() -> void:
 	_build_bonus_column(root)
 	_build_pause_button(root)
 	_build_sprint_button(root)
+	_build_ability_button(root)
 	_joystick = Control.new()
 	_joystick.name = "Joystick"
 	_joystick.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -141,6 +146,7 @@ func _ready() -> void:
 	EventBus.bonus_activated.connect(_on_bonus)
 	EventBus.bonus_stock_changed.connect(_on_stock)
 	EventBus.sprint_used.connect(_on_sprint_used)
+	EventBus.ability_charging.connect(_on_ability_charging)
 	if Services.match_def != null and (Services.match_def.tutorial or (Settings.tips_on() and int(Profile.data.get("matches", 0)) < TutorialCoach.MEMORY_MATCHES)):
 		var coach := TutorialCoach.new()   # Passo 106: a primeira partida ensina jogando; Passo 130: as próximas, dicas de contexto (uma vez na vida)
 		coach.name = "Coach"
@@ -180,6 +186,9 @@ func _process(delta: float) -> void:
 	if _sprint_left > 0.0:   # a pausa da árvore também para este relógio (igual ao SkillSystem)
 		_sprint_left = maxf(_sprint_left - delta, 0.0)
 		_refresh_sprint()
+	if _ability_left > 0.0:
+		_ability_left = maxf(_ability_left - delta, 0.0)
+		_refresh_ability()
 	_joystick.visible = TouchSteering.is_active
 	if _joystick.visible:
 		_joystick.queue_redraw()
@@ -328,6 +337,40 @@ func _on_sprint_used(owner_id: int, cooldown: float) -> void:
 func _refresh_sprint() -> void:
 	_sprint_button.disabled = _sprint_left > 0.0
 	_sprint_button.text = "%.1f" % _sprint_left if _sprint_left > 0.0 else "»"
+
+
+# Passo 147 (DD-183): HABILIDADE ESPECIAL do bioma. À esquerda do SPRINT; mesma regra de toque; recarregando, apaga e mostra os segundos.
+func _build_ability_button(parent: Control) -> void:
+	_ability_button = Button.new()
+	_ability_button.name = "AbilityButton"
+	_ability_button.focus_mode = Control.FOCUS_NONE   # E é o atalho
+	_ability_button.add_theme_font_size_override("font_size", 30)
+	_ability_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_ability_button.offset_right = -16.0 - SPRINT_SIZE - ABILITY_GAP
+	_ability_button.offset_left = _ability_button.offset_right - SPRINT_SIZE
+	_ability_button.offset_top = -24.0 - SPRINT_SIZE
+	_ability_button.offset_bottom = -24.0
+	_ability_button.button_down.connect(TouchSteering.set_ui_pointer_held.bind(true))
+	_ability_button.button_up.connect(TouchSteering.set_ui_pointer_held.bind(false))
+	_ability_button.pressed.connect(func(): EventBus.ability_requested.emit(Civilization.PLAYER_ID))
+	_ability_button.visible = false   # sem SkillSystem (ou antes da largada) não há habilidade para mostrar
+	parent.add_child(_ability_button)
+
+
+func _on_ability_charging(owner_id: int, cooldown: float, ability_id: String) -> void:
+	if owner_id != Civilization.PLAYER_ID:
+		return
+	var ability := CivilizationCatalog.ability_named(ability_id)
+	_ability_icon = ability.get("icon", "?")
+	_ability_button.tooltip_text = "%s (E)" % ability.get("name", "")
+	_ability_button.visible = true
+	_ability_left = cooldown
+	_refresh_ability()
+
+
+func _refresh_ability() -> void:
+	_ability_button.disabled = _ability_left > 0.0
+	_ability_button.text = "%d" % ceili(_ability_left) if _ability_left > 0.0 else _ability_icon
 
 
 func _on_pause_changed(paused: bool) -> void:

@@ -28,6 +28,9 @@ signal obstacles_cleared(center: Vector3, radius: float, seconds: float)   # SYS
 signal respawn_countdown(owner_id: int, seconds_remaining: int)
 signal sprint_requested(owner_id: int)   # DD-182: pedido de sprint (botão da HUD / SHIFT)
 signal sprint_used(owner_id: int, cooldown_seconds: float)   # DD-182: sprint ligado; a carga volta em `cooldown_seconds`
+signal ability_requested(owner_id: int)   # DD-183: pedido da habilidade do bioma (botão da HUD / E)
+signal ability_used(owner_id: int, ability_id: String)   # DD-183: habilidade disparada (som, efeitos)
+signal ability_charging(owner_id: int, cooldown_seconds: float, ability_id: String)   # DD-183: a carga volta em `cooldown_seconds` (na largada e a cada uso)
 signal territory_cells_claimed(owner_id: int, cell_positions: PackedVector3Array, cell_spacing: float)
 signal territory_cells_converted(conqueror_id: int, planet_fraction: float)   # parte do planeta tomada de OUTRAS civilizações
 signal territory_taken(conqueror_id: int, victim_id: int, planet_fraction: float)   # DD-186: quanto do planeta ESTA vítima perdeu neste anúncio

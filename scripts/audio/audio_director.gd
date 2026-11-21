@@ -55,6 +55,7 @@ func _ready() -> void:
 	EventBus.territory_cells_converted.connect(func(id, _f): if id == Civilization.PLAYER_ID: play(convert_sound(civilization)))
 	EventBus.trail_cut.connect(func(_victim, attacker): if attacker == Civilization.PLAYER_ID: play("cut"))
 	EventBus.bonus_activated.connect(func(id, _k, _s): if id == Civilization.PLAYER_ID: play("bonus"))
+	EventBus.ability_used.connect(func(id, _k): if id == Civilization.PLAYER_ID: play("bonus"))
 	EventBus.global_event_warning.connect(func(_n, _s): play("warning"))
 	EventBus.respawn_countdown.connect(_on_countdown)
 	EventBus.health_changed.connect(_on_health)
