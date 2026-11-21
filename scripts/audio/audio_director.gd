@@ -25,6 +25,9 @@ const SOUNDS := {
 	"damage": [[160, 60, 0.25, 0.7, 0.3]],
 	"heartbeat": [[75, 50, 0.09, 0.8, 0.0], [50, 50, 0.07, 0.0, 0.0], [65, 45, 0.1, 0.7, 0.0]],   # Passo 76: "tum-tum" grave de pouca vida
 	"bonus": [[880, 880, 0.06, 0.45, 0.0], [1175, 1175, 0.06, 0.45, 0.0], [1568, 1568, 0.16, 0.5, 0.0]],
+	"sprint": [[300, 1300, 0.16, 0.5, 0.45]],   # Passo 152: "fiu" de corrida (tom subindo com ruído)
+	"ability": [[523, 784, 0.07, 0.45, 0.1], [784, 1175, 0.07, 0.45, 0.1], [1175, 1568, 0.16, 0.5, 0.15]],   # arpejo que sobe e "abre"
+	"tame": [[330, 330, 0.08, 0.5, 0.0], [415, 415, 0.08, 0.5, 0.0], [494, 494, 0.08, 0.5, 0.0], [659, 659, 0.2, 0.55, 0.0]],   # defensor capturado: fanfarra grave
 	"warning": [[660, 660, 0.12, 0.5, 0.0], [440, 440, 0.14, 0.5, 0.0]],
 	"tick": [[800, 800, 0.06, 0.4, 0.0]],
 	"go": [[1200, 1200, 0.25, 0.5, 0.0]],
@@ -55,7 +58,9 @@ func _ready() -> void:
 	EventBus.territory_cells_converted.connect(func(id, _f): if id == Civilization.PLAYER_ID: play(convert_sound(civilization)))
 	EventBus.trail_cut.connect(func(_victim, attacker): if attacker == Civilization.PLAYER_ID: play("cut"))
 	EventBus.bonus_activated.connect(func(id, _k, _s): if id == Civilization.PLAYER_ID: play("bonus"))
-	EventBus.ability_used.connect(func(id, _k): if id == Civilization.PLAYER_ID: play("bonus"))
+	EventBus.sprint_used.connect(func(id, _c): if id == Civilization.PLAYER_ID: play("sprint"))
+	EventBus.ability_used.connect(func(id, _k): if id == Civilization.PLAYER_ID: play("ability"))
+	EventBus.defender_captured.connect(func(conqueror, _v): if conqueror == Civilization.PLAYER_ID: play("tame"))
 	EventBus.global_event_warning.connect(func(_n, _s): play("warning"))
 	EventBus.respawn_countdown.connect(_on_countdown)
 	EventBus.health_changed.connect(_on_health)

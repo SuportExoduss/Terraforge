@@ -6,6 +6,9 @@ extends RefCounted
 
 const PATTERNS := {
 	"capture": [35, 0.4],
+	"sprint": [40, 0.5],   # Passo 152: sprint, habilidade e defensor capturado
+	"ability": [60, 0.7],
+	"tame": [70, 0.6],
 	"cut": [55, 0.6],
 	"hit": [90, 0.9],
 	"eliminated": [300, 1.0],
@@ -43,4 +46,7 @@ static func connect_events(bus: Object) -> void:
 	bus.trail_cut.connect(func(_victim: int, attacker: int): if attacker == Civilization.PLAYER_ID: pulse("cut"))
 	bus.damage_taken.connect(func(victim: int, _points: int, _cause: String): if victim == Civilization.PLAYER_ID: pulse("hit"))
 	bus.civilization_eliminated.connect(func(id: int): if id == Civilization.PLAYER_ID: pulse("eliminated"))
+	bus.sprint_used.connect(func(id: int, _cooldown: float): if id == Civilization.PLAYER_ID: pulse("sprint"))
+	bus.ability_used.connect(func(id: int, _kind: String): if id == Civilization.PLAYER_ID: pulse("ability"))
+	bus.defender_captured.connect(func(conqueror: int, _victim: int): if conqueror == Civilization.PLAYER_ID: pulse("tame"))
 	bus.match_ended.connect(func(): pulse("end"))

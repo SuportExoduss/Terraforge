@@ -38,6 +38,9 @@ func _run() -> void:
 		["cortar rastro", func(): bus.trail_cut.emit(2, player), "cut"],
 		["levar dano", func(): bus.damage_taken.emit(player, 1, "touro"), "hit"],
 		["ser eliminado", func(): bus.civilization_eliminated.emit(player), "eliminated"],
+		["sprint", func(): bus.sprint_used.emit(player, 3.5), "sprint"],
+		["habilidade", func(): bus.ability_used.emit(player, "lasso"), "ability"],
+		["capturar defensor", func(): bus.defender_captured.emit(player, 2), "tame"],
 		["fim da partida", func(): bus.match_ended.emit(), "end"],
 	]
 	for c in cases:
@@ -54,6 +57,9 @@ func _run() -> void:
 		["rival cortou outro rival", func(): bus.trail_cut.emit(3, 2)],
 		["rival levou dano", func(): bus.damage_taken.emit(2, 1, "touro")],
 		["rival eliminado", func(): bus.civilization_eliminated.emit(2)],
+		["sprint de rival", func(): bus.sprint_used.emit(2, 3.5)],
+		["habilidade de rival", func(): bus.ability_used.emit(2, "lasso")],
+		["defensor perdido", func(): bus.defender_captured.emit(2, player)],
 	]
 	for q in quiet:
 		haptics._last_msec = -100000
