@@ -44,6 +44,12 @@ func build(parent: VBoxContainer) -> void:
 	join.add_theme_font_size_override("font_size", 22)
 	join.pressed.connect(_toggle)
 	parent.add_child(join)
+	address.focus_neighbor_bottom = address.get_path_to(port)   # Passo 158: ← → são do cursor do campo; ↓ ↑ andam em fila (endereço, porta, ENTRAR, CRIAR)
+	port.focus_neighbor_top = port.get_path_to(address)
+	port.focus_neighbor_bottom = port.get_path_to(join)
+	join.focus_neighbor_top = join.get_path_to(port)
+	address.text_submitted.connect(func(_text: String): port.grab_focus())   # ENTER no campo avança
+	port.text_submitted.connect(func(_text: String): join.grab_focus())
 	host_button = Button.new()
 	host_button.name = "Host"
 	host_button.text = "CRIAR SALA (2 VAGAS)"
@@ -70,6 +76,17 @@ func _field(row: HBoxContainer, field_name: String, text: String) -> LineEdit:
 	edit.name = field_name
 	edit.text = text
 	edit.add_theme_font_size_override("font_size", 20)
+	edit.gui_input.connect(func(event: InputEvent):   # Passo 158: o campo "come" ↑ ↓ e ESC; aqui ↑ ↓ passam para o vizinho e ESC volta (← → seguem sendo do cursor)
+		if event.is_action_pressed("ui_cancel"):
+			edit.accept_event()
+			close()
+			return
+		var up := event.is_action_pressed("ui_up")
+		if up or event.is_action_pressed("ui_down"):
+			var next := edit.find_valid_focus_neighbor(SIDE_TOP if up else SIDE_BOTTOM)
+			if next != null:
+				next.grab_focus()
+			edit.accept_event())
 	row.add_child(edit)
 	return edit
 
@@ -99,6 +116,7 @@ func _host() -> void:
 		return
 	address.text = "127.0.0.1"
 	host_button.visible = false
+	join.grab_focus()   # o foco estava em CRIAR SALA, que acabou de sumir
 	join.text = "CANCELAR"
 	_tries = 0
 	status.text = "Abrindo a sala…"

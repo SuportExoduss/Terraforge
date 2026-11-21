@@ -13,6 +13,8 @@ var _capturing := ""   # ação esperando a próxima tecla ("" = nenhuma)
 var _key_buttons := {}
 var _scheme_buttons := {}   # 1 = "A / D", 2 = "← / →" (Passo 157)
 var _map_hint: Label
+var _first: Control   # Passo 158: onde o teclado começa (EFEITOS)
+var _back: Button
 
 
 func _ready() -> void:
@@ -86,7 +88,9 @@ func _ready() -> void:
 	tips.toggled.connect(func(on: bool): Settings.set_value("tips", 1.0 if on else 0.0))
 	box.add_child(tips)
 
-	MenuScreen.pinned_back(self, close).grab_focus()   # Passo 129: preso na base da tela
+	_back = MenuScreen.pinned_back(self, close)   # Passo 129: preso na base da tela
+	_first = MenuScreen.first_focusable(box)   # Passo 158: o teclado começa no primeiro controle, não no VOLTAR
+	(_first if _first != null else _back).grab_focus()
 
 
 func close() -> void:
@@ -98,6 +102,9 @@ func _unhandled_input(event: InputEvent) -> void:   # Passo 128: ESC / botão vo
 	if event.is_action_pressed("ui_cancel"):
 		accept_event()
 		close()
+	elif MenuScreen.is_nav(event) and get_viewport().gui_get_focus_owner() == null:   # Passo 158: foco perdido: a próxima seta o devolve
+		accept_event()
+		(_first if _first != null else _back).grab_focus()
 
 
 # Passo 156 (DD-195): tamanho dos botões de toque (com um botão de amostra que muda junto), teclas do PC (clique e aperte a nova) e "restaurar".

@@ -41,7 +41,35 @@ func _ready() -> void:
 	box.add_child(body)
 	build(body)
 	back = pinned_back(self, close)
-	back.grab_focus()
+	focus_start()
+
+
+## Passo 158 (DD-197): o teclado já começa dentro da tela, no primeiro controle habilitado do corpo (as setas e o ENTER agem de
+## imediato); sem nenhum (tela só de leitura), no VOLTAR.
+func focus_start() -> void:
+	var first := first_focusable(body)
+	(first if first != null else back).grab_focus()
+
+
+## Primeiro botão, controle deslizante ou campo habilitado e visível sob `root` (na ordem da tela); `null` se não houver.
+static func first_focusable(root: Node) -> Control:
+	for found in root.find_children("*", "Control", true, false):
+		var c := found as Control
+		if c.focus_mode == Control.FOCUS_NONE or not c.is_visible_in_tree():
+			continue
+		if c is BaseButton and (c as BaseButton).disabled:
+			continue
+		if c is BaseButton or c is Slider or c is LineEdit:
+			return c
+	return null
+
+
+## Passo 158: setas, TAB ou ENTER — as teclas que só fazem sentido com algum controle focado.
+static func is_nav(event: InputEvent) -> bool:
+	for action in ["ui_up", "ui_down", "ui_left", "ui_right", "ui_focus_next", "ui_focus_prev", "ui_accept"]:
+		if event.is_action_pressed(action):
+			return true
+	return false
 
 
 ## Área que ocupa a tela toda, centraliza o que recebe e ganha barra de rolagem vertical quando o conteúdo não cabe
@@ -98,6 +126,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		accept_event()
 		close()
+	elif is_nav(event) and get_viewport().gui_get_focus_owner() == null:   # foco perdido (o botão focado sumiu): a próxima seta o devolve
+		accept_event()
+		focus_start()
 
 
 func make_label(text: String, size := 20, node_name := "") -> Label:

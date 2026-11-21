@@ -107,6 +107,8 @@ static func build() -> Theme:
 	fill.content_margin_bottom = 4
 	theme.set_stylebox("grabber_area", "HSlider", fill)
 	theme.set_stylebox("grabber_area_highlight", "HSlider", fill)
+	theme.set_icon("grabber_highlight", "HSlider", _dot(26, FORGE_HI, Color.WHITE))   # Passo 158: o motor usa este ícone no foco/mouse: com as setas o controle deslizante grande e laranja mostra onde está
+	theme.set_stylebox("focus", "CheckButton", _ring(FORGE))   # e o liga/desliga ganha o mesmo anel dos botões
 
 	_cached = theme
 	return theme
@@ -202,6 +204,19 @@ static func _glow(bg: Color, border: Color) -> StyleBoxFlat:
 	style.shadow_color = Color(1.0, 0.5, 0.1, 0.38)
 	style.shadow_size = 12
 	return style
+
+
+## Bolinha com borda (miolo `fill`, anel `ring`) de `size` px, para a alça do controle deslizante com foco.
+static func _dot(size: int, fill: Color, ring: Color) -> ImageTexture:
+	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var half := size / 2.0
+	for y in size:
+		for x in size:
+			var d := Vector2(x + 0.5 - half, y + 0.5 - half).length()
+			var color := fill if d < half - 3.0 else ring
+			color.a *= clampf(half - d, 0.0, 1.0)   # borda suave
+			image.set_pixel(x, y, color)
+	return ImageTexture.create_from_image(image)
 
 
 ## Anel de foco (teclado/controle): só a borda, sem preencher.

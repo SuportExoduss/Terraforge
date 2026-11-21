@@ -76,6 +76,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and (is_open or can_open()):   # ESC (e B do controle); no pós-jogo é do replay/resultados
 		get_viewport().set_input_as_handled()
 		back()
+	elif is_open and _settings == null and MenuScreen.is_nav(event) and get_viewport().gui_get_focus_owner() == null:   # Passo 158: foco perdido: a próxima seta o devolve
+		get_viewport().set_input_as_handled()
+		_show(_confirm.visible)
 
 
 ## Voltar (ESC / botão do Android / "II" do HUD): sem pausa abre; com pausa fecha a camada mais interna.
